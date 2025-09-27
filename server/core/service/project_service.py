@@ -15,7 +15,11 @@ class ProjectService:
         pass
 
     def create_project(
-        self, owner_id: str, name: str, description: Optional[str] = None
+        self,
+        owner_id: str,
+        name: str,
+        description: Optional[str] = None,
+        language_code: Optional[str] = "en",
     ) -> Project:
         """Create a new project"""
 
@@ -25,6 +29,7 @@ class ProjectService:
                 owner_id=owner_id,
                 name=name,
                 description=description,
+                language_code=language_code or "en",
                 created_at=datetime.now(),
                 archived_at=None,
             )
@@ -72,6 +77,7 @@ class ProjectService:
         project_id: str,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        language_code: Optional[str] = None,
     ) -> Project:
         """Update a project"""
         with SessionLocal() as db:
@@ -84,6 +90,8 @@ class ProjectService:
                     project.name = name
                 if description is not None:
                     project.description = description
+                if language_code is not None:
+                    project.language_code = language_code
 
                 db.commit()
                 db.refresh(project)

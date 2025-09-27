@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from core.config import app_config
 from core.logger import get_logger
-from db.model import Document, DocumentSegment
+from db.model import Document, DocumentSegment, Project
 from db.session import SessionLocal
 
 logger = get_logger(__name__)
@@ -54,7 +54,7 @@ class DocumentService:
         self.embeddings = AzureOpenAIEmbeddings(
             azure_deployment=app_config.AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
             azure_endpoint=app_config.AZURE_OPENAI_ENDPOINT,
-            api_version=app_config.AZURE_OPENAI_API_VERSION,
+            api_version="2024-12-01-preview",
             azure_ad_token_provider=self.token_provider,
         )
 
@@ -429,6 +429,12 @@ class DocumentService:
             )
             return [doc.id for doc in documents]
 
+    def _get_project_language_code(self, project_id: str) -> str:
+        """Get the language code for a project."""
+        with self._get_db_session() as db:
+            project = db.query(Project).filter(Project.id == project_id).first()
+            return project.language_code if project else "en"
+
     async def _create_vector_store(self) -> PGVectorStore:
         """Create PGVectorStore instance."""
         async_url = app_config.DATABASE_URL.replace(
@@ -476,6 +482,12 @@ class DocumentService:
                 f"Getting grounded response for project {project_id} with query: '{query[:100]}...' (top_k={top_k})"
             )
 
+            # Get project language code
+            language_code = self._get_project_language_code(project_id)
+            logger.info(
+                f"Using language code: {language_code} for project {project_id}"
+            )
+
             # Check if project has documents
             document_ids = self._get_project_document_ids(project_id)
             if not document_ids:
@@ -501,7 +513,9 @@ class DocumentService:
                 }
             )
 
-            qa_chain = self._create_qa_chain(llm, retriever, chat_history)
+            qa_chain = self._create_qa_chain(
+                llm, retriever, chat_history, language_code
+            )
             logger.info("Created QA chain")
 
             # Get response
@@ -540,6 +554,7 @@ class DocumentService:
         llm: AzureChatOpenAI,
         retriever,
         chat_history: Optional[List[Dict[str, str]]],
+        language_code: str = "en",
     ) -> RetrievalQA:
         """Create QA chain with custom prompt."""
         chat_history_context = self._build_chat_history_context(chat_history)
@@ -548,6 +563,8 @@ class DocumentService:
 Use the context from the documents to provide accurate and helpful responses. 
 If the context doesn't contain relevant information, say so clearly.
 Always cite which document(s) you're referencing when possible.
+
+IMPORTANT: Respond in {language_code} language. All your responses must be in {language_code}.
 
 {chat_history_context}
 
