@@ -33,6 +33,13 @@ resource "azurerm_postgresql_flexible_server_database" "main" {
   charset   = "utf8"
 }
 
+# Enable pgvector extension
+resource "azurerm_postgresql_flexible_server_configuration" "azure_extensions" {
+  name      = "azure.extensions"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "vector"
+}
+
 # Firewall rule to allow Azure services
 resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
   name             = "${local.name_prefix}-db-allow-azure-services"

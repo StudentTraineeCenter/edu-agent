@@ -36,37 +36,26 @@ output "openai_api_key" {
   sensitive   = true
 }
 
+output "gpt4o_deployment_name" {
+  description = "Name of the GPT-4o deployment"
+  value       = azurerm_cognitive_deployment.gpt4o.name
+}
+
 output "gpt4o_mini_deployment_name" {
   description = "Name of the GPT-4o Mini deployment"
   value       = azurerm_cognitive_deployment.gpt4o_mini.name
 }
 
-output "text_embedding_deployment_name" {
-  description = "Name of the text embedding deployment"
-  value       = azurerm_cognitive_deployment.text_embedding.name
+output "text_embedding_3_large_deployment_name" {
+  description = "Name of the text-embedding-3-large deployment"
+  value       = azurerm_cognitive_deployment.text_embedding_3_large.name
 }
 
-output "search_service_name" {
-  description = "Name of the Azure AI Search service"
-  value       = azurerm_search_service.main.name
+output "text_embedding_3_small_deployment_name" {
+  description = "Name of the text-embedding-3-small deployment"
+  value       = azurerm_cognitive_deployment.text_embedding_3_small.name
 }
 
-output "search_service_endpoint" {
-  description = "Endpoint of the Azure AI Search service"
-  value       = "https://${azurerm_search_service.main.name}.search.windows.net"
-}
-
-output "search_service_admin_key" {
-  description = "Admin key for the Azure AI Search service"
-  value       = azurerm_search_service.main.primary_key
-  sensitive   = true
-}
-
-output "search_service_query_key" {
-  description = "Query key for the Azure AI Search service"
-  value       = azurerm_search_service.main.secondary_key
-  sensitive   = true
-}
 
 output "document_intelligence_endpoint" {
   description = "Endpoint of the Azure AI Document Intelligence service"
@@ -77,4 +66,9 @@ output "document_intelligence_key" {
   description = "Key for the Azure AI Document Intelligence service"
   value       = azurerm_cognitive_account.document_intelligence.primary_access_key
   sensitive   = true
+}
+
+output "storage_account_identity_principal_id" {
+  description = "Principal ID of the storage account managed identity"
+  value       = azurerm_storage_account.main.identity[0].principal_id
 }
