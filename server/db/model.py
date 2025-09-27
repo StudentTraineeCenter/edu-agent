@@ -33,6 +33,7 @@ class Project(Base):
     owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    language_code: Mapped[str] = mapped_column(String, default="en")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -145,3 +146,101 @@ class Chat(Base):
     # Relationships
     project = relationship("Project", back_populates="chats")
     user = relationship("User", back_populates="chats")
+
+
+class FlashcardGroup(Base):
+    __tablename__ = "flashcard_groups"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    name: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    project = relationship("Project")
+    flashcards = relationship(
+        "Flashcard", back_populates="group", cascade="all, delete-orphan"
+    )
+
+
+class Flashcard(Base):
+    __tablename__ = "flashcards"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    group_id: Mapped[str] = mapped_column(String, ForeignKey("flashcard_groups.id"))
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+
+    question: Mapped[str] = mapped_column(Text)
+    answer: Mapped[str] = mapped_column(Text)
+    difficulty_level: Mapped[str] = mapped_column(
+        String, default="medium"
+    )  # easy, medium, hard
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    group = relationship("FlashcardGroup", back_populates="flashcards")
+    project = relationship("Project")
+
+
+class Quiz(Base):
+    __tablename__ = "quizzes"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+
+    name: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    project = relationship("Project")
+    questions = relationship(
+        "QuizQuestion", back_populates="quiz", cascade="all, delete-orphan"
+    )
+
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    quiz_id: Mapped[str] = mapped_column(String, ForeignKey("quizzes.id"))
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+
+    question_text: Mapped[str] = mapped_column(Text)
+    option_a: Mapped[str] = mapped_column(Text)
+    option_b: Mapped[str] = mapped_column(Text)
+    option_c: Mapped[str] = mapped_column(Text)
+    option_d: Mapped[str] = mapped_column(Text)
+    correct_option: Mapped[str] = mapped_column(String)  # a, b, c, d
+    explanation: Mapped[str] = mapped_column(Text, nullable=True)
+    difficulty_level: Mapped[str] = mapped_column(
+        String, default="medium"
+    )  # easy, medium, hard
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    quiz = relationship("Quiz", back_populates="questions")
+    project = relationship("Project")

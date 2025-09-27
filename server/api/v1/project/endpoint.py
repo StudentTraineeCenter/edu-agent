@@ -38,7 +38,9 @@ def create_project(
             detail="Project with this name already exists",
         )
 
-    result = project_service.create_project(body.owner_id, body.name, body.description)
+    result = project_service.create_project(
+        body.owner_id, body.name, body.description, body.language_code
+    )
 
     return ProjectDto.model_validate(result)
 
@@ -105,7 +107,9 @@ def update_project(
     """Update a project by id"""
     logger.info(f"Updating project: {project_id}")
 
-    result = project_service.update_project(project_id, body.name, body.description)
+    result = project_service.update_project(
+        project_id, body.name, body.description, body.language_code
+    )
     return ProjectDto.model_validate(result)
 
 
