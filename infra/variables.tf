@@ -22,14 +22,15 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "database_admin_username" {
-  description = "Username for the database admin"
-  type        = string
-  default     = "postgres"
-}
+# Database variables (DISABLED - PostgreSQL disabled)
+# variable "database_admin_username" {
+#   description = "Username for the database admin"
+#   type        = string
+#   default     = "postgres"
+# }
 
-variable "database_admin_password" {
-  description = "Password for the database admin"
-  type        = string
-  default     = "postgres"
-}
+# variable "database_admin_password" {
+#   description = "Password for the database admin"
+#   type        = string
+#   default     = "postgres"
+# }

@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import uvicorn
+import logging
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 from api.v1 import v1_router
@@ -11,6 +12,8 @@ APP_NAME = "EduAgent API"
 
 logger = get_logger(__name__)
 
+az_logger = logging.getLogger("azure")
+az_logger.setLevel(logging.ERROR)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

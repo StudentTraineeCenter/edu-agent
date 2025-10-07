@@ -24,6 +24,12 @@ class SourceDto(BaseModel):
     title: str = Field(description="Title/name of the source document")
     document_id: str = Field(description="ID of the source document")
     segment_order: int = Field(description="Order of the segment in the document")
+    page_number: Optional[int] = Field(
+        None, description="Page number where the content is located"
+    )
+    preview_url: Optional[str] = Field(
+        None, description="URL to preview/download the document"
+    )
     score: float = Field(description="Relevance score of the source")
 
 
@@ -96,3 +102,13 @@ class ChatCompletionResponse(BaseModel):
         description="Source documents used for the response"
     )
     chat_id: str = Field(description="ID of the chat")
+
+
+class StreamingChatMessage(BaseModel):
+    """Response model for streaming chat message chunks."""
+
+    chunk: str = Field(description="Text chunk of the response")
+    done: bool = Field(description="Whether this is the final chunk")
+    sources: Optional[List[SourceDto]] = Field(
+        default=None, description="Source documents (only included in final chunk)"
+    )
