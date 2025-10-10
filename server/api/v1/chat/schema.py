@@ -19,6 +19,7 @@ class SourceDto(BaseModel):
     """Response model for source document data."""
 
     id: str = Field(description="Unique ID of the source segment")
+    citation_index: int = Field(description="Citation number for [n] references")
     content: str = Field(description="Content of the source segment")
     title: str = Field(description="Title/name of the source document")
     document_id: str = Field(description="ID of the source document")

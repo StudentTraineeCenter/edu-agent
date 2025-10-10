@@ -657,12 +657,12 @@ class DocumentService:
             relevant_docs = await retriever.ainvoke(query)
             logger.info(f"Retrieved {len(relevant_docs)} relevant documents")
 
-            # Create context from relevant documents
+            # Create context from relevant documents with numbered citations
             context_parts = []
             for i, doc in enumerate(relevant_docs, 1):
                 title = doc.metadata.get("title", f"Document {i}")
                 content = doc.page_content[:1000]  # Limit content length
-                context_parts.append(f"Document {i} ({title}):\n{content}...")
+                context_parts.append(f"[{i}] {title}:\n{content}...")
 
             context = (
                 "\n\n".join(context_parts)
@@ -677,16 +677,18 @@ class DocumentService:
             # Build the prompt with context
             chat_history_context = self._build_chat_history_context(chat_history)
             prompt_template = f"""You are a helpful AI assistant that answers questions based on the provided documents.
-Use the context from the documents to provide accurate and helpful responses.
-If the context doesn't contain relevant information, say so clearly.
-Always cite which document(s) you're referencing when possible.
+
+CITATION INSTRUCTIONS:
+- When using information from the context below, cite the source using [n] where n is the document number
+- Place citations immediately after the relevant statement or claim
+- Example: "The study found that students learn better with active recall [1] while spaced repetition improves retention [2]."
+- If you don't know the answer or the context doesn't contain relevant information, say so clearly
 
 IMPORTANT: Respond in {language_code} language. All your responses must be in {language_code}.
 
 {chat_history_context}
 
-Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
+Context:
 {context}
 
 Question: {query}
@@ -705,7 +707,7 @@ Answer:"""
 
                 # Yield the final response with sources
                 sources = []
-                for doc in relevant_docs:
+                for i, doc in enumerate(relevant_docs, 1):
                     document_id = doc.metadata.get("document_id", "")
                     doc_info = (
                         self._get_document_info(document_id)
@@ -724,6 +726,7 @@ Answer:"""
                     sources.append(
                         {
                             "id": doc.metadata.get("id", ""),
+                            "citation_index": i,
                             "content": content,
                             "title": doc_info.get("title", ""),
                             "document_id": document_id,
@@ -786,17 +789,19 @@ Answer:"""
         """Create QA chain with custom prompt."""
         chat_history_context = self._build_chat_history_context(chat_history)
 
-        prompt_template = f"""You are a helpful AI assistant that answers questions based on the provided documents. 
-Use the context from the documents to provide accurate and helpful responses. 
-If the context doesn't contain relevant information, say so clearly.
-Always cite which document(s) you're referencing when possible.
+        prompt_template = f"""You are a helpful AI assistant that answers questions based on the provided documents.
+
+CITATION INSTRUCTIONS:
+- When using information from the context below, cite the source using [n] where n is the document number (starting from 1)
+- Place citations immediately after the relevant statement or claim
+- Example: "The study found that students learn better with active recall [1] while spaced repetition improves retention [2]."
+- If you don't know the answer or the context doesn't contain relevant information, say so clearly
 
 IMPORTANT: Respond in {language_code} language. All your responses must be in {language_code}.
 
 {chat_history_context}
 
-Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
+Context:
 {{context}}
 
 Question: {{question}}
@@ -859,7 +864,7 @@ Answer:"""
         sources = []
         document_cache = {}  # Cache document info to avoid repeated DB queries
 
-        for doc in source_documents:
+        for i, doc in enumerate(source_documents, 1):
             document_id = doc.metadata.get("document_id", "")
 
             # Get document info from cache or database
@@ -879,6 +884,7 @@ Answer:"""
             sources.append(
                 {
                     "id": doc.metadata.get("id", ""),
+                    "citation_index": i,
                     "content": content,
                     "title": doc_info.get("title", ""),
                     "document_id": document_id,
