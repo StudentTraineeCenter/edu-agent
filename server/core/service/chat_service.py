@@ -130,8 +130,13 @@ class ChatService:
                 sources = grounded_result["sources"]
 
                 new_messages = chat.messages + [
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": response, "sources": sources},
+                    {"role": "user", "content": message, "id": str(uuid4())},
+                    {
+                        "id": str(uuid4()),
+                        "role": "assistant",
+                        "content": response,
+                        "sources": sources,
+                    },
                 ]
 
                 chat.messages = new_messages
@@ -161,6 +166,10 @@ class ChatService:
                 if not chat:
                     raise ValueError(f"Chat with id {chat_id} not found")
 
+                # Generate message IDs upfront
+                user_message_id = str(uuid4())
+                assistant_message_id = str(uuid4())
+
                 # Stream the response using the document service
                 async for (
                     chunk_data
@@ -176,8 +185,9 @@ class ChatService:
                         sources = chunk_data.get("sources", [])
 
                         new_messages = chat.messages + [
-                            {"role": "user", "content": message},
+                            {"role": "user", "content": message, "id": user_message_id},
                             {
+                                "id": assistant_message_id,
                                 "role": "assistant",
                                 "content": response,
                                 "sources": sources,
@@ -188,17 +198,26 @@ class ChatService:
                         chat.updated_at = datetime.now()
                         db.commit()
 
-                        # Return the final chunk with updated chat_id
+                        # Return the final chunk with message_id
                         yield {
                             "chunk": chunk_data.get("chunk", ""),
                             "done": True,
                             "sources": sources,
                             "chat_id": chat_id,
+                            "id": assistant_message_id,
                         }
                     else:
-                        # Return the streaming chunk as-is
-                        yield chunk_data
+                        # Return streaming chunk with message_id
+                        yield {
+                            **chunk_data,
+                            "id": assistant_message_id,
+                        }
 
             except Exception as e:
                 logger.error(f"Error sending streaming message: {e}")
-                yield {"chunk": f"Error: {str(e)}", "done": True, "sources": []}
+                yield {
+                    "chunk": f"Error: {str(e)}",
+                    "done": True,
+                    "sources": [],
+                    "id": "",
+                }

@@ -36,6 +36,7 @@ class SourceDto(BaseModel):
 class ChatMessageDto(BaseModel):
     """Response model for chat message data."""
 
+    id: str = Field(description="Unique ID of the message")
     role: str = Field(description="Role of the message sender")
     content: str = Field(description="Content of the message")
     sources: Optional[List[SourceDto]] = Field(
@@ -107,6 +108,7 @@ class ChatCompletionResponse(BaseModel):
 class StreamingChatMessage(BaseModel):
     """Response model for streaming chat message chunks."""
 
+    id: str = Field(description="Unique ID of the message")
     chunk: str = Field(description="Text chunk of the response")
     done: bool = Field(description="Whether this is the final chunk")
     sources: Optional[List[SourceDto]] = Field(

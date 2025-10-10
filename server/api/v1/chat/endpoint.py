@@ -84,7 +84,11 @@ def list_chats(
     for chat in result:
         formatted_messages = []
         for msg in chat.messages:
-            message_data = {"role": msg["role"], "content": msg["content"]}
+            message_data = {
+                "role": msg["role"],
+                "content": msg["content"],
+                "id": msg["id"],
+            }
             if msg["role"] == "assistant" and "sources" in msg:
                 # Add citation_index to old sources that don't have it
                 sources_with_index = []
@@ -141,7 +145,7 @@ def get_chat(
     # Format messages with sources
     formatted_messages = []
     for msg in result.messages:
-        message_data = {"role": msg["role"], "content": msg["content"]}
+        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
         if msg["role"] == "assistant" and "sources" in msg:
             message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
         formatted_messages.append(ChatMessageDto(**message_data))
@@ -178,7 +182,7 @@ def update_chat(
     # Format messages with sources
     formatted_messages = []
     for msg in result.messages:
-        message_data = {"role": msg["role"], "content": msg["content"]}
+        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
         if msg["role"] == "assistant" and "sources" in msg:
             message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
         formatted_messages.append(ChatMessageDto(**message_data))
@@ -237,7 +241,7 @@ def list_chat_messages(
     # Format messages with sources
     formatted_messages = []
     for msg in chat.messages:
-        message_data = {"role": msg["role"], "content": msg["content"]}
+        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
         if msg["role"] == "assistant" and "sources" in msg:
             message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
         formatted_messages.append(ChatMessageDto(**message_data))
@@ -310,6 +314,7 @@ async def send_streaming_message(
                     chunk=chunk_data.get("chunk", ""),
                     done=chunk_data.get("done", False),
                     sources=sources_list,
+                    id=chunk_data.get("id", ""),
                 )
 
                 message_json = streaming_msg.model_dump_json()
