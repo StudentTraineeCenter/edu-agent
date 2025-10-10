@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, HTTPException, Response, Depends
 from fastapi.responses import StreamingResponse
-from typing import List
+from typing import AsyncGenerator, List
 
 from api.v1.chat.schema import (
     ChatCompletionRequest,
@@ -86,9 +86,13 @@ def list_chats(
         for msg in chat.messages:
             message_data = {"role": msg["role"], "content": msg["content"]}
             if msg["role"] == "assistant" and "sources" in msg:
-                message_data["sources"] = [
-                    SourceDto(**source) for source in msg["sources"]
-                ]
+                # Add citation_index to old sources that don't have it
+                sources_with_index = []
+                for i, source in enumerate(msg["sources"], 1):
+                    if "citation_index" not in source:
+                        source["citation_index"] = i
+                    sources_with_index.append(SourceDto(**source))
+                message_data["sources"] = sources_with_index
             formatted_messages.append(ChatMessageDto(**message_data))
 
         formatted_chats.append(
@@ -283,32 +287,44 @@ async def send_streaming_message(
 ):
     """Send a streaming message to a chat"""
 
-    async def generate_stream():
+    user_id = current_user.id
+
+    async def generate_stream() -> AsyncGenerator[str, None]:
         """Generate streaming response chunks"""
         try:
+            logger.info("Starting streaming response generation")
             async for chunk_data in chat_service.send_streaming_message(
-                chat_id, current_user.id, body.message
+                chat_id, user_id, body.message
             ):
+                logger.info(f"Received chunk_data: {chunk_data}")
+
+                # Format sources if present
+                sources_list = None
+                if chunk_data.get("done", False) and chunk_data.get("sources"):
+                    sources_list = [
+                        SourceDto(**source) for source in chunk_data["sources"]
+                    ]
+
                 # Create the streaming message object
                 streaming_msg = StreamingChatMessage(
                     chunk=chunk_data.get("chunk", ""),
                     done=chunk_data.get("done", False),
-                    sources=(
-                        chunk_data.get("sources")
-                        if chunk_data.get("done", False)
-                        else None
-                    ),
+                    sources=sources_list,
                 )
-                yield f"data: {streaming_msg.model_dump_json()}\n\n"
+
+                message_json = streaming_msg.model_dump_json()
+                sse_data = f"data: {message_json}\n\n"
+                logger.info(f"Yielding SSE: {sse_data[:100]}")
+                yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error(f"Error in streaming: {e}")
+            logger.error(f"Error in streaming: {e}", exc_info=True)
             error_msg = StreamingChatMessage(
                 chunk=f"Error: {str(e)}",
                 done=True,
-                sources=[],
+                sources=None,
             )
-            yield f"data: {error_msg.model_dump_json()}\n\n"
+            yield f"data: {error_msg.model_dump_json()}\n\n".encode("utf-8")
 
     return StreamingResponse(
         generate_stream(),
@@ -316,6 +332,7 @@ async def send_streaming_message(
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
         },
     )
