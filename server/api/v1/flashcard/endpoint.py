@@ -10,10 +10,12 @@ from api.v1.flashcard.schema import (
     FlashcardGroupDto,
     FlashcardDto,
 )
-from api.v1.deps import get_flashcard_service
+from api.v1.deps import get_flashcard_service, get_user
 
 from core.logger import get_logger
 from core.service.flashcard_service import FlashcardService
+
+from db.model import User
 
 logger = get_logger(__name__)
 
@@ -31,6 +33,7 @@ async def create_flashcard_group(
     project_id: str,
     request: CreateFlashcardGroupRequest,
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """Create a new flashcard group, optionally with generated flashcards."""
     try:
@@ -39,6 +42,7 @@ async def create_flashcard_group(
         group = await flashcard_service.create_flashcard_group_with_flashcards(
             project_id=project_id,
             count=request.flashcard_count,
+            user_id=current_user.id,
             user_prompt=request.user_prompt,
         )
 
@@ -75,12 +79,13 @@ async def create_flashcard_group(
 async def list_flashcard_groups(
     project_id: str,
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """List all flashcard groups for a project."""
     try:
         logger.info(f"Listing flashcard groups for project {project_id}")
 
-        groups = flashcard_service.get_flashcard_groups(project_id)
+        groups = flashcard_service.get_flashcard_groups(project_id, current_user.id)
 
         return FlashcardGroupListResponse(
             flashcard_groups=[FlashcardGroupDto(**group.__dict__) for group in groups],
@@ -105,12 +110,13 @@ async def list_flashcard_groups(
 async def get_flashcard_group(
     group_id: str = Path(..., description="Flashcard group ID"),
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """Get a specific flashcard group."""
     try:
         logger.info(f"Getting flashcard group {group_id}")
 
-        group = flashcard_service.get_flashcard_group(group_id)
+        group = flashcard_service.get_flashcard_group(group_id, current_user.id)
 
         if not group:
             raise HTTPException(
@@ -142,6 +148,7 @@ async def update_flashcard_group(
     group_id: str = Path(..., description="Flashcard group ID"),
     request: UpdateFlashcardGroupRequest = None,
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """Update a flashcard group."""
     try:
@@ -151,6 +158,7 @@ async def update_flashcard_group(
             group_id=group_id,
             name=request.name if request else None,
             description=request.description if request else None,
+            user_id=current_user.id,
         )
 
         if not updated_group:
@@ -181,12 +189,13 @@ async def update_flashcard_group(
 async def delete_flashcard_group(
     group_id: str = Path(..., description="Flashcard group ID"),
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """Delete a flashcard group."""
     try:
         logger.info(f"Deleting flashcard group {group_id}")
 
-        success = flashcard_service.delete_flashcard_group(group_id)
+        success = flashcard_service.delete_flashcard_group(group_id, current_user.id)
 
         if not success:
             raise HTTPException(
@@ -212,12 +221,15 @@ async def delete_flashcard_group(
 async def list_flashcards(
     group_id: str = Path(..., description="Flashcard group ID"),
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
 ):
     """List all flashcards in a group."""
     try:
         logger.info(f"Listing flashcards for group {group_id}")
 
-        flashcards = flashcard_service.get_flashcards_by_group(group_id)
+        flashcards = flashcard_service.get_flashcards_by_group(
+            group_id, current_user.id
+        )
 
         return FlashcardListResponse(
             flashcards=[FlashcardDto(**flashcard.__dict__) for flashcard in flashcards],

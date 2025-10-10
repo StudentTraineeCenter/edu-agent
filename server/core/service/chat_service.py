@@ -37,30 +37,42 @@ class ChatService:
             logger.info(f"Chat created: {chat.id}")
             return chat
 
-    def get_chat(self, chat_id: str) -> Optional[Chat]:
+    def get_chat(self, chat_id: str, user_id: str) -> Optional[Chat]:
         """Get a chat by id"""
         with SessionLocal() as db:
             try:
-                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                chat = (
+                    db.query(Chat)
+                    .filter(Chat.id == chat_id, Chat.user_id == user_id)
+                    .first()
+                )
                 return chat
             except Exception as e:
                 logger.error(f"Error getting chat: {e}")
                 raise e
 
-    def list_chats(self, project_id: str) -> List[Chat]:
+    def list_chats(self, project_id: str, user_id: str) -> List[Chat]:
         """List all chats for a project"""
         with SessionLocal() as db:
             try:
-                return db.query(Chat).filter(Chat.project_id == project_id).all()
+                return (
+                    db.query(Chat)
+                    .filter(Chat.project_id == project_id, Chat.user_id == user_id)
+                    .all()
+                )
             except Exception as e:
                 logger.error(f"Error listing chats: {e}")
                 raise e
 
-    def update_chat(self, chat_id: str, title: Optional[str]) -> Chat:
+    def update_chat(self, chat_id: str, user_id: str, title: Optional[str]) -> Chat:
         """Update a chat"""
         with SessionLocal() as db:
             try:
-                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                chat = (
+                    db.query(Chat)
+                    .filter(Chat.id == chat_id, Chat.user_id == user_id)
+                    .first()
+                )
                 if not chat:
                     raise ValueError(f"Chat with id {chat_id} not found")
 
@@ -73,11 +85,15 @@ class ChatService:
                 logger.error(f"Error updating chat: {e}")
                 raise e
 
-    def archive_chat(self, chat_id: str) -> Chat:
+    def archive_chat(self, chat_id: str, user_id: str) -> Chat:
         """Archive a chat"""
         with SessionLocal() as db:
             try:
-                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                chat = (
+                    db.query(Chat)
+                    .filter(Chat.id == chat_id, Chat.user_id == user_id)
+                    .first()
+                )
                 if not chat:
                     raise ValueError(f"Chat with id {chat_id} not found")
 
@@ -90,11 +106,15 @@ class ChatService:
                 logger.error(f"Error archiving chat: {e}")
                 raise e
 
-    async def send_message(self, chat_id: str, message: str):
+    async def send_message(self, chat_id: str, user_id: str, message: str):
         """Send a message to a chat using grounded RAG responses"""
         with SessionLocal() as db:
             try:
-                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                chat = (
+                    db.query(Chat)
+                    .filter(Chat.id == chat_id, Chat.user_id == user_id)
+                    .first()
+                )
                 if not chat:
                     raise ValueError(f"Chat with id {chat_id} not found")
 
@@ -128,12 +148,16 @@ class ChatService:
                 raise e
 
     async def send_streaming_message(
-        self, chat_id: str, message: str
+        self, chat_id: str, user_id: str, message: str
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Send a streaming message to a chat using grounded RAG responses"""
         with SessionLocal() as db:
             try:
-                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                chat = (
+                    db.query(Chat)
+                    .filter(Chat.id == chat_id, Chat.user_id == user_id)
+                    .first()
+                )
                 if not chat:
                     raise ValueError(f"Chat with id {chat_id} not found")
 

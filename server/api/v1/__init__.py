@@ -5,6 +5,7 @@ from api.v1.chat.endpoint import router as chats_router
 from api.v1.document.endpoint import router as documents_router
 from api.v1.flashcard.endpoint import router as flashcards_router
 from api.v1.quiz.endpoint import router as quizzes_router
+from api.v1.auth.endpoint import router as auth_router
 
 
 v1_router = APIRouter()
@@ -18,3 +19,4 @@ v1_router.include_router(
     router=flashcards_router, prefix="/flashcards", tags=["flashcards"]
 )
 v1_router.include_router(router=quizzes_router, prefix="/quizzes", tags=["quizzes"])
+v1_router.include_router(router=auth_router, prefix="/auth", tags=["auth"])

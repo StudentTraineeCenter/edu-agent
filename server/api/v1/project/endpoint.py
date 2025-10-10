@@ -6,10 +6,12 @@ from api.v1.project.schema import (
     ProjectListResponse,
     ProjectUpdateRequest,
 )
-from api.v1.deps import get_project_service
+from api.v1.deps import get_project_service, get_user
 
 from core.logger import get_logger
 from core.service.project_service import ProjectService
+
+from db.model import User
 
 logger = get_logger(__name__)
 
@@ -26,11 +28,12 @@ router = APIRouter()
 def create_project(
     body: ProjectCreateRequest,
     project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
 ):
     """Create a new project"""
     logger.info(f"Creating project: {body.name}")
 
-    exists = project_service.check_exists(body.owner_id, body.name)
+    exists = project_service.check_exists(current_user.id, body.name)
     if exists:
         logger.error(f"Project with this name already exists: {body.name}")
         raise HTTPException(
@@ -39,7 +42,7 @@ def create_project(
         )
 
     result = project_service.create_project(
-        body.owner_id, body.name, body.description, body.language_code
+        current_user.id, body.name, body.description, body.language_code
     )
 
     return ProjectDto.model_validate(result)
@@ -53,12 +56,13 @@ def create_project(
     description="List all projects",
 )
 def list_projects(
-    owner_id: str, project_service: ProjectService = Depends(get_project_service)
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
 ):
     """List all projects"""
-    logger.info(f"Listing projects for owner: {owner_id}")
+    logger.info(f"Listing projects for owner: {current_user.id}")
 
-    result = project_service.list_projects(owner_id)
+    result = project_service.list_projects(current_user.id)
 
     return ProjectListResponse(
         data=[ProjectDto.model_validate(project) for project in result],
@@ -74,13 +78,15 @@ def list_projects(
     description="Get a project by id",
 )
 def get_project(
-    project_id: str, project_service: ProjectService = Depends(get_project_service)
+    project_id: str,
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
 ):
     """Get a project by id"""
 
     logger.info(f"Getting project: {project_id}")
 
-    result = project_service.get_project(project_id)
+    result = project_service.get_project(project_id, current_user.id)
 
     if not result:
         logger.error(f"Project not found: {project_id}")
@@ -103,12 +109,17 @@ def update_project(
     project_id: str,
     body: ProjectUpdateRequest,
     project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
 ):
     """Update a project by id"""
     logger.info(f"Updating project: {project_id}")
 
     result = project_service.update_project(
-        project_id, body.name, body.description, body.language_code
+        project_id,
+        current_user.id,
+        body.name,
+        body.description,
+        body.language_code,
     )
     return ProjectDto.model_validate(result)
 
@@ -120,9 +131,11 @@ def update_project(
     description="Archive a project by id",
 )
 def archive_project(
-    project_id: str, project_service: ProjectService = Depends(get_project_service)
+    project_id: str,
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
 ):
     """Archive a project by id"""
     logger.info(f"Archiving project: {project_id}")
-    project_service.archive_project(project_id)
+    project_service.archive_project(project_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

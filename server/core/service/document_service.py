@@ -419,14 +419,16 @@ class DocumentService:
         error_str = str(error).lower()
         return "429" in str(error) or "rate limit" in error_str
 
-    def list_documents(self, project_id: str) -> List[Document]:
+    def list_documents(self, project_id: str, user_id: str) -> List[Document]:
         """List all documents for a project."""
         try:
             logger.info(f"Listing documents for project {project_id}")
             with self._get_db_session() as db:
                 documents = (
                     db.query(Document)
-                    .filter(Document.project_id == project_id)
+                    .filter(
+                        Document.project_id == project_id, Document.owner_id == user_id
+                    )
                     .order_by(Document.uploaded_at.desc())
                     .all()
                 )
@@ -438,12 +440,16 @@ class DocumentService:
             logger.error(f"Error listing documents for project {project_id}: {e}")
             raise
 
-    def get_document(self, document_id: str) -> Optional[Document]:
+    def get_document(self, document_id: str, user_id: str) -> Optional[Document]:
         """Get a document by ID."""
         try:
             logger.info(f"Retrieving document: {document_id}")
             with self._get_db_session() as db:
-                document = db.query(Document).filter(Document.id == document_id).first()
+                document = (
+                    db.query(Document)
+                    .filter(Document.id == document_id, Document.owner_id == user_id)
+                    .first()
+                )
                 if document:
                     logger.info(f"Found document: {document_id} - {document.file_name}")
                 else:
@@ -898,11 +904,15 @@ Answer:"""
                 }
             return {"title": "", "preview_url": None}
 
-    def get_document_blob_stream(self, document_id: str):
+    def get_document_blob_stream(self, document_id: str, user_id: str):
         """Get blob content as a streaming iterator for a document."""
         try:
             with self._get_db_session() as db:
-                document = db.query(Document).filter(Document.id == document_id).first()
+                document = (
+                    db.query(Document)
+                    .filter(Document.id == document_id, Document.owner_id == user_id)
+                    .first()
+                )
                 if not document or not document.original_blob_name:
                     raise ValueError(f"Document {document_id} not found or has no blob")
 
