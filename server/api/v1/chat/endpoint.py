@@ -1,5 +1,7 @@
 from fastapi import APIRouter, status, HTTPException, Response, Depends
-from typing import List
+from fastapi.responses import StreamingResponse
+from typing import List, AsyncGenerator
+import json
 
 from api.v1.chat.schema import (
     ChatCompletionRequest,
@@ -10,6 +12,7 @@ from api.v1.chat.schema import (
     ChatUpdateRequest,
     ChatListResponse,
     SourceDto,
+    StreamingChatMessage,
 )
 from api.v1.deps import get_chat_service
 
@@ -246,4 +249,55 @@ async def send_message(
         response=result["response"],
         sources=formatted_sources,
         chat_id=result["chat_id"],
+    )
+
+
+@router.post(
+    "/{chat_id}/messages/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Send a streaming message to a chat",
+    description="Send a message to a chat with streaming response",
+)
+async def send_streaming_message(
+    chat_id: str,
+    body: ChatCompletionRequest,
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    """Send a streaming message to a chat"""
+
+    async def generate_stream():
+        """Generate streaming response chunks"""
+        try:
+            async for chunk_data in chat_service.send_streaming_message(
+                chat_id, body.message
+            ):
+                # Create the streaming message object
+                streaming_msg = StreamingChatMessage(
+                    chunk=chunk_data.get("chunk", ""),
+                    done=chunk_data.get("done", False),
+                    sources=(
+                        chunk_data.get("sources")
+                        if chunk_data.get("done", False)
+                        else None
+                    ),
+                )
+                yield f"data: {streaming_msg.model_dump_json()}\n\n"
+
+        except Exception as e:
+            logger.error(f"Error in streaming: {e}")
+            error_msg = StreamingChatMessage(
+                chunk=f"Error: {str(e)}",
+                done=True,
+                sources=[],
+            )
+            yield f"data: {error_msg.model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
     )

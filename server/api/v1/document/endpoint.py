@@ -1,4 +1,6 @@
 from fastapi import APIRouter, status, HTTPException, UploadFile, File, Depends
+from fastapi.responses import StreamingResponse
+from urllib.parse import quote
 
 from api.v1.document.schema import (
     DocumentUploadResponse,
@@ -79,14 +81,13 @@ async def upload_document(
 )
 def list_documents(
     project_id: str,
-    owner_id: str,
     document_service: DocumentService = Depends(get_document_service),
 ):
     """List all documents for a project"""
-    logger.info(f"Listing documents for project: {project_id}, owner: {owner_id}")
+    logger.info(f"Listing documents for project: {project_id}")
 
     try:
-        documents = document_service.list_documents(project_id, owner_id)
+        documents = document_service.list_documents(project_id)
 
         return DocumentListResponse(
             data=[DocumentDto.model_validate(doc) for doc in documents],
@@ -131,4 +132,70 @@ def get_document(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get document",
+        )
+
+
+@router.get(
+    path="/{document_id}/preview",
+    status_code=status.HTTP_200_OK,
+    summary="Preview a document",
+    description="Stream document content for preview in browser",
+)
+def preview_document(
+    document_id: str,
+    document_service: DocumentService = Depends(get_document_service),
+):
+    """Preview a document by streaming its content.
+
+    Supports URL fragment #page=N to navigate to specific page in PDF viewers.
+
+    Example: /v1/documents/{id}/preview#page=5
+    """
+    logger.info(f"Previewing document: {document_id}")
+
+    try:
+        document = document_service.get_document(document_id)
+
+        if not document:
+            logger.error(f"Document not found: {document_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
+
+        # Get blob content as stream
+        blob_stream = document_service.get_document_blob_stream(document_id)
+
+        # Map file extensions to content types
+        content_type_map = {
+            "pdf": "application/pdf",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "doc": "application/msword",
+            "txt": "text/plain",
+            "rtf": "application/rtf",
+        }
+
+        content_type = content_type_map.get(
+            document.file_type.lower(), "application/octet-stream"
+        )
+
+        # Encode filename for Content-Disposition header (RFC 5987)
+        # This supports Unicode characters
+        encoded_filename = quote(document.file_name)
+
+        return StreamingResponse(
+            blob_stream,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
+                "Cache-Control": "no-cache",
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error previewing document: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to preview document",
         )

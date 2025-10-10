@@ -99,6 +99,7 @@ class DocumentSegment(Base):
 
     # Segment ordering and structure
     segment_order: Mapped[int] = mapped_column(Integer)
+    page_number: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # Content
     content: Mapped[str] = mapped_column(Text)

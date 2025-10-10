@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, AsyncGenerator
 from uuid import uuid4
 
 from core.logger import get_logger
@@ -126,3 +126,55 @@ class ChatService:
             except Exception as e:
                 logger.error(f"Error sending message: {e}")
                 raise e
+
+    async def send_streaming_message(
+        self, chat_id: str, message: str
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """Send a streaming message to a chat using grounded RAG responses"""
+        with SessionLocal() as db:
+            try:
+                chat = db.query(Chat).filter(Chat.id == chat_id).first()
+                if not chat:
+                    raise ValueError(f"Chat with id {chat_id} not found")
+
+                # Stream the response using the document service
+                async for (
+                    chunk_data
+                ) in self.document_service.get_streaming_grounded_response(
+                    query=message,
+                    project_id=chat.project_id,
+                    top_k=5,
+                    chat_history=chat.messages,
+                ):
+                    # If this is the final chunk, save the complete message to database
+                    if chunk_data.get("done", False) and "response" in chunk_data:
+                        response = chunk_data["response"]
+                        sources = chunk_data.get("sources", [])
+
+                        new_messages = chat.messages + [
+                            {"role": "user", "content": message},
+                            {
+                                "role": "assistant",
+                                "content": response,
+                                "sources": sources,
+                            },
+                        ]
+
+                        chat.messages = new_messages
+                        chat.updated_at = datetime.now()
+                        db.commit()
+
+                        # Return the final chunk with updated chat_id
+                        yield {
+                            "chunk": chunk_data.get("chunk", ""),
+                            "done": True,
+                            "sources": sources,
+                            "chat_id": chat_id,
+                        }
+                    else:
+                        # Return the streaming chunk as-is
+                        yield chunk_data
+
+            except Exception as e:
+                logger.error(f"Error sending streaming message: {e}")
+                yield {"chunk": f"Error: {str(e)}", "done": True, "sources": []}
