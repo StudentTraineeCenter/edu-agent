@@ -1,7 +1,6 @@
 from fastapi import APIRouter, status, HTTPException, Response, Depends
 from fastapi.responses import StreamingResponse
-from typing import List, AsyncGenerator
-import json
+from typing import List
 
 from api.v1.chat.schema import (
     ChatCompletionRequest,
@@ -14,11 +13,13 @@ from api.v1.chat.schema import (
     SourceDto,
     StreamingChatMessage,
 )
-from api.v1.deps import get_chat_service
+from api.v1.deps import get_chat_service, get_user
 
 from core.logger import get_logger
 
 from core.service.chat_service import ChatService
+
+from db.model import User
 
 logger = get_logger(__name__)
 
@@ -35,11 +36,12 @@ router = APIRouter()
 def create_chat(
     body: ChatCreateRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
 ):
     """Create a new chat"""
     logger.info(f"Creating chat")
 
-    result = chat_service.create_chat(body.project_id, body.user_id, None)
+    result = chat_service.create_chat(body.project_id, current_user.id, None)
 
     # Format messages with sources
     formatted_messages = []
@@ -67,11 +69,15 @@ def create_chat(
     summary="List all chats",
     description="List all chats",
 )
-def list_chats(project_id: str, chat_service: ChatService = Depends(get_chat_service)):
+def list_chats(
+    project_id: str,
+    chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
+):
     """List all chats"""
     logger.info(f"Listing chats for project: {project_id}")
 
-    result = chat_service.list_chats(project_id)
+    result = chat_service.list_chats(project_id, current_user.id)
 
     # Format messages for each chat
     formatted_chats = []
@@ -110,12 +116,16 @@ def list_chats(project_id: str, chat_service: ChatService = Depends(get_chat_ser
     summary="Get a chat by id",
     description="Get a chat by id",
 )
-def get_chat(chat_id: str, chat_service: ChatService = Depends(get_chat_service)):
+def get_chat(
+    chat_id: str,
+    chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
+):
     """Get a chat by id"""
 
     logger.info(f"Getting chat: {chat_id}")
 
-    result = chat_service.get_chat(chat_id)
+    result = chat_service.get_chat(chat_id, current_user.id)
 
     if not result:
         logger.error(f"Chat not found: {chat_id}")
@@ -154,11 +164,12 @@ def update_chat(
     chat_id: str,
     body: ChatUpdateRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
 ):
     """Update a chat by id"""
     logger.info(f"Updating chat: {chat_id}")
 
-    result = chat_service.update_chat(chat_id, body.title)
+    result = chat_service.update_chat(chat_id, current_user.id, body.title)
 
     # Format messages with sources
     formatted_messages = []
@@ -185,10 +196,14 @@ def update_chat(
     summary="Archive a chat by id",
     description="Archive a chat by id",
 )
-def archive_chat(chat_id: str, chat_service: ChatService = Depends(get_chat_service)):
+def archive_chat(
+    chat_id: str,
+    chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
+):
     """Archive a project by id"""
     logger.info(f"Archiving chat: {chat_id}")
-    chat_service.archive_chat(chat_id)
+    chat_service.archive_chat(chat_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -202,11 +217,12 @@ def archive_chat(chat_id: str, chat_service: ChatService = Depends(get_chat_serv
 def list_chat_messages(
     chat_id: str,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
 ):
     """List all messages in a chat"""
     logger.info(f"Listing messages for chat: {chat_id}")
 
-    chat = chat_service.get_chat(chat_id)
+    chat = chat_service.get_chat(chat_id, current_user.id)
     if not chat:
         logger.error(f"Chat not found: {chat_id}")
         raise HTTPException(
@@ -236,11 +252,12 @@ async def send_message(
     chat_id: str,
     body: ChatCompletionRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
 ):
     """Send a message to a chat"""
     logger.info(f"Sending message to chat: {chat_id}")
 
-    result = await chat_service.send_message(chat_id, body.message)
+    result = await chat_service.send_message(chat_id, current_user.id, body.message)
 
     # Format sources for response
     formatted_sources = [SourceDto(**source) for source in result["sources"]]
@@ -262,6 +279,7 @@ async def send_streaming_message(
     chat_id: str,
     body: ChatCompletionRequest,
     chat_service: ChatService = Depends(get_chat_service),
+    current_user: User = Depends(get_user),
 ):
     """Send a streaming message to a chat"""
 
@@ -269,7 +287,7 @@ async def send_streaming_message(
         """Generate streaming response chunks"""
         try:
             async for chunk_data in chat_service.send_streaming_message(
-                chat_id, body.message
+                chat_id, current_user.id, body.message
             ):
                 # Create the streaming message object
                 streaming_msg = StreamingChatMessage(

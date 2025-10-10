@@ -14,7 +14,11 @@ class User(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    username: Mapped[str] = mapped_column(String, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=True)
+    azure_oid: Mapped[str] = mapped_column(
+        String, unique=True, index=True, nullable=True
+    )  # Azure Object ID
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

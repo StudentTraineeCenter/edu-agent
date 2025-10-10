@@ -7,7 +7,6 @@ class ChatCreateRequest(BaseModel):
     """Request model for creating a new chat."""
 
     project_id: str = Field(description="ID of the project this chat belongs to")
-    user_id: str = Field(description="ID of the user creating the chat")
 
 
 class ChatUpdateRequest(BaseModel):

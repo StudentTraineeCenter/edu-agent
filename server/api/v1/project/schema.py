@@ -8,7 +8,6 @@ class ProjectCreateRequest(BaseModel):
 
     name: str = Field(description="Name of the project")
     description: Optional[str] = Field(None, description="Description of the project")
-    owner_id: str = Field(description="ID of the project owner")
     language_code: Optional[str] = Field(
         "en", description="Language code (e.g., 'en', 'es', 'fr')"
     )

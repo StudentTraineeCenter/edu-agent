@@ -39,11 +39,15 @@ class ProjectService:
             logger.info(f"Project created: {project.id}")
             return project
 
-    def get_project(self, project_id: str) -> Optional[Project]:
+    def get_project(self, project_id: str, owner_id: str) -> Optional[Project]:
         """Get a project by id"""
         with SessionLocal() as db:
             try:
-                project = db.query(Project).filter(Project.id == project_id).first()
+                project = (
+                    db.query(Project)
+                    .filter(Project.id == project_id, Project.owner_id == owner_id)
+                    .first()
+                )
                 return project
             except Exception as e:
                 logger.error(f"Error getting project: {e}")
@@ -75,6 +79,7 @@ class ProjectService:
     def update_project(
         self,
         project_id: str,
+        owner_id: str,
         name: Optional[str] = None,
         description: Optional[str] = None,
         language_code: Optional[str] = None,
@@ -82,7 +87,11 @@ class ProjectService:
         """Update a project"""
         with SessionLocal() as db:
             try:
-                project = db.query(Project).filter(Project.id == project_id).first()
+                project = (
+                    db.query(Project)
+                    .filter(Project.id == project_id, Project.owner_id == owner_id)
+                    .first()
+                )
                 if not project:
                     raise ValueError(f"Project with id {project_id} not found")
 
@@ -100,11 +109,15 @@ class ProjectService:
                 logger.error(f"Error updating project: {e}")
                 raise e
 
-    def archive_project(self, project_id: str) -> Project:
+    def archive_project(self, project_id: str, owner_id: str) -> Project:
         """Archive a project"""
         with SessionLocal() as db:
             try:
-                project = db.query(Project).filter(Project.id == project_id).first()
+                project = (
+                    db.query(Project)
+                    .filter(Project.id == project_id, Project.owner_id == owner_id)
+                    .first()
+                )
                 if not project:
                     raise ValueError(f"Project with id {project_id} not found")
 

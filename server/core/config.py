@@ -45,5 +45,9 @@ class AppConfig:
         os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY") or "missing_env_var"
     )
 
+    # AZURE ENTRA ID
+    AZURE_ENTRA_TENANT_ID: str = os.getenv("AZURE_ENTRA_TENANT_ID") or "missing_env_var"
+    AZURE_ENTRA_CLIENT_ID: str = os.getenv("AZURE_ENTRA_CLIENT_ID") or "missing_env_var"
+
 
 app_config = AppConfig()

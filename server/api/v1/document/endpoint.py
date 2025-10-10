@@ -7,10 +7,12 @@ from api.v1.document.schema import (
     DocumentListResponse,
     DocumentDto,
 )
-from api.v1.deps import get_document_service
+from api.v1.deps import get_document_service, get_user
 
 from core.logger import get_logger
 from core.service.document_service import DocumentService
+
+from db.model import User
 
 logger = get_logger(__name__)
 
@@ -26,9 +28,9 @@ router = APIRouter()
 )
 async def upload_document(
     project_id: str,
-    owner_id: str,
     file: UploadFile = File(...),
     document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
 ):
     """Upload and process a document"""
     logger.info(f"Uploading document: {file.filename} for project: {project_id}")
@@ -55,7 +57,7 @@ async def upload_document(
             file_content=content,
             filename=file.filename,
             project_id=project_id,
-            owner_id=owner_id,
+            owner_id=current_user.id,
         )
 
         return DocumentUploadResponse(
@@ -82,12 +84,13 @@ async def upload_document(
 def list_documents(
     project_id: str,
     document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
 ):
     """List all documents for a project"""
     logger.info(f"Listing documents for project: {project_id}")
 
     try:
-        documents = document_service.list_documents(project_id)
+        documents = document_service.list_documents(project_id, current_user.id)
 
         return DocumentListResponse(
             data=[DocumentDto.model_validate(doc) for doc in documents],
@@ -111,12 +114,13 @@ def list_documents(
 def get_document(
     document_id: str,
     document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
 ):
     """Get a document by id"""
     logger.info(f"Getting document: {document_id}")
 
     try:
-        document = document_service.get_document(document_id)
+        document = document_service.get_document(document_id, current_user.id)
 
         if not document:
             logger.error(f"Document not found: {document_id}")
@@ -144,6 +148,7 @@ def get_document(
 def preview_document(
     document_id: str,
     document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
 ):
     """Preview a document by streaming its content.
 
@@ -154,7 +159,7 @@ def preview_document(
     logger.info(f"Previewing document: {document_id}")
 
     try:
-        document = document_service.get_document(document_id)
+        document = document_service.get_document(document_id, current_user.id)
 
         if not document:
             logger.error(f"Document not found: {document_id}")
@@ -163,7 +168,9 @@ def preview_document(
             )
 
         # Get blob content as stream
-        blob_stream = document_service.get_document_blob_stream(document_id)
+        blob_stream = document_service.get_document_blob_stream(
+            document_id, current_user.id
+        )
 
         # Map file extensions to content types
         content_type_map = {
