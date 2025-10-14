@@ -1,7 +1,7 @@
 # Azure OpenAI (AI Foundry)
 resource "azurerm_cognitive_account" "openai" {
   name                = "${local.name_prefix}-openai"
-  location            = "East US"
+  location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   kind                = "OpenAI"
   sku_name            = "S0"
@@ -22,7 +22,8 @@ resource "azurerm_cognitive_deployment" "gpt4o" {
   }
 
   scale {
-    type = "Standard"
+    type     = "Standard"
+    capacity = 1
   }
 }
 
@@ -37,7 +38,8 @@ resource "azurerm_cognitive_deployment" "gpt4o_mini" {
   }
 
   scale {
-    type = "Standard"
+    type     = "Standard"
+    capacity = 1
   }
 }
 
@@ -52,22 +54,8 @@ resource "azurerm_cognitive_deployment" "text_embedding_3_large" {
   }
 
   scale {
-    type = "Standard"
-  }
-}
-
-resource "azurerm_cognitive_deployment" "text_embedding_3_small" {
-  name                 = "text-embedding-3-small"
-  cognitive_account_id = azurerm_cognitive_account.openai.id
-
-  model {
-    format  = "OpenAI"
-    name    = "text-embedding-3-small"
-    version = "1"
-  }
-
-  scale {
-    type = "Standard"
+    type     = "Standard"
+    capacity = 1
   }
 }
 

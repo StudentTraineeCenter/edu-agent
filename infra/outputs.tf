@@ -51,12 +51,6 @@ output "text_embedding_3_large_deployment_name" {
   value       = azurerm_cognitive_deployment.text_embedding_3_large.name
 }
 
-output "text_embedding_3_small_deployment_name" {
-  description = "Name of the text-embedding-3-small deployment"
-  value       = azurerm_cognitive_deployment.text_embedding_3_small.name
-}
-
-
 output "document_intelligence_endpoint" {
   description = "Endpoint of the Azure AI Document Intelligence service"
   value       = azurerm_cognitive_account.document_intelligence.endpoint
