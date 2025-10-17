@@ -2,11 +2,11 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>3.0"
+      version = "4.49.0"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~>3.1"
+      version = "3.7.2"
     }
   }
 
@@ -20,5 +20,11 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  subscription_id = var.azure_subscription_id
+  tenant_id = var.azure_tenant_id
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }

@@ -26,9 +26,6 @@ class AppConfig:
     AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY") or "missing_env_var"
     AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT") or "missing_env_var"
     AZURE_OPENAI_DEFAULT_MODEL: str = os.getenv("AZURE_OPENAI_DEFAULT_MODEL", "gpt-4o")
-    AZURE_OPENAI_EMBEDDING_MODEL: str = os.getenv(
-        "AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"
-    )
     AZURE_OPENAI_EMBEDDING_DEPLOYMENT: str = os.getenv(
         "AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large"
     )
@@ -48,6 +45,10 @@ class AppConfig:
     # AZURE ENTRA ID
     AZURE_ENTRA_TENANT_ID: str = os.getenv("AZURE_ENTRA_TENANT_ID") or "missing_env_var"
     AZURE_ENTRA_CLIENT_ID: str = os.getenv("AZURE_ENTRA_CLIENT_ID") or "missing_env_var"
+
+    AZURE_CU_ENDPOINT: str = os.getenv("AZURE_CU_ENDPOINT") or "missing_env_var"
+    AZURE_CU_KEY: str = os.getenv("AZURE_CU_KEY") or "missing_env_var"
+    AZURE_CU_ANALYZER_ID: str = os.getenv("AZURE_CU_ANALYZER_ID") or "missing_env_var"
 
 
 app_config = AppConfig()

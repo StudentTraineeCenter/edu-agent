@@ -7,9 +7,10 @@ from api.v1.document.schema import (
     DocumentListResponse,
     DocumentDto,
 )
-from api.v1.deps import get_document_service, get_user
+from api.v1.deps import get_document_service, get_user, get_data_processing_service
 
 from core.logger import get_logger
+from core.service.data_processing_service import DataProcessingService
 from core.service.document_service import DocumentService
 
 from db.model import User
@@ -29,7 +30,9 @@ router = APIRouter()
 async def upload_document(
     project_id: str,
     file: UploadFile = File(...),
-    document_service: DocumentService = Depends(get_document_service),
+    data_processing_service: DataProcessingService = Depends(
+        get_data_processing_service
+    ),
     current_user: User = Depends(get_user),
 ):
     """Upload and process a document"""
@@ -53,7 +56,7 @@ async def upload_document(
         content = await file.read()
 
         # Process document
-        document_id = await document_service.upload_document(
+        document_id = await data_processing_service.process(
             file_content=content,
             filename=file.filename,
             project_id=project_id,
@@ -62,8 +65,6 @@ async def upload_document(
 
         return DocumentUploadResponse(
             document_id=document_id,
-            file_name=file.filename,
-            message="Document uploaded and processed",
         )
 
     except Exception as e:

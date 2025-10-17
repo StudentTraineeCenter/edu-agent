@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable, Awaitable
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -8,6 +8,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from langchain_openai import AzureChatOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from sqlalchemy.orm import Session
 
 from core.logger import get_logger
 from core.config import app_config
@@ -16,6 +17,11 @@ from db.session import SessionLocal
 
 logger = get_logger(__name__)
 
+
+SearchDocumentsType = Callable[
+    [str, str, int],  # query, project_id, top_k
+    Awaitable[List[Dict[str, Any]]]
+]
 
 class FlashcardData(BaseModel):
     """Pydantic model for flashcard data structure."""
@@ -38,14 +44,11 @@ class FlashcardGroupGenerationRequest(BaseModel):
 class FlashcardService:
     """Service for managing flashcards with AI generation capabilities."""
 
-    def __init__(self):
+    def __init__(self, search_documents: SearchDocumentsType):
         """Initialize the flashcard service."""
-        self._setup_langchain_components()
-        self._setup_document_service()
-
-    def _setup_langchain_components(self) -> None:
-        """Initialize LangChain components for flashcard generation."""
         self.credential = DefaultAzureCredential()
+        self.search_documents = search_documents
+
         self.token_provider = get_bearer_token_provider(
             self.credential, "https://cognitiveservices.azure.com/.default"
         )
@@ -62,20 +65,14 @@ class FlashcardService:
             pydantic_object=FlashcardGroupGenerationRequest
         )
 
-    def _setup_document_service(self) -> None:
-        """Initialize document service for content retrieval."""
-        from core.service.document_service import DocumentService
-
-        self.document_service = DocumentService()
-
     async def _get_project_documents_content(self, project_id: str) -> str:
         """Get all document content for a project."""
         try:
             # Search for all content in the project
-            search_results = await self.document_service.search_documents(
-                query="",  # Empty query to get all content
-                project_id=project_id,
-                top_k=100,  # Get more content for better generation
+            search_results = await self.search_documents(
+                "",  # Empty query to get all content
+                project_id,
+                100,  # Get more content for better generation
             )
 
             if not search_results:
@@ -91,12 +88,6 @@ class FlashcardService:
         except Exception as e:
             logger.error(f"Error getting project documents content: {e}")
             return ""
-
-    def _get_project_language_code(self, project_id: str) -> str:
-        """Get the language code for a project."""
-        with self._get_db_session() as db:
-            project = db.query(Project).filter(Project.id == project_id).first()
-            return project.language_code if project else "en"
 
     def _create_flashcard_group_prompt_template(self) -> PromptTemplate:
         """Create the prompt template for flashcard group generation."""
@@ -153,31 +144,28 @@ Generate exactly {count} flashcards that are relevant to the document content an
         user_prompt: Optional[str] = None,
     ) -> FlashcardGroup:
         """Create a new flashcard group with auto-generated name, description, and flashcards."""
-        try:
-            logger.info(
-                f"Creating flashcard group with {count} flashcards for project {project_id}"
-            )
+        with self._get_db_session() as db:
+            try:
+                logger.info(
+                    f"Creating flashcard group with {count} flashcards for project {project_id}"
+                )
 
-            # Generate all content using LangChain directly
-            generated_content = await self._generate_flashcard_group_content(
-                project_id=project_id,
-                count=count,
-                user_prompt=user_prompt,
-            )
+                # Generate all content using LangChain directly
+                generated_content = await self._generate_flashcard_group_content(
+                    db=db,
+                    project_id=project_id,
+                    count=count,
+                    user_prompt=user_prompt,
+                )
 
-            name = generated_content["name"]
-            description = generated_content["description"]
-            flashcards_data = generated_content["flashcards"]
+                name = generated_content["name"]
+                description = generated_content["description"]
+                flashcards_data = generated_content["flashcards"]
 
-            logger.info(f"Creating flashcard group '{name}' for project {project_id}")
+                logger.info(
+                    f"Creating flashcard group '{name}' for project {project_id}"
+                )
 
-            with self._get_db_session() as db:
-                # Verify project exists
-                project = db.query(Project).filter(Project.id == project_id).first()
-                if not project:
-                    raise ValueError(f"Project {project_id} not found")
-
-                # Create flashcard group
                 flashcard_group = FlashcardGroup(
                     id=str(uuid.uuid4()),
                     project_id=project_id,
@@ -188,25 +176,35 @@ Generate exactly {count} flashcards that are relevant to the document content an
                 )
 
                 db.add(flashcard_group)
-                db.commit()
-                db.refresh(flashcard_group)
 
                 logger.info(f"Created flashcard group: {flashcard_group.id}")
 
                 # Save flashcards to database
-                flashcard_ids = await self._save_flashcards_to_db(
-                    flashcard_group.id, project_id, flashcards_data
-                )
+                for flashcard_item in flashcards_data:
+                    flashcard = Flashcard(
+                        id=str(uuid.uuid4()),
+                        group_id=flashcard_group.id,
+                        project_id=project_id,
+                        question=flashcard_item.question,
+                        answer=flashcard_item.answer,
+                        difficulty_level=flashcard_item.difficulty_level,
+                        created_at=datetime.now(),
+                    )
 
-                logger.info(f"Generated and saved {len(flashcard_ids)} flashcards")
+                    db.add(flashcard)
+
+                db.commit()
+
+                logger.info(f"Generated {len(flashcards_data)} flashcards")
                 return flashcard_group
 
-        except Exception as e:
-            logger.error(f"Error creating flashcard group with flashcards: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error creating flashcard group with flashcards: {e}")
+                raise
 
     async def _generate_flashcard_group_content(
         self,
+        db: Session,
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
@@ -215,8 +213,14 @@ Generate exactly {count} flashcards that are relevant to the document content an
         try:
             logger.info(f"Generating flashcard group content for project {project_id}")
 
-            # Get project language code
-            language_code = self._get_project_language_code(project_id)
+            project: Optional[Project] = (
+                db.query(Project).filter(Project.id == project_id).first()
+            )
+
+            if not project:
+                raise ValueError(f"Project {project_id} not found")
+
+            language_code = project.language_code
             logger.info(
                 f"Using language code: {language_code} for project {project_id}"
             )
@@ -276,44 +280,13 @@ Generate exactly {count} flashcards that are relevant to the document content an
             logger.error(f"Error generating flashcard group content: {e}")
             raise
 
-    async def _save_flashcards_to_db(
-        self, group_id: str, project_id: str, flashcards_data: List[FlashcardData]
-    ) -> List[str]:
-        """Save generated flashcards to the database."""
-        try:
-            flashcard_ids = []
-
-            with self._get_db_session() as db:
-                for flashcard_data in flashcards_data:
-                    flashcard = Flashcard(
-                        id=str(uuid.uuid4()),
-                        group_id=group_id,
-                        project_id=project_id,
-                        question=flashcard_data.question,
-                        answer=flashcard_data.answer,
-                        difficulty_level=flashcard_data.difficulty_level,
-                        created_at=datetime.now(),
-                    )
-
-                    db.add(flashcard)
-                    flashcard_ids.append(flashcard.id)
-
-                db.commit()
-
-            logger.info(f"Saved {len(flashcard_ids)} flashcards to database")
-            return flashcard_ids
-
-        except Exception as e:
-            logger.error(f"Error saving flashcards to database: {e}")
-            raise
-
     def get_flashcard_groups(self, project_id: str) -> List[FlashcardGroup]:
         """Get all flashcard groups for a project."""
-        try:
-            logger.info(f"Getting flashcard groups for project {project_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting flashcard groups for project {project_id}")
 
-            with self._get_db_session() as db:
-                groups = (
+                groups: list[FlashcardGroup] = (
                     db.query(FlashcardGroup)
                     .filter(FlashcardGroup.project_id == project_id)
                     .order_by(FlashcardGroup.created_at.desc())
@@ -323,16 +296,16 @@ Generate exactly {count} flashcards that are relevant to the document content an
                 logger.info(f"Found {len(groups)} flashcard groups")
                 return groups
 
-        except Exception as e:
-            logger.error(f"Error getting flashcard groups: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error getting flashcard groups: {e}")
+                raise
 
     def get_flashcard_group(self, group_id: str) -> Optional[FlashcardGroup]:
         """Get a specific flashcard group by ID."""
-        try:
-            logger.info(f"Getting flashcard group {group_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting flashcard group {group_id}")
 
-            with self._get_db_session() as db:
                 group = (
                     db.query(FlashcardGroup)
                     .filter(FlashcardGroup.id == group_id)
@@ -346,26 +319,17 @@ Generate exactly {count} flashcards that are relevant to the document content an
 
                 return group
 
-        except Exception as e:
-            logger.error(f"Error getting flashcard group: {e}")
-            raise
-
-    def get_project_id_from_group(self, group_id: str) -> Optional[str]:
-        """Get project_id from a flashcard group ID."""
-        try:
-            group = self.get_flashcard_group(group_id)
-            return group.project_id if group else None
-        except Exception as e:
-            logger.error(f"Error getting project_id from group: {e}")
-            return None
+            except Exception as e:
+                logger.error(f"Error getting flashcard group: {e}")
+                raise
 
     def get_flashcards_by_group(self, group_id: str) -> List[Flashcard]:
         """Get all flashcards in a group."""
-        try:
-            logger.info(f"Getting flashcards for group {group_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting flashcards for group {group_id}")
 
-            with self._get_db_session() as db:
-                flashcards = (
+                flashcards: list[Flashcard] = (
                     db.query(Flashcard)
                     .filter(Flashcard.group_id == group_id)
                     .order_by(Flashcard.created_at.asc())
@@ -375,99 +339,17 @@ Generate exactly {count} flashcards that are relevant to the document content an
                 logger.info(f"Found {len(flashcards)} flashcards")
                 return flashcards
 
-        except Exception as e:
-            logger.error(f"Error getting flashcards: {e}")
-            raise
-
-    def get_flashcard(self, flashcard_id: str) -> Optional[Flashcard]:
-        """Get a specific flashcard by ID."""
-        try:
-            logger.info(f"Getting flashcard {flashcard_id}")
-
-            with self._get_db_session() as db:
-                flashcard = (
-                    db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
-                )
-
-                if flashcard:
-                    logger.info(f"Found flashcard: {flashcard_id}")
-                else:
-                    logger.info(f"Flashcard not found: {flashcard_id}")
-
-                return flashcard
-
-        except Exception as e:
-            logger.error(f"Error getting flashcard: {e}")
-            raise
-
-    def update_flashcard(
-        self,
-        flashcard_id: str,
-        question: Optional[str] = None,
-        answer: Optional[str] = None,
-        difficulty_level: Optional[str] = None,
-    ) -> Optional[Flashcard]:
-        """Update a flashcard."""
-        try:
-            logger.info(f"Updating flashcard {flashcard_id}")
-
-            with self._get_db_session() as db:
-                flashcard = (
-                    db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
-                )
-
-                if not flashcard:
-                    logger.warning(f"Flashcard not found: {flashcard_id}")
-                    return None
-
-                if question is not None:
-                    flashcard.question = question
-                if answer is not None:
-                    flashcard.answer = answer
-                if difficulty_level is not None:
-                    flashcard.difficulty_level = difficulty_level
-
-                db.commit()
-                db.refresh(flashcard)
-
-                logger.info(f"Updated flashcard: {flashcard_id}")
-                return flashcard
-
-        except Exception as e:
-            logger.error(f"Error updating flashcard: {e}")
-            raise
-
-    def delete_flashcard(self, flashcard_id: str) -> bool:
-        """Delete a flashcard."""
-        try:
-            logger.info(f"Deleting flashcard {flashcard_id}")
-
-            with self._get_db_session() as db:
-                flashcard = (
-                    db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
-                )
-
-                if not flashcard:
-                    logger.warning(f"Flashcard not found: {flashcard_id}")
-                    return False
-
-                db.delete(flashcard)
-                db.commit()
-
-                logger.info(f"Deleted flashcard: {flashcard_id}")
-                return True
-
-        except Exception as e:
-            logger.error(f"Error deleting flashcard: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error getting flashcards: {e}")
+                raise
 
     def delete_flashcard_group(self, group_id: str) -> bool:
         """Delete a flashcard group and all its flashcards."""
-        try:
-            logger.info(f"Deleting flashcard group {group_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Deleting flashcard group {group_id}")
 
-            with self._get_db_session() as db:
-                group = (
+                group: Optional[FlashcardGroup] = (
                     db.query(FlashcardGroup)
                     .filter(FlashcardGroup.id == group_id)
                     .first()
@@ -484,9 +366,9 @@ Generate exactly {count} flashcards that are relevant to the document content an
                 logger.info(f"Deleted flashcard group: {group_id}")
                 return True
 
-        except Exception as e:
-            logger.error(f"Error deleting flashcard group: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error deleting flashcard group: {e}")
+                raise
 
     def update_flashcard_group(
         self,
@@ -495,16 +377,15 @@ Generate exactly {count} flashcards that are relevant to the document content an
         description: Optional[str] = None,
     ) -> Optional[FlashcardGroup]:
         """Update a flashcard group."""
-        try:
-            logger.info(f"Updating flashcard group {group_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Updating flashcard group {group_id}")
 
-            with self._get_db_session() as db:
-                group = (
+                group: Optional[FlashcardGroup] = (
                     db.query(FlashcardGroup)
                     .filter(FlashcardGroup.id == group_id)
                     .first()
                 )
-
                 if not group:
                     logger.warning(f"Flashcard group not found: {group_id}")
                     return None
@@ -515,12 +396,13 @@ Generate exactly {count} flashcards that are relevant to the document content an
                     group.description = description
 
                 group.updated_at = datetime.now()
+
                 db.commit()
                 db.refresh(group)
 
                 logger.info(f"Updated flashcard group: {group_id}")
-                return group
 
-        except Exception as e:
-            logger.error(f"Error updating flashcard group: {e}")
-            raise
+                return group
+            except Exception as e:
+                logger.error(f"Error updating flashcard group: {e}")
+                raise

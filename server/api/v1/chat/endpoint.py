@@ -89,14 +89,6 @@ def list_chats(
                 "content": msg["content"],
                 "id": msg["id"],
             }
-            if msg["role"] == "assistant" and "sources" in msg:
-                # Add citation_index to old sources that don't have it
-                sources_with_index = []
-                for i, source in enumerate(msg["sources"], 1):
-                    if "citation_index" not in source:
-                        source["citation_index"] = i
-                    sources_with_index.append(SourceDto(**source))
-                message_data["sources"] = sources_with_index
             formatted_messages.append(ChatMessageDto(**message_data))
 
         formatted_chats.append(
@@ -247,34 +239,6 @@ def list_chat_messages(
         formatted_messages.append(ChatMessageDto(**message_data))
 
     return formatted_messages
-
-
-@router.post(
-    "/{chat_id}/messages",
-    response_model=ChatCompletionResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Send a message to a chat",
-    description="Send a message to a chat",
-)
-async def send_message(
-    chat_id: str,
-    body: ChatCompletionRequest,
-    chat_service: ChatService = Depends(get_chat_service),
-    current_user: User = Depends(get_user),
-):
-    """Send a message to a chat"""
-    logger.info(f"Sending message to chat: {chat_id}")
-
-    result = await chat_service.send_message(chat_id, current_user.id, body.message)
-
-    # Format sources for response
-    formatted_sources = [SourceDto(**source) for source in result["sources"]]
-
-    return ChatCompletionResponse(
-        response=result["response"],
-        sources=formatted_sources,
-        chat_id=result["chat_id"],
-    )
 
 
 @router.post(

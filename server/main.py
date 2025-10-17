@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 import uvicorn
 import logging
@@ -169,4 +170,11 @@ async def scalar_docs_ui():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000)
+    import asyncio
+    import uvicorn
+
+    config = uvicorn.Config("main:app", host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config)
+
+    # Drive the coroutine directly; no loop_factory kwarg involved.
+    asyncio.run(server.serve())

@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Callable, Awaitable
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -8,6 +8,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
 from langchain_openai import AzureChatOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from sqlalchemy.orm import Session
 
 from core.logger import get_logger
 from core.config import app_config
@@ -39,17 +40,17 @@ class QuizGenerationRequest(BaseModel):
         description="List of generated quiz questions"
     )
 
+SearchDocumentsType = Callable[
+    [str, str, int],  # query, project_id, top_k
+    Awaitable[List[Dict[str, Any]]]
+]
 
 class QuizService:
     """Service for managing quizzes with AI generation capabilities."""
 
-    def __init__(self):
+    def __init__(self, search_documents: SearchDocumentsType):
         """Initialize the quiz service."""
-        self._setup_langchain_components()
-        self._setup_document_service()
-
-    def _setup_langchain_components(self) -> None:
-        """Initialize LangChain components for quiz generation."""
+        self.search_documents = search_documents
         self.credential = DefaultAzureCredential()
         self.token_provider = get_bearer_token_provider(
             self.credential, "https://cognitiveservices.azure.com/.default"
@@ -65,20 +66,14 @@ class QuizService:
 
         self.quiz_parser = JsonOutputParser(pydantic_object=QuizGenerationRequest)
 
-    def _setup_document_service(self) -> None:
-        """Initialize document service for content retrieval."""
-        from core.service.document_service import DocumentService
-
-        self.document_service = DocumentService()
-
     async def _get_project_documents_content(self, project_id: str) -> str:
         """Get all document content for a project."""
         try:
             # Search for all content in the project
-            search_results = await self.document_service.search_documents(
-                query="",  # Empty query to get all content
-                project_id=project_id,
-                top_k=100,  # Get more content for better generation
+            search_results = await self.search_documents(
+                "",  # Empty query to get all content
+                project_id,
+                100,  # Get more content for better generation
             )
 
             if not search_results:
@@ -94,12 +89,6 @@ class QuizService:
         except Exception as e:
             logger.error(f"Error getting project documents content: {e}")
             return ""
-
-    def _get_project_language_code(self, project_id: str) -> str:
-        """Get the language code for a project."""
-        with self._get_db_session() as db:
-            project = db.query(Project).filter(Project.id == project_id).first()
-            return project.language_code if project else "en"
 
     def _create_quiz_prompt_template(self) -> PromptTemplate:
         """Create the prompt template for quiz generation."""
@@ -159,31 +148,26 @@ Generate exactly {count} quiz questions that are relevant to the document conten
         user_prompt: Optional[str] = None,
     ) -> Quiz:
         """Create a new quiz with auto-generated name, description, and questions."""
-        try:
-            logger.info(
-                f"Creating quiz with {count} questions for project {project_id}"
-            )
+        with self._get_db_session() as db:
+            try:
+                logger.info(
+                    f"Creating quiz with {count} questions for project {project_id}"
+                )
 
-            # Generate all content using LangChain directly
-            generated_content = await self._generate_quiz_content(
-                project_id=project_id,
-                count=count,
-                user_prompt=user_prompt,
-            )
+                # Generate all content using LangChain directly
+                generated_content = await self._generate_quiz_content(
+                    db=db,
+                    project_id=project_id,
+                    count=count,
+                    user_prompt=user_prompt,
+                )
 
-            name = generated_content["name"]
-            description = generated_content["description"]
-            questions_data = generated_content["questions"]
+                name = generated_content["name"]
+                description = generated_content["description"]
+                questions_data = generated_content["questions"]
 
-            logger.info(f"Creating quiz '{name}' for project {project_id}")
+                logger.info(f"Creating quiz '{name}' for project {project_id}")
 
-            with self._get_db_session() as db:
-                # Verify project exists
-                project = db.query(Project).filter(Project.id == project_id).first()
-                if not project:
-                    raise ValueError(f"Project {project_id} not found")
-
-                # Create quiz
                 quiz = Quiz(
                     id=str(uuid.uuid4()),
                     project_id=project_id,
@@ -194,25 +178,40 @@ Generate exactly {count} quiz questions that are relevant to the document conten
                 )
 
                 db.add(quiz)
-                db.commit()
-                db.refresh(quiz)
 
                 logger.info(f"Created quiz: {quiz.id}")
 
                 # Save quiz questions to database
-                question_ids = await self._save_quiz_questions_to_db(
-                    quiz.id, project_id, questions_data
-                )
+                for question_item in questions_data:
+                    quiz_question = QuizQuestion(
+                        id=str(uuid.uuid4()),
+                        quiz_id=quiz.id,
+                        project_id=project_id,
+                        question_text=question_item.question_text,
+                        option_a=question_item.option_a,
+                        option_b=question_item.option_b,
+                        option_c=question_item.option_c,
+                        option_d=question_item.option_d,
+                        correct_option=question_item.correct_option,
+                        explanation=question_item.explanation,
+                        difficulty_level=question_item.difficulty_level,
+                        created_at=datetime.now(),
+                    )
 
-                logger.info(f"Generated and saved {len(question_ids)} quiz questions")
+                    db.add(quiz_question)
+
+                db.commit()
+
+                logger.info(f"Generated {len(questions_data)} quiz questions")
                 return quiz
 
-        except Exception as e:
-            logger.error(f"Error creating quiz with questions: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error creating quiz with questions: {e}")
+                raise
 
     async def _generate_quiz_content(
         self,
+        db: Session,
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
@@ -222,10 +221,13 @@ Generate exactly {count} quiz questions that are relevant to the document conten
             logger.info(f"Generating quiz content for project {project_id}")
 
             # Get project language code
-            language_code = self._get_project_language_code(project_id)
-            logger.info(
-                f"Using language code: {language_code} for project {project_id}"
+            project: Optional[Project] = (
+                db.query(Project).filter(Project.id == project_id).first()
             )
+            if not project:
+                raise ValueError(f"Project {project_id} not found")
+
+            language_code = project.language_code
 
             # Get project documents content
             document_content = await self._get_project_documents_content(project_id)
@@ -282,49 +284,13 @@ Generate exactly {count} quiz questions that are relevant to the document conten
             logger.error(f"Error generating quiz content: {e}")
             raise
 
-    async def _save_quiz_questions_to_db(
-        self, quiz_id: str, project_id: str, questions_data: List[QuizQuestionData]
-    ) -> List[str]:
-        """Save generated quiz questions to the database."""
-        try:
-            question_ids = []
-
-            with self._get_db_session() as db:
-                for question_data in questions_data:
-                    quiz_question = QuizQuestion(
-                        id=str(uuid.uuid4()),
-                        quiz_id=quiz_id,
-                        project_id=project_id,
-                        question_text=question_data.question_text,
-                        option_a=question_data.option_a,
-                        option_b=question_data.option_b,
-                        option_c=question_data.option_c,
-                        option_d=question_data.option_d,
-                        correct_option=question_data.correct_option,
-                        explanation=question_data.explanation,
-                        difficulty_level=question_data.difficulty_level,
-                        created_at=datetime.now(),
-                    )
-
-                    db.add(quiz_question)
-                    question_ids.append(quiz_question.id)
-
-                db.commit()
-
-            logger.info(f"Saved {len(question_ids)} quiz questions to database")
-            return question_ids
-
-        except Exception as e:
-            logger.error(f"Error saving quiz questions to database: {e}")
-            raise
-
     def get_quizzes(self, project_id: str) -> List[Quiz]:
         """Get all quizzes for a project."""
-        try:
-            logger.info(f"Getting quizzes for project {project_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting quizzes for project {project_id}")
 
-            with self._get_db_session() as db:
-                quizzes = (
+                quizzes: list[Quiz] = (
                     db.query(Quiz)
                     .filter(Quiz.project_id == project_id)
                     .order_by(Quiz.created_at.desc())
@@ -334,17 +300,17 @@ Generate exactly {count} quiz questions that are relevant to the document conten
                 logger.info(f"Found {len(quizzes)} quizzes")
                 return quizzes
 
-        except Exception as e:
-            logger.error(f"Error getting quizzes: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error getting quizzes: {e}")
+                raise
 
     def get_quiz_questions(self, quiz_id: str) -> List[QuizQuestion]:
         """Get all questions in a quiz."""
-        try:
-            logger.info(f"Getting quiz questions for quiz {quiz_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting quiz questions for quiz {quiz_id}")
 
-            with self._get_db_session() as db:
-                questions = (
+                questions: list[QuizQuestion] = (
                     db.query(QuizQuestion)
                     .filter(QuizQuestion.quiz_id == quiz_id)
                     .order_by(QuizQuestion.created_at.asc())
@@ -354,60 +320,26 @@ Generate exactly {count} quiz questions that are relevant to the document conten
                 logger.info(f"Found {len(questions)} quiz questions")
                 return questions
 
-        except Exception as e:
-            logger.error(f"Error getting quiz questions: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error getting quiz questions: {e}")
+                raise
 
     def get_quiz(self, quiz_id: str) -> Optional[Quiz]:
         """Get a specific quiz by ID."""
-        try:
-            logger.info(f"Getting quiz {quiz_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Getting quiz {quiz_id}")
 
-            with self._get_db_session() as db:
-                quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+                quiz: Optional[Quiz] = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+                if not quiz:
+                    raise ValueError(f"Quiz not found: {quiz_id}")
 
-                if quiz:
-                    logger.info(f"Found quiz: {quiz_id}")
-                else:
-                    logger.info(f"Quiz not found: {quiz_id}")
+                logger.info(f"Found quiz: {quiz_id}")
 
                 return quiz
-
-        except Exception as e:
-            logger.error(f"Error getting quiz: {e}")
-            raise
-
-    def get_project_id_from_quiz(self, quiz_id: str) -> Optional[str]:
-        """Get project_id from a quiz ID."""
-        try:
-            quiz = self.get_quiz(quiz_id)
-            return quiz.project_id if quiz else None
-        except Exception as e:
-            logger.error(f"Error getting project_id from quiz: {e}")
-            return None
-
-    def get_quiz_question(self, question_id: str) -> Optional[QuizQuestion]:
-        """Get a specific quiz question by ID."""
-        try:
-            logger.info(f"Getting quiz question {question_id}")
-
-            with self._get_db_session() as db:
-                question = (
-                    db.query(QuizQuestion)
-                    .filter(QuizQuestion.id == question_id)
-                    .first()
-                )
-
-                if question:
-                    logger.info(f"Found quiz question: {question_id}")
-                else:
-                    logger.info(f"Quiz question not found: {question_id}")
-
-                return question
-
-        except Exception as e:
-            logger.error(f"Error getting quiz question: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error getting quiz: {e}")
+                raise
 
     def update_quiz(
         self,
@@ -416,123 +348,37 @@ Generate exactly {count} quiz questions that are relevant to the document conten
         description: Optional[str] = None,
     ) -> Optional[Quiz]:
         """Update a quiz."""
-        try:
-            logger.info(f"Updating quiz {quiz_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Updating quiz {quiz_id}")
 
-            with self._get_db_session() as db:
-                quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
-
+                quiz: Optional[Quiz] = db.query(Quiz).filter(Quiz.id == quiz_id).first()
                 if not quiz:
-                    logger.warning(f"Quiz not found: {quiz_id}")
-                    return None
+                    raise ValueError(f"Quiz not found: {quiz_id}")
 
                 if name is not None:
                     quiz.name = name
                 if description is not None:
                     quiz.description = description
-
                 quiz.updated_at = datetime.now()
                 db.commit()
                 db.refresh(quiz)
-
-                logger.info(f"Updated quiz: {quiz_id}")
                 return quiz
 
-        except Exception as e:
-            logger.error(f"Error updating quiz: {e}")
-            raise
-
-    def update_quiz_question(
-        self,
-        question_id: str,
-        question_text: Optional[str] = None,
-        option_a: Optional[str] = None,
-        option_b: Optional[str] = None,
-        option_c: Optional[str] = None,
-        option_d: Optional[str] = None,
-        correct_option: Optional[str] = None,
-        explanation: Optional[str] = None,
-        difficulty_level: Optional[str] = None,
-    ) -> Optional[QuizQuestion]:
-        """Update a quiz question."""
-        try:
-            logger.info(f"Updating quiz question {question_id}")
-
-            with self._get_db_session() as db:
-                question = (
-                    db.query(QuizQuestion)
-                    .filter(QuizQuestion.id == question_id)
-                    .first()
-                )
-
-                if not question:
-                    logger.warning(f"Quiz question not found: {question_id}")
-                    return None
-
-                if question_text is not None:
-                    question.question_text = question_text
-                if option_a is not None:
-                    question.option_a = option_a
-                if option_b is not None:
-                    question.option_b = option_b
-                if option_c is not None:
-                    question.option_c = option_c
-                if option_d is not None:
-                    question.option_d = option_d
-                if correct_option is not None:
-                    question.correct_option = correct_option
-                if explanation is not None:
-                    question.explanation = explanation
-                if difficulty_level is not None:
-                    question.difficulty_level = difficulty_level
-
-                db.commit()
-                db.refresh(question)
-
-                logger.info(f"Updated quiz question: {question_id}")
-                return question
-
-        except Exception as e:
-            logger.error(f"Error updating quiz question: {e}")
-            raise
-
-    def delete_quiz_question(self, question_id: str) -> bool:
-        """Delete a quiz question."""
-        try:
-            logger.info(f"Deleting quiz question {question_id}")
-
-            with self._get_db_session() as db:
-                question = (
-                    db.query(QuizQuestion)
-                    .filter(QuizQuestion.id == question_id)
-                    .first()
-                )
-
-                if not question:
-                    logger.warning(f"Quiz question not found: {question_id}")
-                    return False
-
-                db.delete(question)
-                db.commit()
-
-                logger.info(f"Deleted quiz question: {question_id}")
-                return True
-
-        except Exception as e:
-            logger.error(f"Error deleting quiz question: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error updating quiz: {e}")
+                raise
 
     def delete_quiz(self, quiz_id: str) -> bool:
         """Delete a quiz and all its questions."""
-        try:
-            logger.info(f"Deleting quiz {quiz_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Deleting quiz {quiz_id}")
 
-            with self._get_db_session() as db:
-                quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+                quiz: Optional[Quiz] = db.query(Quiz).filter(Quiz.id == quiz_id).first()
 
                 if not quiz:
-                    logger.warning(f"Quiz not found: {quiz_id}")
-                    return False
+                    raise ValueError(f"Quiz not found: {quiz_id}")
 
                 # Delete all questions in the quiz first (cascade should handle this)
                 db.delete(quiz)
@@ -541,18 +387,18 @@ Generate exactly {count} quiz questions that are relevant to the document conten
                 logger.info(f"Deleted quiz: {quiz_id}")
                 return True
 
-        except Exception as e:
-            logger.error(f"Error deleting quiz: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error deleting quiz: {e}")
+                raise
 
     async def submit_quiz_answers(
         self, quiz_id: str, answers: Dict[str, str]
     ) -> Dict[str, Any]:
         """Submit quiz answers and get results."""
-        try:
-            logger.info(f"Submitting answers for quiz {quiz_id}")
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"Submitting answers for quiz {quiz_id}")
 
-            with self._get_db_session() as db:
                 # Get all questions for the quiz
                 questions = (
                     db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
@@ -615,6 +461,6 @@ Generate exactly {count} quiz questions that are relevant to the document conten
                 )
                 return quiz_result
 
-        except Exception as e:
-            logger.error(f"Error submitting quiz answers: {e}")
-            raise
+            except Exception as e:
+                logger.error(f"Error submitting quiz answers: {e}")
+                raise
