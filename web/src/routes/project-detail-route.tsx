@@ -4,16 +4,14 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { projectDetailRoute } from '@/routes/_config'
 import { useChatsQuery } from '@/data-acess/chat'
 import { useDocumentsQuery } from '@/data-acess/document'
-import { useMeQuery } from '@/data-acess/auth'
 import { useProjectQuery } from '@/data-acess/project'
 import { Outlet, useNavigate } from '@tanstack/react-router'
-import type { Chat, Document, Project, User } from '@/integrations/api'
+import type { Chat, Document, Project } from '@/integrations/api'
 
 const ProjectLayout = ({
   project,
   chats,
   documents,
-  user,
   onSelectChatId,
   onSelectDocumentId,
   children,
@@ -21,7 +19,6 @@ const ProjectLayout = ({
   project: Project | null
   chats: Chat[]
   documents: Document[]
-  user: User | null
   onSelectChatId: (chatId: string) => void
   onSelectDocumentId: (documentId: string) => void
   children: React.ReactNode
@@ -37,7 +34,7 @@ const ProjectLayout = ({
       />
     )}
     <SidebarInset>{children}</SidebarInset>
-    {user && <ProjectSidebarRight materials={[]} user={user} />}
+      <ProjectSidebarRight materials={[]} />
   </SidebarProvider>
 )
 
@@ -53,9 +50,6 @@ export const ProjectDetailPage = () => {
 
   const documentsQuery = useDocumentsQuery(params.projectId)
   const documents = documentsQuery.data?.data ?? []
-
-  const meQuery = useMeQuery()
-  const me = meQuery.data ?? null
 
   const handleSelectChatId = (chatId: string) => {
     navigate({
@@ -76,7 +70,6 @@ export const ProjectDetailPage = () => {
       project={project}
       chats={chats}
       documents={documents}
-      user={me}
       onSelectChatId={handleSelectChatId}
       onSelectDocumentId={handleSelectDocumentId}
     >

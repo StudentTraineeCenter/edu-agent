@@ -12,7 +12,7 @@ resource "azurerm_cognitive_account" "openai" {
 
 # OpenAI Model Deployments for RAG
 resource "azurerm_cognitive_deployment" "gpt4o" {
-   name                 = "gpt-4o"
+  name                 = "gpt-4o"
   cognitive_account_id = azurerm_cognitive_account.openai.id
 
   model {
