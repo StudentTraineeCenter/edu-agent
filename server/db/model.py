@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Literal
 from uuid import uuid4
 
+from pydantic import BaseModel
 from sqlalchemy import String, DateTime, Text, Integer, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -73,6 +75,11 @@ class Document(Base):
         String, unique=True, nullable=True, index=True
     )
 
+    # Document metadata
+    summary: Mapped[str] = mapped_column(
+        Text, nullable=True
+    )  # Auto-generated summary of the document
+
     # Document processing metadata
     status: Mapped[str] = mapped_column(
         String, default="uploaded"
@@ -101,10 +108,6 @@ class DocumentSegment(Base):
     )
     document_id: Mapped[str] = mapped_column(String, ForeignKey("documents.id"))
 
-    # Segment ordering and structure
-    segment_order: Mapped[int] = mapped_column(Integer)
-    page_number: Mapped[int] = mapped_column(Integer, nullable=True)
-
     # Content
     content: Mapped[str] = mapped_column(Text)
     content_type: Mapped[str] = mapped_column(String, default="text")
@@ -121,6 +124,23 @@ class DocumentSegment(Base):
     document = relationship("Document", back_populates="segments")
 
 
+class ChatMessageSource(BaseModel):
+    id: str
+    citation_index: int
+    content: str
+    title: str
+    document_id: str
+    preview_url: str | None = None
+    score: float | None = None
+
+
+class ChatMessage(BaseModel):
+    id: str
+    role: Literal["user", "assistant", "internal"]
+    content: str
+    sources: list[ChatMessageSource] | None = None
+
+
 class Chat(Base):
     __tablename__ = "chats"
     id: Mapped[str] = mapped_column(
@@ -135,7 +155,7 @@ class Chat(Base):
     )  # Auto-generated or user-set title
 
     # Messages stored as JSON array
-    messages: Mapped[list[dict]] = mapped_column(JSON, default=list)
+    messages: Mapped[list[ChatMessage]] = mapped_column(JSON, default=list)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

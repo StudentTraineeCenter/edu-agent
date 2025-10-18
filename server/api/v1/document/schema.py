@@ -11,6 +11,7 @@ class DocumentDto(BaseModel):
     file_type: str
     file_size: int
     status: str
+    summary: Optional[str]
     uploaded_at: datetime
     processed_at: Optional[datetime]
 
@@ -25,5 +26,3 @@ class DocumentListResponse(BaseModel):
 
 class DocumentUploadResponse(BaseModel):
     document_id: str
-    file_name: str
-    message: str

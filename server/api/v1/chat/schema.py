@@ -23,10 +23,6 @@ class SourceDto(BaseModel):
     content: str = Field(description="Content of the source segment")
     title: str = Field(description="Title/name of the source document")
     document_id: str = Field(description="ID of the source document")
-    segment_order: int = Field(description="Order of the segment in the document")
-    page_number: Optional[int] = Field(
-        None, description="Page number where the content is located"
-    )
     preview_url: Optional[str] = Field(
         None, description="URL to preview/download the document"
     )
