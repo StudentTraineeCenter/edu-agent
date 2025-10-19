@@ -1,13 +1,13 @@
 from typing import Optional
+
+import jwt as pyjwt
+from core.config import app_config
+from db.models import User
+from db.session import get_db
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi_azure_auth import SingleTenantAzureAuthorizationCodeBearer
 from sqlalchemy.orm import Session
-from core.config import app_config
-from db.session import get_db
-from db.model import User
-import jwt as pyjwt
-
 
 azure_auth_scheme = SingleTenantAzureAuthorizationCodeBearer(
     app_client_id=app_config.AZURE_ENTRA_CLIENT_ID,

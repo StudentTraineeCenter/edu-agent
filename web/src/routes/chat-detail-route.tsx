@@ -39,6 +39,13 @@ import {
   SourcesContent,
   Source,
 } from '@/components/ai-elements/sources'
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool'
 import { useNavigate } from '@tanstack/react-router'
 import { projectDetailRoute } from '@/routes/_config'
 
@@ -84,6 +91,28 @@ const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
                 <MessageContent>{msg.content}</MessageContent>
               ) : (
                 <MessageContent>
+                  {msg.tools && msg.tools.length > 0 && (
+                    <div className="space-y-2">
+                      {msg.tools.map((tool) => (
+                        <Tool key={tool.id} >
+                          <ToolHeader
+                            title={tool.name}
+                            type={`tool-${tool.type}`}
+                            state={tool.state}
+                          />
+                          <ToolContent>
+                            {tool.input && <ToolInput input={tool.input} />}
+                            {(tool.output || tool.error_text) && (
+                              <ToolOutput
+                                output={tool.output}
+                                errorText={tool.error_text ?? undefined}
+                              />
+                            )}
+                          </ToolContent>
+                        </Tool>
+                      ))}
+                    </div>
+                  )}
                   <Response>{msg.content}</Response>
                   {msg.sources && msg.sources.length > 0 && (
                     <Sources>
@@ -104,11 +133,10 @@ const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
                                 },
                                 search: (prev) => ({
                                   ...prev,
-                                  page: source.page_number ?? undefined,
                                 }),
                               })
                             }}
-                            title={`[${source.citation_index}] ${source.title}${source.page_number ? ` (Page ${source.page_number})` : ''}`}
+                            title={`[${source.citation_index}] ${source.title}`}
                           />
                         ))}
                       </SourcesContent>
@@ -177,14 +205,19 @@ export const ChatDetailPage = () => {
 
   const streamMessageMutation = useStreamMessageMutation(
     chatId,
-    (chunk, messageId, sources) => {
+    (chunk, messageId, sources, tools) => {
       setMessages((prev) => {
         const messageIdx = prev.findIndex((msg) => msg.id === messageId)
 
         if (messageIdx !== -1) {
           return prev.map((msg, idx) =>
             idx === messageIdx
-              ? { ...msg, content: chunk, sources: sources ?? msg.sources }
+              ? {
+                ...msg,
+                content: chunk,
+                sources: sources ?? msg.sources,
+                tools: tools ?? msg.tools,
+              }
               : msg,
           )
         } else {
@@ -195,6 +228,7 @@ export const ChatDetailPage = () => {
               role: 'assistant',
               content: chunk,
               sources: sources ?? [],
+              tools: tools ?? [],
             },
           ]
         }

@@ -153,11 +153,7 @@ export interface paths {
          */
         get: operations["list_chat_messages_v1_chats__chat_id__messages_get"];
         put?: never;
-        /**
-         * Send a message to a chat
-         * @description Send a message to a chat
-         */
-        post: operations["send_message_v1_chats__chat_id__messages_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -472,27 +468,6 @@ export interface components {
             message: string;
         };
         /**
-         * ChatCompletionResponse
-         * @description Response model for chat completion with RAG.
-         */
-        ChatCompletionResponse: {
-            /**
-             * Response
-             * @description AI assistant response
-             */
-            response: string;
-            /**
-             * Sources
-             * @description Source documents used for the response
-             */
-            sources: components["schemas"]["SourceDto"][];
-            /**
-             * Chat Id
-             * @description ID of the chat
-             */
-            chat_id: string;
-        };
-        /**
          * ChatCreateRequest
          * @description Request model for creating a new chat.
          */
@@ -587,6 +562,11 @@ export interface components {
              * @description Source documents for assistant messages
              */
             sources?: components["schemas"]["SourceDto"][] | null;
+            /**
+             * Tools
+             * @description Tool calls made during message generation
+             */
+            tools?: components["schemas"]["ToolCallDto"][] | null;
         };
         /**
          * ChatUpdateRequest
@@ -649,6 +629,8 @@ export interface components {
             file_size: number;
             /** Status */
             status: string;
+            /** Summary */
+            summary: string | null;
             /**
              * Uploaded At
              * Format: date-time
@@ -668,10 +650,6 @@ export interface components {
         DocumentUploadResponse: {
             /** Document Id */
             document_id: string;
-            /** File Name */
-            file_name: string;
-            /** Message */
-            message: string;
         };
         /**
          * FlashcardDto
@@ -725,8 +703,8 @@ export interface components {
          * @description Response model for listing flashcard groups.
          */
         FlashcardGroupListResponse: {
-            /** Flashcard Groups */
-            flashcard_groups: components["schemas"]["FlashcardGroupDto"][];
+            /** Data */
+            data: components["schemas"]["FlashcardGroupDto"][];
             /** Total */
             total: number;
         };
@@ -879,8 +857,8 @@ export interface components {
          * @description Response model for listing quizzes.
          */
         QuizListResponse: {
-            /** Quizzes */
-            quizzes: components["schemas"]["QuizDto"][];
+            /** Data */
+            data: components["schemas"]["QuizDto"][];
             /** Total */
             total: number;
         };
@@ -967,16 +945,6 @@ export interface components {
              */
             document_id: string;
             /**
-             * Segment Order
-             * @description Order of the segment in the document
-             */
-            segment_order: number;
-            /**
-             * Page Number
-             * @description Page number where the content is located
-             */
-            page_number?: number | null;
-            /**
              * Preview Url
              * @description URL to preview/download the document
              */
@@ -986,6 +954,50 @@ export interface components {
              * @description Relevance score of the source
              */
             score: number;
+        };
+        /**
+         * ToolCallDto
+         * @description Response model for tool call data.
+         */
+        ToolCallDto: {
+            /**
+             * Id
+             * @description Unique ID of the tool call
+             */
+            id: string;
+            /**
+             * Type
+             * @description Tool type identifier
+             */
+            type: string;
+            /**
+             * Name
+             * @description Name of the tool being called
+             */
+            name: string;
+            /**
+             * State
+             * @description Current state of the tool call
+             * @enum {string}
+             */
+            state: "input-streaming" | "input-available" | "output-available" | "output-error";
+            /**
+             * Input
+             * @description Input parameters for the tool
+             */
+            input?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Output
+             * @description Output result from the tool
+             */
+            output?: unknown | null;
+            /**
+             * Error Text
+             * @description Error message if failed
+             */
+            error_text?: string | null;
         };
         /**
          * UpdateFlashcardGroupRequest
@@ -1378,41 +1390,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatMessageDto"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    send_message_v1_chats__chat_id__messages_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chat_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChatCompletionRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatCompletionResponse"];
                 };
             };
             /** @description Validation Error */

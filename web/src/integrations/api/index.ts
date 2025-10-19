@@ -31,3 +31,15 @@ export type User = Schema['UserDto']
 export type Source = Schema['SourceDto']
 
 export type ChatCreateRequest = Schema['ChatCreateRequest']
+export type ToolCall = Schema['ToolCallDto']
+export type ToolCallState = Schema['ToolCallDto']['state']
+
+export type FlashcardGroup = Schema['FlashcardGroupDto']
+export type Flashcard = Schema['FlashcardDto']
+
+export type Quiz = Schema['QuizDto']
+export type QuizQuestion = Schema['QuizQuestionDto']
+
+export type Material =
+  | ({ type: 'flashcard_group' } & FlashcardGroup)
+  | ({ type: 'quiz' } & Quiz)

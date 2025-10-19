@@ -1,14 +1,14 @@
-import os
-from contextlib import asynccontextmanager
-import uvicorn
 import logging
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from scalar_fastapi import get_scalar_api_reference
-from api.v1 import v1_router
-from core.logger import get_logger
-from core.config import app_config
+from contextlib import asynccontextmanager
 
+import uvicorn
+from api.endpoints import router as endpoints_router
+from api.exception_handlers import general_exception_handler, http_exception_handler
+from api.openapi import custom_openapi
+from api.v1.router import v1_router
+from core.logger import get_logger
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 OPENAPI_URL = "/openapi.json"
 APP_NAME = "EduAgent API"
@@ -23,16 +23,16 @@ az_logger.setLevel(logging.ERROR)
 async def lifespan(app: FastAPI):
     """Lifespan event handler for FastAPI."""
     try:
-        logger.info(f"Starting {APP_NAME} API...")
+        logger.info("starting %s api", APP_NAME)
 
         # Azure Search infrastructure setup removed - using PostgreSQL vector search instead
 
         yield
     except Exception as e:
-        logger.error(f"Error during startup: {e}")
+        logger.error("error during startup: %s", e)
         raise
     finally:
-        logger.info(f"Shutting down {APP_NAME} API...")
+        logger.info("shutting down %s api", APP_NAME)
 
 
 app = FastAPI(
@@ -44,62 +44,10 @@ app = FastAPI(
 )
 
 
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
-    from fastapi.openapi.utils import get_openapi
-
-    openapi_schema = get_openapi(
-        title=app.title,
-        version="1.0.0",
-        description="EduAgent API with Azure Entra Authentication",
-        routes=app.routes,
-    )
-
-    # Add Azure Entra OAuth2 security scheme
-    tenant_id = app_config.AZURE_ENTRA_TENANT_ID
-    client_id = app_config.AZURE_ENTRA_CLIENT_ID
-
-    openapi_schema["components"]["securitySchemes"] = {
-        "AzureEntra": {
-            "type": "oauth2",
-            "flows": {
-                "authorizationCode": {
-                    "authorizationUrl": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
-                    "tokenUrl": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token",
-                    "scopes": {
-                        f"api://{client_id}/user_impersonation": "Access API as user",
-                        "openid": "OpenID Connect",
-                        "profile": "User profile",
-                        "email": "User email",
-                    },
-                },
-                "implicit": {
-                    "authorizationUrl": f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/authorize",
-                    "scopes": {
-                        "openid": "OpenID Connect",
-                        "profile": "User profile",
-                        "email": "User email",
-                    },
-                },
-            },
-        },
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-        },
-    }
-
-    # Apply security globally
-    openapi_schema["security"] = [{"BearerAuth": []}]
-
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi
+app.openapi = lambda: custom_openapi(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -110,67 +58,12 @@ app.add_middleware(
 )
 
 app.include_router(router=v1_router, prefix="/v1")
-
-
-@app.get("/health")
-async def health_check():
-    """Simple health check that doesn't require database"""
-    return {"status": "healthy"}
-
-
-@app.get("/oauth2-redirect", include_in_schema=False)
-async def oauth2_redirect():
-    """OAuth2 redirect endpoint for Scalar documentation"""
-    from starlette.responses import HTMLResponse
-
-    return HTMLResponse(
-        """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>OAuth2 Redirect</title>
-    </head>
-    <body>
-        <script>
-            if (window.opener) {
-                window.opener.postMessage({
-                    type: 'oauth2',
-                    data: window.location.href
-                }, '*');
-                window.close();
-            }
-        </script>
-    </body>
-    </html>
-    """
-    )
-
-
-@app.get("/", include_in_schema=False)
-async def scalar_docs_ui():
-    client_id = app_config.AZURE_ENTRA_CLIENT_ID
-
-    return get_scalar_api_reference(
-        openapi_url=OPENAPI_URL,
-        title=APP_NAME,
-        authentication={
-            "preferredSecurityScheme": "BearerAuth",
-            "clientId": client_id,
-            "oauth2": {
-                "clientId": client_id,
-                "scopes": [
-                    f"api://{client_id}/user_impersonation",
-                    "openid",
-                    "profile",
-                    "email",
-                ],
-            },
-        },
-    )
+app.include_router(router=endpoints_router)
 
 
 if __name__ == "__main__":
     import asyncio
+
     import uvicorn
 
     config = uvicorn.Config("main:app", host="0.0.0.0", port=8000)
