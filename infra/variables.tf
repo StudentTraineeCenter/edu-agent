@@ -1,13 +1,16 @@
 variable "azure_subscription_id" {
   description = "Azure Subscription ID"
   type        = string
-  default     = "a5baa9fd-933f-47a1-8175-da59a43170bb"
 }
 
 variable "azure_tenant_id" {
   description = "Azure Tenant ID"
   type        = string
-  default     = "45ab8ba3-4ca1-45bd-95d7-18658bb01287"
+}
+
+variable "azure_app_client_id" {
+  description = "Azure App Client ID"
+  type        = string
 }
 
 variable "resource_group_name" {
@@ -32,6 +35,26 @@ variable "environment" {
   description = "Environment (dev, staging, prod)"
   type        = string
   default     = "dev"
+}
+
+variable "acr_repository_api" {
+  type    = string
+  default = "edu-agent-api"
+}
+
+variable "acr_tag_api" {
+  type    = string
+  default = "latest"
+}
+
+variable "acr_repository_web" {
+  type    = string
+  default = "edu-agent-web"
+}
+
+variable "acr_tag_web" {
+  type    = string
+  default = "latest"
 }
 
 # Database variables (DISABLED - PostgreSQL disabled)

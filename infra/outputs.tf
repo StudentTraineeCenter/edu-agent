@@ -61,3 +61,31 @@ output "ai_service_key" {
     value       = azurerm_ai_services.service.primary_access_key
     sensitive   = true
 }
+
+output "acr_name" {
+  value = azurerm_container_registry.acr.name
+}
+
+output "acr_repository_api" {
+  value = var.acr_repository_api
+}
+
+output "acr_repository_web" {
+  value = var.acr_repository_web
+}
+
+output "app_api_url" {
+  value = azurerm_linux_web_app.api.default_hostname
+}
+
+output "app_web_url" {
+  value = azurerm_linux_web_app.web.default_hostname
+}
+
+output "azure_tenant_id" {
+  value = var.azure_tenant_id
+}
+
+output "azure_app_client_id" {
+  value = var.azure_app_client_id
+}
