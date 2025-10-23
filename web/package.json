@@ -69,9 +69,15 @@
     "jsdom": "^27.0.0",
     "openapi-typescript": "^7.9.1",
     "prettier": "^3.5.3",
+    "prismjs": "^1.30.0",
     "typescript": "^5.7.2",
-    "vite": "^7.1.7",
+    "vite": "^7.1.11",
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "prismjs": ">=1.30.0"
+    }
   }
 }
