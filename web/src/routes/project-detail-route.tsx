@@ -14,6 +14,9 @@ const ProjectLayout = ({
   documents,
   onSelectChatId,
   onSelectDocumentId,
+  onSelectMaterialId,
+  onCreateFlashcard,
+  onCreateQuiz,
   children,
 }: {
   project: Project | null
@@ -21,6 +24,9 @@ const ProjectLayout = ({
   documents: Document[]
   onSelectChatId: (chatId: string) => void
   onSelectDocumentId: (documentId: string) => void
+  onSelectMaterialId: (materialId: string) => void
+  onCreateFlashcard: () => void
+  onCreateQuiz: () => void
   children: React.ReactNode
 }) => (
   <SidebarProvider>
@@ -34,7 +40,14 @@ const ProjectLayout = ({
       />
     )}
     <SidebarInset>{children}</SidebarInset>
-      <ProjectSidebarRight materials={[]} />
+    {project && (
+      <ProjectSidebarRight
+        projectId={project.id}
+        onSelectMaterialId={onSelectMaterialId}
+        onCreateFlashcard={onCreateFlashcard}
+        onCreateQuiz={onCreateQuiz}
+      />
+    )}
   </SidebarProvider>
 )
 
@@ -65,6 +78,21 @@ export const ProjectDetailPage = () => {
     })
   }
 
+  const handleSelectMaterialId = (materialId: string) => {
+    // TODO: Navigate to material detail page
+    console.log('Selected material:', materialId)
+  }
+
+  const handleCreateFlashcard = () => {
+    // TODO: Open flashcard creation dialog
+    console.log('Create flashcard')
+  }
+
+  const handleCreateQuiz = () => {
+    // TODO: Open quiz creation dialog
+    console.log('Create quiz')
+  }
+
   return (
     <ProjectLayout
       project={project}
@@ -72,6 +100,9 @@ export const ProjectDetailPage = () => {
       documents={documents}
       onSelectChatId={handleSelectChatId}
       onSelectDocumentId={handleSelectDocumentId}
+      onSelectMaterialId={handleSelectMaterialId}
+      onCreateFlashcard={handleCreateFlashcard}
+      onCreateQuiz={handleCreateQuiz}
     >
       <Outlet />
     </ProjectLayout>

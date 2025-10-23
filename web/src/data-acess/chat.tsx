@@ -1,5 +1,5 @@
 import { baseUrl, createApiClient } from '@/integrations/api'
-import type { ChatCreateRequest, Source } from '@/integrations/api'
+import type { ChatCreateRequest, Source, ToolCall } from '@/integrations/api'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -50,7 +50,12 @@ export const useChatQuery = (chatId: string) => {
 
 export const useStreamMessageMutation = (
   chatId: string,
-  onChunk: (content: string, messageId: string, sources?: Source[]) => void,
+  onChunk: (
+    content: string,
+    messageId: string,
+    sources?: Source[],
+    tools?: ToolCall[],
+  ) => void,
 ) => {
   const { getAccessToken } = useAuth()
 
@@ -109,14 +114,34 @@ export const useStreamMessageMutation = (
 
                   if (data.chunk) {
                     accumulatedContent += data.chunk
-                    onChunk(accumulatedContent, messageId, data.sources)
+                    onChunk(
+                      accumulatedContent,
+                      messageId,
+                      data.sources,
+                      data.tools,
+                    )
                   } else if (data.error) {
                     throw new Error(data.error)
                   }
 
-                  // Handle sources in the final chunk
-                  if (data.done && data.sources) {
-                    onChunk(accumulatedContent, messageId, data.sources)
+                  // Handle sources and tools in updates
+                  if (data.sources || data.tools) {
+                    onChunk(
+                      accumulatedContent,
+                      messageId,
+                      data.sources,
+                      data.tools,
+                    )
+                  }
+
+                  // Handle final chunk
+                  if (data.done) {
+                    onChunk(
+                      accumulatedContent,
+                      messageId,
+                      data.sources,
+                      data.tools,
+                    )
                   }
                 } catch (e) {
                   // Ignore JSON parse errors for incomplete chunks

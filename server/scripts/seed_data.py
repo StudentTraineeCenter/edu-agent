@@ -4,17 +4,17 @@ Seed script to insert default user and project data into the database.
 Run this script to populate the database with initial data for development/testing.
 """
 
-import sys
 import os
+import sys
 from uuid import uuid4
 
 # Add the server directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from sqlalchemy.orm import Session
-from db.session import SessionLocal, engine
-from db.model import User, Project
 from db.base import Base
+from db.models import Project, User
+from db.session import SessionLocal, engine
+from sqlalchemy.orm import Session
 
 
 def create_default_user(db: Session) -> User:
