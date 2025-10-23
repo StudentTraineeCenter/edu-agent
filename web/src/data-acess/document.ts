@@ -1,20 +1,14 @@
 import { baseUrl, createApiClient } from '@/integrations/api'
-import { useQuery } from '@tanstack/react-query'
-import { FileIcon } from 'lucide-react'
+import { useQuery, type QueryKey } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
 
-export const getIcon = (fileType: string) => {
-  switch (fileType) {
-    case 'pdf':
-      return <FileIcon />
-  }
-}
+export const DOCUMENTS_QUERY_KEY = (projectId: string): QueryKey => ['project', projectId, 'documents']
 
 export const useDocumentsQuery = (projectId: string) => {
   const { getAccessToken } = useAuth()
 
   return useQuery({
-    queryKey: ['documents', projectId],
+    queryKey: DOCUMENTS_QUERY_KEY(projectId),
     queryFn: async () => {
       const token = await getAccessToken()
       if (!token) throw new Error('No token')
@@ -28,16 +22,19 @@ export const useDocumentsQuery = (projectId: string) => {
           },
         },
       })
+      if (!data) throw new Error('Failed to get documents')
       return data
     },
   })
 }
 
+export const DOCUMENT_QUERY_KEY = (documentId: string): QueryKey => ['document', documentId]
+
 export const useDocumentQuery = (documentId: string) => {
   const { getAccessToken } = useAuth()
 
   return useQuery({
-    queryKey: ['document', documentId],
+    queryKey: DOCUMENT_QUERY_KEY(documentId),
     queryFn: async () => {
       const token = await getAccessToken()
       if (!token) throw new Error('No token')
@@ -47,10 +44,13 @@ export const useDocumentQuery = (documentId: string) => {
       const { data } = await client.GET('/v1/documents/{document_id}', {
         params: { path: { document_id: documentId } },
       })
+      if (!data) throw new Error('Failed to get document')
       return data
     },
   })
 }
+
+export const DOCUMENT_PREVIEW_QUERY_KEY = (documentId: string, page?: number | null): QueryKey => ['document', documentId, 'preview', page ?? null]
 
 export const useDocumentPreviewQuery = (
   documentId: string | null | undefined,
@@ -60,7 +60,7 @@ export const useDocumentPreviewQuery = (
 
   return useQuery({
     enabled: Boolean(documentId),
-    queryKey: ['document', documentId, 'preview', page ?? null],
+    queryKey: DOCUMENT_PREVIEW_QUERY_KEY(documentId ?? '', page ?? null),
     queryFn: async () => {
       if (!documentId) return null
       const previewUrl = new URL(
@@ -79,6 +79,7 @@ export const useDocumentPreviewQuery = (
         },
       })
       if (!res.ok) throw new Error(`Failed to load preview (${res.status})`)
+      if (!res.body) throw new Error('Failed to load preview')
       const blob = await res.blob()
       const objectUrl = URL.createObjectURL(blob)
       return objectUrl

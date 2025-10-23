@@ -11,7 +11,7 @@ def make_project_retrieval_tool(project_id: str, search_interface: SearchInterfa
         """
         Retrieve top_k semantically similar passages from this project's documents.
         Returns:
-          - context: markdown text with [n] headers for citations
+          - context: Markdown text with [n] headers for citations
           - sources: list[ChatMessageSource-like dict] with citation_index, id, document_id, preview_url, score, title, content
         """
         hits = await search_interface.search_documents(

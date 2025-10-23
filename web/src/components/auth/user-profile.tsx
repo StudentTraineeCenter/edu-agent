@@ -4,9 +4,21 @@ import { LogoutButton } from '@/components/auth/logout-button'
 import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
+import { useEffect } from 'react'
+import { useProfilePhotoQuery } from '@/data-acess/auth'
 
 export const UserProfile = () => {
   const { user, account } = useAuth()
+
+  const { data: photoUrl } = useProfilePhotoQuery()
+
+  useEffect(() => {
+    return () => {
+      if (photoUrl) {
+        URL.revokeObjectURL(photoUrl)
+      }
+    }
+  }, [photoUrl])
 
   if (!user || !account) return null
 
@@ -19,7 +31,7 @@ export const UserProfile = () => {
   return (
     <div className="flex items-center gap-3 p-3 border rounded-lg">
       <Avatar>
-        <AvatarImage src={account.idTokenClaims?.picture as string} />
+        <AvatarImage src={photoUrl || undefined} />
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">

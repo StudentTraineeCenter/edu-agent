@@ -24,10 +24,22 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
+import { useProfilePhotoQuery } from '@/data-acess/auth'
+import { useEffect } from 'react'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, logout, account } = useAuth()
+
+  const { data: photoUrl } = useProfilePhotoQuery()
+
+  useEffect(() => {
+    return () => {
+      if (photoUrl) {
+        URL.revokeObjectURL(photoUrl)
+      }
+    }
+  }, [photoUrl])
 
   const handleLogout = () => {
     logout()
@@ -52,7 +64,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={account.idTokenClaims?.picture as string}
+                  src={photoUrl ?? ''}
                   alt={user.name}
                 />
                 <AvatarFallback className="rounded-lg">

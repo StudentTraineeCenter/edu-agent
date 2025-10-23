@@ -8,8 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuAction,
 } from '@/components/ui/sidebar'
-import { getIcon } from '@/data-acess/document'
-import { MoreHorizontal, PlusIcon } from 'lucide-react'
+import { FileIcon, MoreHorizontal, PlusIcon } from 'lucide-react'
 import { truncate } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -23,6 +22,13 @@ type Props = React.ComponentProps<typeof SidebarGroup> & {
   documents: Document[]
   onAdd?: () => void
   onSelectDocumentId?: (documentId: string) => void
+}
+
+const getIcon = (fileType: string) => {
+  switch (fileType) {
+    case 'pdf':
+      return <FileIcon />
+  }
 }
 
 export const ProjectDocumentList = ({

@@ -24,6 +24,8 @@ export default client
 export type Schema = components['schemas']
 
 export type Project = Schema['ProjectDto']
+export type ProjectCreateRequest = Schema['ProjectCreateRequest']
+
 export type Chat = Schema['ChatDto']
 export type ChatMessage = Schema['ChatMessageDto']
 export type Document = Schema['DocumentDto']
@@ -31,6 +33,8 @@ export type User = Schema['UserDto']
 export type Source = Schema['SourceDto']
 
 export type ChatCreateRequest = Schema['ChatCreateRequest']
+export type ChatUpdateRequest = Schema['ChatUpdateRequest']
+
 export type ToolCall = Schema['ToolCallDto']
 export type ToolCallState = Schema['ToolCallDto']['state']
 
