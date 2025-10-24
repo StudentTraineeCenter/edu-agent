@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { effectTsResolver } from '@hookform/resolvers/effect-ts'
 import {
   Dialog,
   DialogContent,
@@ -20,13 +18,23 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useQueryClient } from '@tanstack/react-query'
-import { useCreateProjectMutation } from '@/data-acess/project'
 import { create } from 'zustand'
+import { useAtom } from '@effect-atom/atom-react'
+import { upsertProjectAtom } from '@/data-acess/project'
+import * as S from 'effect/Schema'
+import { ProjectDto } from '@/integrations/api/client'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type CreateProjectDialogStore = {
   isOpen: boolean
-  open: () => void
+  project?: ProjectDto
+  open: (project?: ProjectDto) => void
   close: () => void
   toggle: () => void
 }
@@ -34,41 +42,47 @@ type CreateProjectDialogStore = {
 export const useCreateProjectDialog = create<CreateProjectDialogStore>(
   (set) => ({
     isOpen: false,
-    open: () => set({ isOpen: true }),
+    open: (project?: ProjectDto) =>
+      set({ isOpen: true, project: project ?? undefined }),
     close: () => set({ isOpen: false }),
     toggle: () => set((state) => ({ isOpen: !state.isOpen })),
   }),
 )
 
-const createProjectSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  description: z.string().optional(),
-  language_code: z.string().optional(),
+const schema = S.Struct({
+  name: S.String,
+  description: S.optional(S.String),
+  language_code: S.String,
 })
 
-type CreateProjectForm = z.infer<typeof createProjectSchema>
+type UpsertProjectSchema = typeof schema.Type
 
-export function CreateProjectDialog() {
-  const { isOpen, close } = useCreateProjectDialog()
-  const [isLoading, setIsLoading] = useState(false)
+const languages = [
+  { code: 'cs', name: 'Czech' },
+  { code: 'en', name: 'English' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'zh', name: 'Chinese' },
+]
 
-  const queryClient = useQueryClient()
+export function UpsertProjectDialog() {
+  const { isOpen, close, project } = useCreateProjectDialog()
 
-  const createProjectMutation = useCreateProjectMutation({
-    onSuccess: () => {
-      handleClose()
-      queryClient.invalidateQueries({
-        queryKey: ['projects'],
-      })
-    },
+  const [upsertProjectResult, upsertProject] = useAtom(upsertProjectAtom, {
+    mode: 'promise',
   })
+  const isLoading = upsertProjectResult.waiting
 
-  const form = useForm<CreateProjectForm>({
-    resolver: zodResolver(createProjectSchema),
+  const form = useForm<UpsertProjectSchema>({
+    resolver: effectTsResolver(schema),
     defaultValues: {
-      name: '',
-      description: '',
-      language_code: 'cs',
+      name: project?.name ?? '',
+      description: project?.description ?? '',
+      language_code: project?.language_code ?? 'cs',
     },
   })
 
@@ -77,22 +91,9 @@ export function CreateProjectDialog() {
     form.reset()
   }
 
-  const onSubmit = async (data: CreateProjectForm) => {
-    try {
-      setIsLoading(true)
-
-      createProjectMutation.mutate({
-        name: data.name,
-        description: data.description || null,
-        language_code: data.language_code,
-      })
-
-      handleClose()
-    } catch (error) {
-      console.error('Failed to create project:', error)
-    } finally {
-      setIsLoading(false)
-    }
+  const onSubmit = async (data: UpsertProjectSchema) => {
+    if (project) await upsertProject(data)
+    handleClose()
   }
 
   return (
@@ -140,7 +141,18 @@ export function CreateProjectDialog() {
                 <FormItem>
                   <FormLabel>Language Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., en, es, fr" {...field} />
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {languages.map((language) => (
+                          <SelectItem key={language.code} value={language.code}>
+                            {language.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

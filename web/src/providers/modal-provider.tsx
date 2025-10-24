@@ -1,11 +1,13 @@
 import { EditChatDialog } from '@/components/chats/edit-chat-dialog'
-import { CreateProjectDialog } from '@/components/projects/create-project-dialog'
+import { UpsertProjectDialog } from '@/components/projects/upsert-project-dialog'
+import { FlashcardDialog } from '@/components/flashcards/flashcard-dialog'
 
 export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
-      <CreateProjectDialog />
+      <UpsertProjectDialog />
       <EditChatDialog />
+      <FlashcardDialog />
       {children}
     </>
   )

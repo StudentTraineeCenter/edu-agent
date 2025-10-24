@@ -5,12 +5,15 @@ import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { useEffect } from 'react'
-import { useProfilePhotoQuery } from '@/data-acess/auth'
+import { profilePhotoAtom } from '@/data-acess/auth'
+import { useAtomValue } from '@effect-atom/atom-react'
 
 export const UserProfile = () => {
   const { user, account } = useAuth()
 
-  const { data: photoUrl } = useProfilePhotoQuery()
+  const profilePhotoResult = useAtomValue(profilePhotoAtom)
+  const photoUrl =
+    profilePhotoResult._tag === 'Success' ? profilePhotoResult.value : undefined
 
   useEffect(() => {
     return () => {
@@ -31,7 +34,13 @@ export const UserProfile = () => {
   return (
     <div className="flex items-center gap-3 p-3 border rounded-lg">
       <Avatar>
-        <AvatarImage src={photoUrl || undefined} />
+        <AvatarImage
+          src={
+            profilePhotoResult._tag === 'Success'
+              ? profilePhotoResult.value
+              : undefined
+          }
+        />
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
