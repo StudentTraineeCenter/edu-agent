@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 from contextlib import contextmanager
 from datetime import datetime
@@ -43,6 +44,15 @@ class ChatService:
             azure_ad_token_provider=self.token_provider,
             temperature=0,
             streaming=True,
+        )
+
+        self.llm_non_streaming = AzureChatOpenAI(
+            azure_deployment=app_config.AZURE_OPENAI_CHAT_DEPLOYMENT,
+            azure_endpoint=app_config.AZURE_OPENAI_ENDPOINT,
+            api_version="2024-12-01-preview",
+            azure_ad_token_provider=self.token_provider,
+            temperature=0,
+            streaming=False,
         )
 
     def create_chat(self, project_id: str, user_id: str, title: Optional[str]) -> Chat:
@@ -148,6 +158,31 @@ class ChatService:
         finally:
             db.close()
 
+    async def _generate_chat_title(self, user_message: str, ai_response: str) -> str:
+        """Generate a concise chat title based on the first exchange."""
+        try:
+            prompt = f"""Generate a concise, descriptive title (max 5 words) for a chat based on this conversation:
+
+User: "{user_message}"
+Assistant: "{ai_response}"
+
+Only respond with the title, nothing else. Do not use quotes."""
+
+            response = await self.llm_non_streaming.ainvoke(prompt)
+            title = response.content.strip()
+            
+            # Remove quotes if present
+            title = title.strip('"').strip("'")
+            
+            # Truncate if too long
+            if len(title) > 60:
+                title = title[:57] + "..."
+            
+            return title
+        except Exception as e:
+            logger.error("error generating chat title: %s", e)
+            return "New Chat"
+
     async def send_streaming_message(
         self, chat_id: str, user_id: str, message: str
     ) -> AsyncGenerator[Dict[str, Any], None]:
@@ -166,6 +201,7 @@ class ChatService:
                     ChatMessage(**msg) for msg in chat.messages
                 ]
                 assistant_message_id = str(uuid4())
+                is_first_message = len(messages) == 0
 
                 def to_dict_list(items: List[Any]) -> List[Dict[str, Any]]:
                     """Convert list of models/dicts to list of dicts."""
@@ -196,6 +232,14 @@ class ChatService:
                                 "tools": tools,
                             },
                         ]
+
+                        # Generate title for first message
+                        if is_first_message:
+                            generated_title = await self._generate_chat_title(
+                                message, chunk_data.response
+                            )
+                            chat.title = generated_title
+                            logger.info("generated chat title: %s", generated_title)
 
                         chat.updated_at = datetime.now()
                         db.commit()
@@ -242,8 +286,8 @@ class ChatService:
         user_input = query
 
         buffer_parts: list[str] = []
-        gathered_sources: list[dict] = []
-        tool_calls: dict[str, dict] = {}  # Track tool calls by run_id
+        gathered_sources: list[ChatMessageSource] = []
+        tool_calls: dict[str, ChatMessageToolCall] = {}  # Track tool calls by run_id
 
         def fix_backticks(text: str) -> str:
             """Add newlines around triple backticks for proper markdown rendering."""
@@ -253,17 +297,17 @@ class ChatService:
             text = re.sub(r"(?<!\n)```", r"\n```", text)
             return text
 
-        def serialize_output(out):
+        def serialize_output(val: Any):
             """Serialize tool output to JSON-compatible format."""
-            if out is None:
+            if val is None:
                 return None
-            if hasattr(out, "model_dump"):
-                return out.model_dump()
-            if hasattr(out, "dict"):
-                return out.dict()
-            if isinstance(out, (dict, str)):
-                return out
-            return str(out)
+            if hasattr(val, "model_dump"):
+                return val.model_dump()
+            if hasattr(val, "dict"):
+                return val.dict()
+            if isinstance(val, (dict, str)):
+                return val
+            return str(val)
 
         async def yield_tool_update(run_id: str):
             """Helper to yield tool call updates."""
@@ -294,10 +338,12 @@ class ChatService:
                     type=f"tool-call-{tool_name}",
                     name=tool_name,
                     state="input-available",
-                    input=tool_input if isinstance(tool_input, dict) else {},
+                    input=tool_input if isinstance(tool_input, dict) else None,
                     output=None,
                     error_text=None,
                 ).model_dump()
+
+                print(tool_calls)
 
                 async for chunk in yield_tool_update(run_id):
                     yield chunk
@@ -316,16 +362,9 @@ class ChatService:
                     # Extract sources from output
                     try:
                         if isinstance(out, str):
-                            import json
-
                             out = json.loads(out)
                         if isinstance(out, dict) and "sources" in out:
-                            by_idx = {
-                                s.get("citation_index"): s for s in gathered_sources
-                            }
-                            for s in out.get("sources", []):
-                                by_idx[s.get("citation_index")] = s
-                            gathered_sources = list(by_idx.values())
+                            gathered_sources = out['sources']
                     except Exception:
                         pass
 

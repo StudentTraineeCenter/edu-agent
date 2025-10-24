@@ -20,6 +20,7 @@ import {
 import { useCreateChatMutation } from '@/data-acess/chat'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
+import { useEditChatDialog } from '@/components/chats/edit-chat-dialog'
 
 type Props = React.ComponentProps<typeof SidebarGroup> & {
   projectId: string
@@ -35,9 +36,11 @@ export const ProjectChatList = ({
 }: Props) => {
   const queryClient = useQueryClient()
 
+  const openEditChatDialog = useEditChatDialog().open
+
   const createChatMutation = useCreateChatMutation({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chats', projectId] })
+      queryClient.invalidateQueries({ queryKey: [projectId, 'chats'] })
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
     },
   })
@@ -49,9 +52,19 @@ export const ProjectChatList = ({
     [onSelectChatId],
   )
 
-  const handleAdd = useCallback(() => {
-    createChatMutation.mutate({ project_id: projectId })
+  const handleAdd = useCallback(async () => {
+    const chat = await createChatMutation.mutateAsync({ project_id: projectId })
+    if (!chat) return
+
+    onSelectChatId(chat.id)
   }, [createChatMutation, projectId])
+
+  const handleEdit = useCallback((chatId: string) => {
+    const chat = chats.find((chat) => chat.id === chatId)
+    if (!chat) return
+
+    openEditChatDialog(chatId, chat.title)
+  }, [openEditChatDialog, chats])
 
   return (
     <SidebarGroup {...props}>
@@ -77,6 +90,9 @@ export const ProjectChatList = ({
                   </SidebarMenuAction>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start">
+                  <DropdownMenuItem onClick={() => handleEdit(chat.id)}>
+                    <span>Edit</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem>
                     <span>Archive Chat</span>
                   </DropdownMenuItem>

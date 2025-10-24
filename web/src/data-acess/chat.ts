@@ -1,12 +1,15 @@
 import { baseUrl, createApiClient } from '@/integrations/api'
-import type { ChatCreateRequest, Source, ToolCall } from '@/integrations/api'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Chat, ChatCreateRequest, ChatUpdateRequest, Source, ToolCall } from '@/integrations/api'
+import { useMutation, useQuery, type QueryKey } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
+import type { MutationOptions } from '@/data-acess/utils'
+
+export const CHATS_QUERY_KEY = (projectId: string): QueryKey => ['project', projectId, 'chats']
 
 export const useChatsQuery = (projectId: string) => {
   const { getAccessToken } = useAuth()
   return useQuery({
-    queryKey: ['chats', projectId],
+    queryKey: CHATS_QUERY_KEY(projectId),
     queryFn: async () => {
       const token = await getAccessToken()
       if (!token) throw new Error('No token')
@@ -20,16 +23,19 @@ export const useChatsQuery = (projectId: string) => {
           },
         },
       })
+      if (!data) throw new Error('Failed to get chat')
       return data
     },
   })
 }
 
+export const CHAT_QUERY_KEY = (chatId: string): QueryKey => ['chat', chatId]
+
 export const useChatQuery = (chatId: string) => {
   const { getAccessToken } = useAuth()
 
   return useQuery({
-    queryKey: ['chat', chatId],
+    queryKey: CHAT_QUERY_KEY(chatId),
     queryFn: async () => {
       const token = await getAccessToken()
       if (!token) throw new Error('No token')
@@ -43,24 +49,25 @@ export const useChatQuery = (chatId: string) => {
           },
         },
       })
+      if (!data) throw new Error('Failed to get chat')
       return data
     },
   })
 }
 
+
+type StreamMessageMutationVariables = { chatId: string; message: string }
+type StreamMessageMutationData = { content: string; messageId: string }
+type OnChunkCallback = (content: string, messageId: string, sources?: Source[], tools?: ToolCall[]) => void
+
 export const useStreamMessageMutation = (
-  chatId: string,
-  onChunk: (
-    content: string,
-    messageId: string,
-    sources?: Source[],
-    tools?: ToolCall[],
-  ) => void,
+  options?: MutationOptions<StreamMessageMutationData, StreamMessageMutationVariables> & { onChunk?: OnChunkCallback },
 ) => {
   const { getAccessToken } = useAuth()
 
   return useMutation({
-    mutationFn: async (message: string) => {
+    ...options,
+    mutationFn: async ({ chatId, message }) => {
       try {
         if (!chatId || chatId === '') {
           throw new Error('Chat ID is required')
@@ -114,7 +121,7 @@ export const useStreamMessageMutation = (
 
                   if (data.chunk) {
                     accumulatedContent += data.chunk
-                    onChunk(
+                    options?.onChunk?.(
                       accumulatedContent,
                       messageId,
                       data.sources,
@@ -126,7 +133,7 @@ export const useStreamMessageMutation = (
 
                   // Handle sources and tools in updates
                   if (data.sources || data.tools) {
-                    onChunk(
+                    options?.onChunk?.(
                       accumulatedContent,
                       messageId,
                       data.sources,
@@ -136,7 +143,7 @@ export const useStreamMessageMutation = (
 
                   // Handle final chunk
                   if (data.done) {
-                    onChunk(
+                    options?.onChunk?.(
                       accumulatedContent,
                       messageId,
                       data.sources,
@@ -161,19 +168,52 @@ export const useStreamMessageMutation = (
   })
 }
 
-export const useCreateChatMutation = (options?: { onSuccess?: () => void }) => {
+type CreateChatMutationVariables = ChatCreateRequest
+type CreateChatMutationData = Chat
+
+export const useCreateChatMutation = (options?: MutationOptions<CreateChatMutationData, CreateChatMutationVariables>) => {
   const { getAccessToken } = useAuth()
 
   return useMutation({
-    mutationFn: async (chat: ChatCreateRequest) => {
+    ...options,
+    mutationFn: async ({ project_id }) => {
       const token = await getAccessToken()
       if (!token) throw new Error('No token')
 
       const client = createApiClient(token)
 
       const { data } = await client.POST(`/v1/chats`, {
-        body: chat,
+        body: { project_id },
       })
+      if (!data) throw new Error('Failed to create chat')
+      return data
+    },
+  })
+}
+
+type UpdateChatMutationVariables = ChatUpdateRequest & { chatId: string }
+type UpdateChatMutationData = Chat
+
+export const useUpdateChatMutation = (options?: MutationOptions<UpdateChatMutationData, UpdateChatMutationVariables>) => {
+  const { getAccessToken } = useAuth()
+
+  return useMutation({
+    ...options,
+    mutationFn: async ({ chatId, title }) => {
+      const token = await getAccessToken()
+      if (!token) throw new Error('No token')
+
+      const client = createApiClient(token)
+
+      const { data } = await client.PUT(`/v1/chats/{chat_id}`, {
+        params: {
+          path: {
+            chat_id: chatId,
+          },
+        },
+        body: { title },
+      })
+      if (!data) throw new Error('Failed to update chat')
       return data
     },
     onSuccess: options?.onSuccess,

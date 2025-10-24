@@ -1,4 +1,4 @@
-import { useChatQuery, useStreamMessageMutation } from '@/data-acess/chat'
+import { CHAT_QUERY_KEY, useChatQuery, useStreamMessageMutation } from '@/data-acess/chat'
 import { chatDetailRoute } from '@/routes/_config'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -48,6 +48,9 @@ import {
 } from '@/components/ai-elements/tool'
 import { useNavigate } from '@tanstack/react-router'
 import { projectDetailRoute } from '@/routes/_config'
+import { useQueryClient } from '@tanstack/react-query'
+import { PROJECT_QUERY_KEY } from '@/data-acess/project'
+import { useProfilePhotoQuery } from "@/data-acess/auth.ts";
 
 const ChatHeader = ({ title }: { title?: string }) => (
   <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
@@ -71,6 +74,16 @@ const ChatHeader = ({ title }: { title?: string }) => (
 const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
   const navigate = useNavigate()
   const { projectId } = projectDetailRoute.useParams()
+
+  const { data: photoUrl } = useProfilePhotoQuery()
+
+  useEffect(() => {
+    return () => {
+      if (photoUrl) {
+        URL.revokeObjectURL(photoUrl)
+      }
+    }
+  }, [photoUrl])
 
   return (
     <Conversation className="flex-1 overflow-hidden">
@@ -148,7 +161,7 @@ const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
                 name={msg.role === 'user' ? 'User' : 'AI'}
                 src={
                   msg.role === 'user'
-                    ? 'https://github.com/haydenbleasel.png'
+                    ? photoUrl ?? ''
                     : 'https://github.com/openai.png'
                 }
               />
@@ -195,6 +208,8 @@ export const ChatDetailPage = () => {
   const chatQuery = useChatQuery(chatId)
   const chat = chatQuery.data
 
+  const queryClient = useQueryClient()
+
   const [prompt, setPrompt] = useState<string>('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -204,36 +219,42 @@ export const ChatDetailPage = () => {
   }, [chat?.messages])
 
   const streamMessageMutation = useStreamMessageMutation(
-    chatId,
-    (chunk, messageId, sources, tools) => {
-      setMessages((prev) => {
-        const messageIdx = prev.findIndex((msg) => msg.id === messageId)
+    {
+      onChunk: (chunk, messageId, sources, tools) => {
+        setMessages((prev) => {
+          const messageIdx = prev.findIndex((msg) => msg.id === messageId)
 
-        if (messageIdx !== -1) {
-          return prev.map((msg, idx) =>
-            idx === messageIdx
-              ? {
-                ...msg,
+          if (messageIdx !== -1) {
+            return prev.map((msg, idx) =>
+              idx === messageIdx
+                ? {
+                  ...msg,
+                  content: chunk,
+                  sources: sources ?? msg.sources,
+                  tools: tools ?? msg.tools,
+                }
+                : msg,
+            )
+          } else {
+            return [
+              ...prev,
+              {
+                id: messageId,
+                role: 'assistant',
                 content: chunk,
-                sources: sources ?? msg.sources,
-                tools: tools ?? msg.tools,
-              }
-              : msg,
-          )
-        } else {
-          return [
-            ...prev,
-            {
-              id: messageId,
-              role: 'assistant',
-              content: chunk,
-              sources: sources ?? [],
-              tools: tools ?? [],
-            },
-          ]
-        }
-      })
-    },
+                sources: sources ?? [],
+                tools: tools ?? [],
+              },
+            ]
+          }
+        })
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: CHAT_QUERY_KEY(chatId) })
+        if (chat?.project_id)
+          queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEY(chat.project_id) })
+      }
+    }
   )
 
   const status = useMemo(() => {
@@ -249,7 +270,10 @@ export const ChatDetailPage = () => {
       ...prev,
       { role: 'user', content: value, sources: [], id: nanoid() },
     ])
-    streamMessageMutation.mutate(value)
+    streamMessageMutation.mutate({
+      message: value,
+      chatId,
+    })
     setPrompt('')
   }
 
