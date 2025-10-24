@@ -23,7 +23,6 @@ dataclasses-json==0.6.7
 distlib==0.4.0
 distro==1.9.0
 dotenv==0.9.9
-ecdsa==0.19.1
 fastapi==0.117.1
 fastapi-azure-auth==5.2.0
 filelock==3.20.0
@@ -76,7 +75,6 @@ pydantic_core==2.33.2
 PyJWT==2.10.1
 PyMuPDF==1.26.5
 python-dotenv==1.1.1
-python-jose==3.5.0
 python-multipart==0.0.20
 PyYAML==6.0.2
 regex==2025.9.18
