@@ -1,3 +1,5 @@
+'use client'
+
 import {
   BadgeCheck,
   Bell,
@@ -6,8 +8,6 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import { useEffect } from 'react'
-import { useAtomValue } from '@effect-atom/atom-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -19,41 +19,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar'
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
-import { profilePhotoAtom } from '@/data-acess/auth'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { user, logout, account } = useAuth()
+  const { user, logout } = useAuth()
 
-  const profilePhotoResult = useAtomValue(profilePhotoAtom)
-  const photoUrl =
-    profilePhotoResult._tag === 'Success' ? profilePhotoResult.value : undefined
-
-  useEffect(() => {
-    return () => {
-      if (photoUrl) {
-        URL.revokeObjectURL(photoUrl)
-      }
-    }
-  }, [photoUrl])
-
-  const handleLogout = () => {
-    logout()
-  }
-
-  if (!user || !account) return null
-
-  const initials = user.name
+  const name = user?.name ?? 'User'
+  const email = user?.email ?? ''
+  const initials = name
     .split(' ')
     .map((n) => n[0])
     .join('')
+    .slice(0, 2)
     .toUpperCase()
 
   return (
@@ -66,14 +45,12 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={photoUrl ?? ''} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {initials}
-                </AvatarFallback>
+                <AvatarImage src={undefined} alt={name} />
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-medium">{name}</span>
+                <span className="truncate text-xs">{email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -81,23 +58,18 @@ export function NavUser() {
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
             side={isMobile ? 'bottom' : 'right'}
-            align="start"
+            align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={account.idTokenClaims?.picture as string}
-                    alt={user.name}
-                  />
-                  <AvatarFallback className="rounded-lg">
-                    {initials}
-                  </AvatarFallback>
+                  <AvatarImage src={undefined} alt={name} />
+                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-medium">{name}</span>
+                  <span className="truncate text-xs">{email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -124,7 +96,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut />
               Log out
             </DropdownMenuItem>
@@ -134,3 +106,7 @@ export function NavUser() {
     </SidebarMenu>
   )
 }
+
+export default NavUser
+
+

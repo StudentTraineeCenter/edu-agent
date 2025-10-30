@@ -1,0 +1,50 @@
+type FlashcardCardProps = {
+  question: string
+  answer: string
+  showAnswer: boolean
+  onToggle: () => void
+}
+
+export const FlashcardCard = ({
+  question,
+  answer,
+  showAnswer,
+  onToggle,
+}: FlashcardCardProps) => {
+  return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-full max-w-3xl">
+        <div
+          className="bg-card border rounded-xl shadow-lg p-12 min-h-[420px] flex flex-col justify-center cursor-pointer hover:shadow-xl transition-shadow"
+          onClick={onToggle}
+        >
+          <div className="space-y-10">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                Question
+              </h3>
+              <p className="text-lg leading-relaxed">{question}</p>
+            </div>
+
+            {showAnswer && (
+              <div className="border-t pt-8">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  Answer
+                </h3>
+                <p className="text-lg leading-relaxed text-primary">{answer}</p>
+              </div>
+            )}
+
+            {!showAnswer && (
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm">
+                  Click to reveal answer
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

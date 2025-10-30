@@ -24,16 +24,8 @@ import {
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import { Loader2Icon, MessageSquareIcon } from 'lucide-react'
-import {
-  PromptInput,
-  PromptInputBody,
-  PromptInputTextarea,
-  PromptInputToolbar,
-  PromptInputSubmit,
-  type PromptInputMessage,
-} from '@/components/ai-elements/prompt-input'
+import { type PromptInputMessage } from '@/components/ai-elements/prompt-input'
 import { useMemo, useRef, useState, useEffect } from 'react'
-import type React from 'react'
 import { Response } from '@/components/ai-elements/response'
 import {
   Sources,
@@ -49,7 +41,6 @@ import {
   ToolOutput,
 } from '@/components/ai-elements/tool'
 import { useNavigate } from '@tanstack/react-router'
-import { projectDetailRoute } from '@/routes/_config'
 import {
   Result,
   useAtom,
@@ -59,9 +50,10 @@ import {
 import { profilePhotoAtom } from '@/data-acess/auth'
 import type { ChatMessageDto } from '@/integrations/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ChatInput } from '@/components/chats/chat-input'
 
 const ChatHeader = ({ title }: { title?: string }) => (
-  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
+  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
     <div className="flex flex-1 items-center gap-2 px-3">
       <SidebarTrigger />
       <Separator
@@ -71,7 +63,9 @@ const ChatHeader = ({ title }: { title?: string }) => (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage className="line-clamp-1">{title}</BreadcrumbPage>
+            <BreadcrumbPage className="line-clamp-1 font-medium">
+              {title}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -85,7 +79,7 @@ const ChatMessages = ({
   messages: ReadonlyArray<ChatMessageDto>
 }) => {
   const navigate = useNavigate()
-  const { projectId } = projectDetailRoute.useParams()
+  const { projectId } = chatDetailRoute.useParams()
 
   const profilePhotoResult = useAtomValue(profilePhotoAtom)
   const photoUrl =
@@ -188,35 +182,6 @@ const ChatMessages = ({
   )
 }
 
-const ChatPrompt = ({
-  value,
-  onChange,
-  status,
-  onSubmit,
-  textareaRef,
-}: {
-  value: string
-  onChange: (value: string) => void
-  status: 'streaming' | 'error' | 'ready' | 'submitted'
-  onSubmit: (message: PromptInputMessage) => void
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>
-}) => (
-  <div className="border-t p-4">
-    <PromptInput multiple onSubmit={onSubmit}>
-      <PromptInputBody>
-        <PromptInputTextarea
-          onChange={(e) => onChange(e.target.value)}
-          ref={textareaRef}
-          value={value}
-        />
-      </PromptInputBody>
-      <PromptInputToolbar className="justify-end">
-        <PromptInputSubmit status={status} />
-      </PromptInputToolbar>
-    </PromptInput>
-  </div>
-)
-
 export const ChatDetailPage = () => {
   const params = chatDetailRoute.useParams()
   const setCurrentChat = useAtomSet(currentChatIdAtom)
@@ -256,20 +221,20 @@ export const ChatDetailPage = () => {
   }, [params.chatId, setCurrentChat])
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       {Result.builder(chatResult)
         .onSuccess((chat) => (
           <ChatHeader title={chat.title ?? 'Untitled chat'} />
         ))
         .onInitialOrWaiting(() => (
-          <div className="h-14">
+          <div className="h-14 shrink-0">
             <Skeleton className="w-72 h-7 mt-3 ml-4" />
           </div>
         ))
         .render()}
 
-      <div className="flex flex-1 flex-col p-4">
-        <div className="max-w-5xl mx-auto w-full flex flex-col rounded-lg border h-[calc(100vh-6rem)]">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0">
           {Result.builder(chatResult)
             .onInitialOrWaiting(() => (
               <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
@@ -285,18 +250,20 @@ export const ChatDetailPage = () => {
             .onSuccess((chat) => (
               <>
                 <ChatMessages messages={chat.messages ?? []} />
-                <ChatPrompt
-                  value={prompt}
-                  onChange={setPrompt}
-                  status={status}
-                  onSubmit={handleSubmit}
-                  textareaRef={textareaRef}
-                />
+                <div className="shrink-0">
+                  <ChatInput
+                    value={prompt}
+                    onChange={setPrompt}
+                    status={status}
+                    onSubmit={handleSubmit}
+                    textareaRef={textareaRef}
+                  />
+                </div>
               </>
             ))
             .render()}
         </div>
       </div>
-    </>
+    </div>
   )
 }

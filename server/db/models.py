@@ -151,6 +151,7 @@ class ChatMessage(BaseModel):
     content: str
     sources: list[ChatMessageSource] | None = None
     tools: list[ChatMessageToolCall] | None = None
+    created_at: datetime
 
 
 class Chat(Base):

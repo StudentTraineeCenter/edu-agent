@@ -185,7 +185,7 @@ export class ToolCallDto extends S.Class<ToolCallDto>('ToolCallDto')({
     nullable: true,
   }),
   /**
-   * Output parameters for the tool
+   * Output result from the tool
    */
   output: S.optionalWith(S.Record({ key: S.String, value: S.Unknown }), {
     nullable: true,
@@ -220,6 +220,34 @@ export class ChatMessageDto extends S.Class<ChatMessageDto>('ChatMessageDto')({
    * Tool calls made during message generation
    */
   tools: S.optionalWith(S.Array(ToolCallDto), { nullable: true }),
+  /**
+   * Creation timestamp
+   */
+  created_at: S.String,
+}) {}
+
+/**
+ * Response model for last chat message data.
+ */
+export class LastChatMessageDto extends S.Class<LastChatMessageDto>(
+  'LastChatMessageDto',
+)({
+  /**
+   * Unique ID of the message
+   */
+  id: S.String,
+  /**
+   * Role of the message sender
+   */
+  role: S.String,
+  /**
+   * Content of the message
+   */
+  content: S.String,
+  /**
+   * Creation timestamp
+   */
+  created_at: S.String,
 }) {}
 
 /**
@@ -254,6 +282,10 @@ export class ChatDto extends S.Class<ChatDto>('ChatDto')({
    * Last update timestamp
    */
   updated_at: S.String,
+  /**
+   * Last message in the chat
+   */
+  last_message: S.optionalWith(LastChatMessageDto, { nullable: true }),
 }) {}
 
 /**
