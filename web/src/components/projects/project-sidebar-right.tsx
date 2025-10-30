@@ -9,44 +9,20 @@ import {
 import { NavMaterials } from '@/components/projects/nav-materials'
 import { NavUser } from '@/components/projects/nav-user'
 import { Button } from '@/components/ui/button'
-import { useFlashcardGroupsQuery } from '@/data-acess/flashcard'
-import { useQuizzesQuery } from '@/data-acess/quiz'
-import type { Material } from '@/integrations/api'
-import { useMemo } from 'react'
+import { useCallback } from 'react'
 
-type Props = React.ComponentProps<typeof Sidebar> & {
-  projectId: string
-  onCreateFlashcard?: () => void
-  onCreateQuiz?: () => void
-  onSelectMaterialId?: (materialId: string) => void
-}
+type Props = React.ComponentProps<typeof Sidebar>
 
-export function ProjectSidebarRight({
-  projectId,
-  onCreateFlashcard,
-  onCreateQuiz,
-  onSelectMaterialId,
-  ...props
-}: Props) {
-  const flashcardGroupsQuery = useFlashcardGroupsQuery(projectId)
-  const flashcardGroups = flashcardGroupsQuery.data?.data ?? []
+export function ProjectSidebarRight({ ...props }: Props) {
+  const handleCreateFlashcard = useCallback(() => {
+    // TODO: Open flashcard creation dialog
+    console.log('Create flashcard')
+  }, [])
 
-  const quizzesQuery = useQuizzesQuery(projectId)
-  const quizzes = quizzesQuery.data?.data ?? []
-
-  const materials = useMemo(() => {
-    return [
-      ...(flashcardGroups.map((group) => ({
-        type: 'flashcard_group' as const,
-        ...group,
-      })) ?? []),
-      ...(quizzes.map((quiz) => ({
-        type: 'quiz' as const,
-        ...quiz,
-      })) ?? []),
-    ] as Material[]
-  }, [flashcardGroups, quizzes])
-
+  const handleCreateQuiz = useCallback(() => {
+    // TODO: Open quiz creation dialog
+    console.log('Create quiz')
+  }, [])
 
   return (
     <Sidebar
@@ -59,7 +35,7 @@ export function ProjectSidebarRight({
           <Button
             variant="outline"
             className="flex-1 flex flex-col items-center justify-center gap-1 h-full"
-            onClick={onCreateFlashcard}
+            onClick={handleCreateFlashcard}
           >
             <PlusIcon className="size-4" />
             <span className="text-sm">Flashcard</span>
@@ -67,7 +43,7 @@ export function ProjectSidebarRight({
           <Button
             variant="outline"
             className="flex-1 flex flex-col items-center justify-center gap-1 h-full"
-            onClick={onCreateQuiz}
+            onClick={handleCreateQuiz}
           >
             <PlusIcon className="size-4" />
             <span className="text-sm">Quiz</span>
@@ -75,10 +51,7 @@ export function ProjectSidebarRight({
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMaterials
-          materials={materials}
-          onSelectMaterialId={onSelectMaterialId}
-        />
+        <NavMaterials />
         <SidebarSeparator className="mx-0" />
       </SidebarContent>
       <SidebarFooter>

@@ -10,6 +10,8 @@ import { IndexPage } from './home-route'
 import { ProjectListPage } from './project-list-route'
 import { ChatDetailPage } from './chat-detail-route'
 import { DocumentDetailPage } from './document-detail-route'
+import { QuizDetailPage } from './quiz-detail-route'
+import { FlashcardDetailPage } from './flashcard-detail-route'
 import { z } from 'zod'
 import { MessageSquareIcon } from 'lucide-react'
 import { ConversationEmptyState } from '@/components/ai-elements/conversation'
@@ -87,8 +89,19 @@ export const chatDetailRoute = createRoute({
 export const documentDetailRoute = createRoute({
   path: '/documents/$documentId',
   getParentRoute: () => projectDetailRoute,
-  validateSearch: z.object({ page: z.coerce.number().optional() }).optional(),
   component: DocumentDetailPage,
+})
+
+export const flashcardDetailRoute = createRoute({
+  path: '/flashcards/$flashcardGroupId',
+  getParentRoute: () => projectDetailRoute,
+  component: FlashcardDetailPage,
+})
+
+export const quizDetailRoute = createRoute({
+  path: '/quizzes/$quizId',
+  getParentRoute: () => projectDetailRoute,
+  component: QuizDetailPage,
 })
 
 export const routeTree = rootRoute.addChildren([
@@ -97,6 +110,8 @@ export const routeTree = rootRoute.addChildren([
     projectIndexRoute,
     chatDetailRoute,
     documentDetailRoute,
+    flashcardDetailRoute,
+    quizDetailRoute,
   ]),
   indexRoute,
 ])

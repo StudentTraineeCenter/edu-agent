@@ -1,4 +1,8 @@
-import { CHAT_QUERY_KEY, useChatQuery, useStreamMessageMutation } from '@/data-acess/chat'
+import {
+  chatAtom,
+  currentChatIdAtom,
+  streamMessageAtom,
+} from '@/data-acess/chat'
 import { chatDetailRoute } from '@/routes/_config'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -8,7 +12,6 @@ import {
   BreadcrumbItem,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { nanoid } from 'nanoid'
 import {
   Message,
   MessageAvatar,
@@ -20,7 +23,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
-import { MessageSquareIcon } from 'lucide-react'
+import { Loader2Icon, MessageSquareIcon } from 'lucide-react'
 import {
   PromptInput,
   PromptInputBody,
@@ -31,7 +34,6 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { useMemo, useRef, useState, useEffect } from 'react'
 import type React from 'react'
-import type { ChatMessage } from '@/integrations/api'
 import { Response } from '@/components/ai-elements/response'
 import {
   Sources,
@@ -48,9 +50,15 @@ import {
 } from '@/components/ai-elements/tool'
 import { useNavigate } from '@tanstack/react-router'
 import { projectDetailRoute } from '@/routes/_config'
-import { useQueryClient } from '@tanstack/react-query'
-import { PROJECT_QUERY_KEY } from '@/data-acess/project'
-import { useProfilePhotoQuery } from "@/data-acess/auth.ts";
+import {
+  Result,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from '@effect-atom/atom-react'
+import { profilePhotoAtom } from '@/data-acess/auth'
+import type { ChatMessageDto } from '@/integrations/api/client'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const ChatHeader = ({ title }: { title?: string }) => (
   <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
@@ -71,11 +79,17 @@ const ChatHeader = ({ title }: { title?: string }) => (
   </header>
 )
 
-const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
+const ChatMessages = ({
+  messages,
+}: {
+  messages: ReadonlyArray<ChatMessageDto>
+}) => {
   const navigate = useNavigate()
   const { projectId } = projectDetailRoute.useParams()
 
-  const { data: photoUrl } = useProfilePhotoQuery()
+  const profilePhotoResult = useAtomValue(profilePhotoAtom)
+  const photoUrl =
+    profilePhotoResult._tag === 'Success' ? profilePhotoResult.value : undefined
 
   useEffect(() => {
     return () => {
@@ -107,7 +121,7 @@ const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
                   {msg.tools && msg.tools.length > 0 && (
                     <div className="space-y-2">
                       {msg.tools.map((tool) => (
-                        <Tool key={tool.id} >
+                        <Tool key={tool.id}>
                           <ToolHeader
                             title={tool.name}
                             type={`tool-${tool.type}`}
@@ -161,7 +175,7 @@ const ChatMessages = ({ messages }: { messages: ChatMessage[] }) => {
                 name={msg.role === 'user' ? 'User' : 'AI'}
                 src={
                   msg.role === 'user'
-                    ? photoUrl ?? ''
+                    ? (photoUrl ?? '')
                     : 'https://github.com/openai.png'
                 }
               />
@@ -183,7 +197,7 @@ const ChatPrompt = ({
 }: {
   value: string
   onChange: (value: string) => void
-  status: 'streaming' | 'error' | 'ready'
+  status: 'streaming' | 'error' | 'ready' | 'submitted'
   onSubmit: (message: PromptInputMessage) => void
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
 }) => (
@@ -204,92 +218,83 @@ const ChatPrompt = ({
 )
 
 export const ChatDetailPage = () => {
-  const { chatId } = chatDetailRoute.useParams()
-  const chatQuery = useChatQuery(chatId)
-  const chat = chatQuery.data
+  const params = chatDetailRoute.useParams()
+  const setCurrentChat = useAtomSet(currentChatIdAtom)
 
-  const queryClient = useQueryClient()
+  const chatResult = useAtomValue(chatAtom(params.chatId))
 
   const [prompt, setPrompt] = useState<string>('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
 
-  useEffect(() => {
-    if (chat?.messages) setMessages(chat.messages)
-  }, [chat?.messages])
-
-  const streamMessageMutation = useStreamMessageMutation(
-    {
-      onChunk: (chunk, messageId, sources, tools) => {
-        setMessages((prev) => {
-          const messageIdx = prev.findIndex((msg) => msg.id === messageId)
-
-          if (messageIdx !== -1) {
-            return prev.map((msg, idx) =>
-              idx === messageIdx
-                ? {
-                  ...msg,
-                  content: chunk,
-                  sources: sources ?? msg.sources,
-                  tools: tools ?? msg.tools,
-                }
-                : msg,
-            )
-          } else {
-            return [
-              ...prev,
-              {
-                id: messageId,
-                role: 'assistant',
-                content: chunk,
-                sources: sources ?? [],
-                tools: tools ?? [],
-              },
-            ]
-          }
-        })
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: CHAT_QUERY_KEY(chatId) })
-        if (chat?.project_id)
-          queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEY(chat.project_id) })
-      }
-    }
-  )
+  const [streamMessageResult, streamMessage] = useAtom(streamMessageAtom, {
+    mode: 'promise',
+  })
 
   const status = useMemo(() => {
-    if (streamMessageMutation.isPending) return 'streaming'
-    if (streamMessageMutation.isError) return 'error'
+    if (streamMessageResult.waiting) return 'streaming'
+    if (streamMessageResult._tag === 'Failure') return 'error'
+    if (streamMessageResult._tag === 'Success') return 'submitted'
     return 'ready'
-  }, [streamMessageMutation.isPending, streamMessageMutation.isError])
+  }, [streamMessageResult.waiting, streamMessageResult._tag])
 
-  const handleSubmit = (message: PromptInputMessage) => {
+  const handleSubmit = async (message: PromptInputMessage) => {
     const value = message.text
     if (!value) return
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: value, sources: [], id: nanoid() },
-    ])
-    streamMessageMutation.mutate({
-      message: value,
-      chatId,
-    })
     setPrompt('')
+    try {
+      await streamMessage({
+        message: value,
+        chatId: params.chatId,
+      })
+    } catch {
+      setPrompt(value)
+    }
   }
+
+  useEffect(() => {
+    setCurrentChat(params.chatId)
+  }, [params.chatId, setCurrentChat])
 
   return (
     <>
-      <ChatHeader title={chat?.title ?? undefined} />
+      {Result.builder(chatResult)
+        .onSuccess((chat) => (
+          <ChatHeader title={chat.title ?? 'Untitled chat'} />
+        ))
+        .onInitialOrWaiting(() => (
+          <div className="h-14">
+            <Skeleton className="w-72 h-7 mt-3 ml-4" />
+          </div>
+        ))
+        .render()}
+
       <div className="flex flex-1 flex-col p-4">
         <div className="max-w-5xl mx-auto w-full flex flex-col rounded-lg border h-[calc(100vh-6rem)]">
-          <ChatMessages messages={messages} />
-          <ChatPrompt
-            value={prompt}
-            onChange={setPrompt}
-            status={status}
-            onSubmit={handleSubmit}
-            textareaRef={textareaRef}
-          />
+          {Result.builder(chatResult)
+            .onInitialOrWaiting(() => (
+              <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+                <Loader2Icon className="size-4 animate-spin" />
+                <span>Loading chat...</span>
+              </div>
+            ))
+            .onFailure(() => (
+              <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
+                <span>Failed to load chat</span>
+              </div>
+            ))
+            .onSuccess((chat) => (
+              <>
+                <ChatMessages messages={chat.messages ?? []} />
+                <ChatPrompt
+                  value={prompt}
+                  onChange={setPrompt}
+                  status={status}
+                  onSubmit={handleSubmit}
+                  textareaRef={textareaRef}
+                />
+              </>
+            ))
+            .render()}
         </div>
       </div>
     </>

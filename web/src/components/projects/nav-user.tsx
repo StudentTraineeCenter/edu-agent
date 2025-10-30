@@ -6,6 +6,8 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
+import { useEffect } from 'react'
+import { useAtomValue } from '@effect-atom/atom-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -24,14 +26,15 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
-import { useProfilePhotoQuery } from '@/data-acess/auth'
-import { useEffect } from 'react'
+import { profilePhotoAtom } from '@/data-acess/auth'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, logout, account } = useAuth()
 
-  const { data: photoUrl } = useProfilePhotoQuery()
+  const profilePhotoResult = useAtomValue(profilePhotoAtom)
+  const photoUrl =
+    profilePhotoResult._tag === 'Success' ? profilePhotoResult.value : undefined
 
   useEffect(() => {
     return () => {
@@ -63,10 +66,7 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage
-                  src={photoUrl ?? ''}
-                  alt={user.name}
-                />
+                <AvatarImage src={photoUrl ?? ''} alt={user.name} />
                 <AvatarFallback className="rounded-lg">
                   {initials}
                 </AvatarFallback>

@@ -15,6 +15,9 @@
   "dependencies": {
     "@azure/msal-browser": "^4.25.0",
     "@azure/msal-react": "^3.0.20",
+    "@effect-atom/atom-react": "^0.3.4",
+    "@effect/platform": "^0.92.1",
+    "@effect/platform-browser": "^0.72.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -40,6 +43,7 @@
     "ai": "^5.0.68",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "effect": "^3.18.4",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.6",

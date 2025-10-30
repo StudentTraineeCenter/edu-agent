@@ -42,7 +42,7 @@ class ToolCallDto(BaseModel):
     input: Optional[Dict[str, Any]] = Field(
         None, description="Input parameters for the tool"
     )
-    output: Optional[Any] = Field(None, description="Output result from the tool")
+    output: Optional[Dict[str, Any]] = Field(None, description="Output result from the tool")
     error_text: Optional[str] = Field(None, description="Error message if failed")
 
 

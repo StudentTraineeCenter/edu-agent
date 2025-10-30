@@ -1,76 +1,85 @@
-import { useAuth } from '@/hooks/use-auth'
-import { createApiClient, type Project, type ProjectCreateRequest } from '@/integrations/api'
-import { useMutation, useQuery, type QueryKey } from '@tanstack/react-query'
-import type { MutationOptions } from '@/data-acess/utils'
+import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { Data, Effect, Array } from 'effect'
 
-export const PROJECTS_QUERY_KEY = (): QueryKey => ['projects']
+import { makeApiClient } from '@/integrations/api/http'
+import {
+  ProjectDto,
+  type ProjectCreateRequest,
+} from '@/integrations/api/client'
+import { runtime } from '@/data-acess/runtime'
 
-export const useProjectsQuery = () => {
-  const { getAccessToken } = useAuth()
+export const currentProjectIdAtom = Atom.make<string | null>(null).pipe(
+  Atom.keepAlive,
+)
 
-  return useQuery({
-    queryKey: PROJECTS_QUERY_KEY(),
-    queryFn: async () => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
+type ProjectsAction = Data.TaggedEnum<{
+  Upsert: { readonly project: ProjectDto }
+  Del: { readonly projectId: string }
+}>
+const ProjectsAction = Data.taggedEnum<ProjectsAction>()
 
-      const client = createApiClient(token)
+export const projectsRemoteAtom = runtime.atom(
+  Effect.fn(function* () {
+    const client = yield* makeApiClient
+    const resp = yield* client.listProjectsV1ProjectsGet()
+    return resp.data
+  }),
+)
 
-      const { data } = await client.GET('/v1/projects')
-      if (!data) throw new Error('Failed to get projects')
-      return data
-    },
-  })
-}
+export const projectAtom = Atom.family((projectId: string) =>
+  Atom.make(
+    Effect.gen(function* () {
+      const client = yield* makeApiClient
+      return yield* client.getProjectV1ProjectsProjectIdGet(projectId)
+    }),
+  ).pipe(Atom.keepAlive),
+)
 
-export const PROJECT_QUERY_KEY = (projectId: string): QueryKey => ['project', projectId]
+export const projectsAtom = Object.assign(
+  Atom.writable(
+    (get: Atom.Context) => get(projectsRemoteAtom),
+    (ctx, action: ProjectsAction) => {
+      const result = ctx.get(projectsAtom)
+      if (!Result.isSuccess(result)) return
 
-export const useProjectQuery = (projectId: string) => {
-  const { getAccessToken } = useAuth()
-
-  return useQuery({
-    queryKey: PROJECT_QUERY_KEY(projectId),
-    queryFn: async () => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
-
-      const client = createApiClient(token)
-
-      const { data } = await client.GET(`/v1/projects/{project_id}`, {
-        params: {
-          path: {
-            project_id: projectId,
-          },
+      const update = ProjectsAction.$match(action, {
+        Upsert: ({ project }) => {
+          const existing = result.value.find((p) => p.id === project.id)
+          if (existing)
+            return result.value.map((p) => (p.id === project.id ? project : p))
+          return Array.prepend(result.value, project)
+        },
+        Del: ({ projectId }) => {
+          return result.value.filter((p) => p.id !== projectId)
         },
       })
-      if (!data) throw new Error('Failed to get project')
-      return data
+
+      ctx.setSelf(Result.success(update))
     },
-  })
-}
+  ),
+  {
+    remote: projectsRemoteAtom,
+  },
+)
 
-export const CREATE_PROJECT_MUTATION_KEY = (): QueryKey => ['create-project']
+export const upsertProjectAtom = runtime.fn(
+  Effect.fn(function* (input: typeof ProjectCreateRequest.Encoded) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const res = yield* client.createProjectV1ProjectsPost(input)
 
-export const useCreateProjectMutation = (options?: MutationOptions<Project, ProjectCreateRequest>) => {
-  const { getAccessToken } = useAuth()
+    registry.set(projectsAtom, ProjectsAction.Upsert({ project: res }))
+    registry.refresh(projectsRemoteAtom)
+  }),
+)
 
-  return useMutation({
-    ...options,
-    mutationFn: async (variables) => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
+export const deleteProjectAtom = runtime.fn(
+  Effect.fn(function* (projectId: string) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.archiveProjectV1ProjectsProjectIdArchivePost(projectId)
 
-      const client = createApiClient(token)
-
-      const { data } = await client.POST('/v1/projects', {
-        body: {
-          name: variables.name,
-          description: variables.description,
-          language_code: variables.language_code ?? 'cs',
-        },
-      })
-      if (!data) throw new Error('Failed to create project')
-      return data
-    },
-  })
-}
+    registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
+    registry.refresh(projectsRemoteAtom)
+  }),
+)

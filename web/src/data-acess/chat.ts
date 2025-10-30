@@ -1,221 +1,398 @@
-import { baseUrl, createApiClient } from '@/integrations/api'
-import type { Chat, ChatCreateRequest, ChatUpdateRequest, Source, ToolCall } from '@/integrations/api'
-import { useMutation, useQuery, type QueryKey } from '@tanstack/react-query'
-import { useAuth } from '@/hooks/use-auth'
-import type { MutationOptions } from '@/data-acess/utils'
+import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
+import { Data, Effect, Schema, Stream, Array as Arr } from 'effect'
+import { HttpBody } from '@effect/platform'
+import {
+  ChatDto,
+  ChatMessageDto,
+  SourceDto,
+  ToolCallDto,
+  type ChatCompletionRequest,
+  type ChatCreateRequest,
+  type ChatUpdateRequest,
+} from '@/integrations/api/client'
+import { runtime } from './runtime'
 
-export const CHATS_QUERY_KEY = (projectId: string): QueryKey => ['project', projectId, 'chats']
+export const currentChatIdAtom = Atom.make<string | null>(null).pipe(
+  Atom.keepAlive,
+)
 
-export const useChatsQuery = (projectId: string) => {
-  const { getAccessToken } = useAuth()
-  return useQuery({
-    queryKey: CHATS_QUERY_KEY(projectId),
-    queryFn: async () => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
+type ChatsAction = Data.TaggedEnum<{
+  Upsert: { readonly chat: ChatDto }
+  Del: { readonly chatId: string }
+}>
+const ChatsAction = Data.taggedEnum<ChatsAction>()
 
-      const client = createApiClient(token)
+type ChatMessagesAction = Data.TaggedEnum<{
+  Append: { readonly chatId: string; readonly message: ChatMessageDto }
+  UpdateContent: {
+    readonly chatId: string
+    readonly messageId: string
+    readonly content: string
+  }
+  UpdateSources: {
+    readonly chatId: string
+    readonly messageId: string
+    readonly sources: SourceDto[]
+  }
+  UpdateTools: {
+    readonly chatId: string
+    readonly messageId: string
+    readonly tools: ToolCallDto[]
+  }
+}>
+const ChatMessagesAction = Data.taggedEnum<ChatMessagesAction>()
 
-      const { data } = await client.GET(`/v1/chats`, {
-        params: {
-          query: {
-            project_id: projectId,
-          },
-        },
+export const chatsRemoteAtom = Atom.family((projectId: string) =>
+  runtime.atom(
+    Effect.fn(function* () {
+      const client = yield* makeApiClient
+      const resp = yield* client.listChatsV1ChatsGet({
+        project_id: projectId,
       })
-      if (!data) throw new Error('Failed to get chat')
-      return data
-    },
-  })
-}
+      return resp.data
+    }),
+  ),
+)
 
-export const CHAT_QUERY_KEY = (chatId: string): QueryKey => ['chat', chatId]
+export const chatRemoteAtom = Atom.family((chatId: string) =>
+  Atom.make(
+    Effect.gen(function* () {
+      const client = yield* makeApiClient
+      yield* Effect.sleep(1000)
+      return yield* client.getChatV1ChatsChatIdGet(chatId)
+    }),
+  ).pipe(Atom.keepAlive),
+)
 
-export const useChatQuery = (chatId: string) => {
-  const { getAccessToken } = useAuth()
+export const chatsAtom = Atom.family((projectId: string) =>
+  Object.assign(
+    Atom.writable(
+      (get: Atom.Context) => get(chatsRemoteAtom(projectId)),
+      (ctx, action: ChatsAction) => {
+        const result = ctx.get(chatsAtom(projectId))
+        if (!Result.isSuccess(result)) return
 
-  return useQuery({
-    queryKey: CHAT_QUERY_KEY(chatId),
-    queryFn: async () => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
-
-      const client = createApiClient(token)
-
-      const { data } = await client.GET(`/v1/chats/{chat_id}`, {
-        params: {
-          path: {
-            chat_id: chatId,
+        const update = ChatsAction.$match(action, {
+          Upsert: ({ chat }) => {
+            const existing = result.value.find((c) => c.id === chat.id)
+            if (existing)
+              return result.value.map((c) => (c.id === chat.id ? chat : c))
+            return Arr.prepend(result.value, chat)
           },
-        },
-      })
-      if (!data) throw new Error('Failed to get chat')
-      return data
+          Del: ({ chatId }) => {
+            return result.value.filter((c) => c.id !== chatId)
+          },
+        })
+
+        ctx.setSelf(Result.success(update))
+      },
+    ),
+    {
+      remote: chatsRemoteAtom(projectId),
     },
-  })
-}
+  ),
+)
 
-
-type StreamMessageMutationVariables = { chatId: string; message: string }
-type StreamMessageMutationData = { content: string; messageId: string }
-type OnChunkCallback = (content: string, messageId: string, sources?: Source[], tools?: ToolCall[]) => void
-
-export const useStreamMessageMutation = (
-  options?: MutationOptions<StreamMessageMutationData, StreamMessageMutationVariables> & { onChunk?: OnChunkCallback },
-) => {
-  const { getAccessToken } = useAuth()
-
-  return useMutation({
-    ...options,
-    mutationFn: async ({ chatId, message }) => {
-      try {
-        if (!chatId || chatId === '') {
-          throw new Error('Chat ID is required')
+export const chatAtom = Atom.family((chatId: string) =>
+  Object.assign(
+    Atom.writable(
+      (get: Atom.Context) => get(chatRemoteAtom(chatId)),
+      (ctx, action: ChatMessagesAction | ChatDto) => {
+        // Handle direct ChatDto updates (for backward compatibility)
+        if ('id' in action && 'project_id' in action) {
+          ctx.setSelf(Result.success(action as ChatDto))
+          return
         }
 
-        const token = await getAccessToken()
-        if (!token) throw new Error('No token')
+        // Handle message actions
+        const result = ctx.get(chatAtom(chatId))
+        if (!Result.isSuccess(result)) return
 
-        const response = await fetch(
-          `${baseUrl}/v1/chats/${chatId}/messages/stream`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ message }),
+        const chat = result.value
+        const messages = Array.from(chat.messages ?? [])
+
+        const update = ChatMessagesAction.$match(action as ChatMessagesAction, {
+          Append: ({ message }) => {
+            return [...messages, message]
           },
+          UpdateContent: ({ messageId, content }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, content } : msg,
+            )
+          },
+          UpdateSources: ({ messageId, sources }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, sources } : msg,
+            )
+          },
+          UpdateTools: ({ messageId, tools }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, tools } : msg,
+            )
+          },
+        })
+
+        ctx.setSelf(
+          Result.success({
+            ...chat,
+            messages: update,
+          }),
         )
+      },
+    ),
+    {
+      remote: chatRemoteAtom(chatId),
+    },
+  ),
+)
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+const MessageChunk = Schema.Struct({
+  id: Schema.String,
+  chunk: Schema.String,
+  done: Schema.Boolean,
+  sources: Schema.NullOr(Schema.Array(SourceDto)),
+  tools: Schema.NullOr(Schema.Array(ToolCallDto)),
+})
 
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('No reader available')
-        }
+export const streamMessageAtom = Atom.fn(
+  Effect.fn(function* (
+    input: typeof ChatCompletionRequest.Encoded & { chatId: string },
+    get: Atom.FnContext,
+  ) {
+    const chat = yield* get.result(chatRemoteAtom(input.chatId))
 
-        const decoder = new TextDecoder()
-        let accumulatedContent = ''
-        let messageId = ''
+    // Add user message using the new action pattern
+    const userMessage: ChatMessageDto = {
+      id: 'temporary-message-id',
+      role: 'user',
+      content: input.message,
+      sources: undefined,
+      tools: undefined,
+    }
+    get.set(
+      chatAtom(input.chatId),
+      ChatMessagesAction.Append({ chatId: input.chatId, message: userMessage }),
+    )
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
+    const httpClient = yield* makeHttpClient
+    const body = HttpBody.unsafeJson({ message: input.message })
+    const resp = yield* httpClient
+      .post(`/v1/chats/${input.chatId}/messages/stream`, {
+        body,
+      })
+      .pipe(
+        // If the request fails, remove the temporary message
+        Effect.tapError(() =>
+          Effect.sync(() => get.refresh(chatRemoteAtom(input.chatId))),
+        ),
+      )
+    const decoder = new TextDecoder()
 
-            if (done) break
+    const respStream = resp.stream.pipe(
+      Stream.map((value) => decoder.decode(value, { stream: true })),
+      Stream.map((chunk) => {
+        const chunkLines = chunk.split('\n')
+        const res = chunkLines
+          .map((line) =>
+            line.startsWith('data: ') ? line.replace('data: ', '') : '',
+          )
+          .filter((line) => line !== '')
+          .join('\n')
+        return res
+      }),
+      Stream.filter((chunk) => chunk !== ''),
+      Stream.flatMap((chunk) => {
+        const lines = chunk.trim().split('\n')
+        return Stream.fromIterable(lines).pipe(
+          Stream.filter((line) => line.trim() !== ''),
+          Stream.flatMap((line) =>
+            Schema.decodeUnknown(Schema.parseJson(MessageChunk))(line),
+          ),
+        )
+      }),
+      Stream.tap((chunk) =>
+        Effect.gen(function* () {
+          const messageId = chunk.id
 
-            const chunk = decoder.decode(value, { stream: true })
-            const lines = chunk.split('\n')
+          const chat = yield* get.result(chatAtom(input.chatId))
+          const messages = Array.from(chat.messages ?? [])
+          const msgIdx = messages.findIndex((msg) => msg.id === messageId)
+          const content = (messages[msgIdx]?.content ?? '') + chunk.chunk
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.slice(6))
+          if (msgIdx === -1) {
+            // Create new assistant message
+            const assistantMessage: ChatMessageDto = {
+              id: messageId,
+              role: 'assistant',
+              content,
+              sources: chunk.sources ?? [],
+              tools: chunk.tools ?? [],
+            }
+            get.set(
+              chatAtom(input.chatId),
+              ChatMessagesAction.Append({
+                chatId: input.chatId,
+                message: assistantMessage,
+              }),
+            )
+          } else {
+            // Update existing message content
+            get.set(
+              chatAtom(input.chatId),
+              ChatMessagesAction.UpdateContent({
+                chatId: input.chatId,
+                messageId,
+                content,
+              }),
+            )
 
-                  if (data.id) {
-                    messageId = data.id
-                  }
+            // Update sources if provided
+            if (chunk.sources && chunk.sources.length > 0) {
+              const existingSources = messages[msgIdx]?.sources ?? []
+              const newSources = chunk.sources ?? []
 
-                  if (data.chunk) {
-                    accumulatedContent += data.chunk
-                    options?.onChunk?.(
-                      accumulatedContent,
-                      messageId,
-                      data.sources,
-                      data.tools,
-                    )
-                  } else if (data.error) {
-                    throw new Error(data.error)
-                  }
+              // Filter out sources that already exist by ID
+              const uniqueNewSources = newSources.filter(
+                (newSource) =>
+                  !existingSources.some(
+                    (existing) => existing.id === newSource.id,
+                  ),
+              )
 
-                  // Handle sources and tools in updates
-                  if (data.sources || data.tools) {
-                    options?.onChunk?.(
-                      accumulatedContent,
-                      messageId,
-                      data.sources,
-                      data.tools,
-                    )
-                  }
+              if (uniqueNewSources.length > 0) {
+                get.set(
+                  chatAtom(input.chatId),
+                  ChatMessagesAction.UpdateSources({
+                    chatId: input.chatId,
+                    messageId,
+                    sources: [...existingSources, ...uniqueNewSources],
+                  }),
+                )
+              }
+            }
 
-                  // Handle final chunk
-                  if (data.done) {
-                    options?.onChunk?.(
-                      accumulatedContent,
-                      messageId,
-                      data.sources,
-                      data.tools,
-                    )
-                  }
-                } catch (e) {
-                  // Ignore JSON parse errors for incomplete chunks
-                }
+            // Update tools if provided
+            if (chunk.tools && chunk.tools.length > 0) {
+              const existingTools = messages[msgIdx]?.tools ?? []
+              const newTools = chunk.tools ?? []
+
+              // Filter out tools that already exist by ID
+              const uniqueNewTools = newTools.filter(
+                (newTool) =>
+                  !existingTools.some((existing) => existing.id === newTool.id),
+              )
+
+              if (uniqueNewTools.length > 0) {
+                get.set(
+                  chatAtom(input.chatId),
+                  ChatMessagesAction.UpdateTools({
+                    chatId: input.chatId,
+                    messageId,
+                    tools: [...existingTools, ...uniqueNewTools],
+                  }),
+                )
               }
             }
           }
-        } finally {
-          reader.releaseLock()
-        }
+        }),
+      ),
+    )
+    yield* Stream.runCollect(respStream)
+    get.refresh(chatRemoteAtom(input.chatId))
+    get.refresh(chatsAtom(chat.project_id))
+  }),
+).pipe(Atom.keepAlive)
 
-        return { content: accumulatedContent, messageId }
-      } catch (e) {
-        throw e
-      }
-    },
-  })
-}
+export const createChatAtom = runtime.fn(
+  Effect.fn(function* (input: typeof ChatCreateRequest.Encoded) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const res = yield* client.createChatV1ChatsPost(input)
 
-type CreateChatMutationVariables = ChatCreateRequest
-type CreateChatMutationData = Chat
+    registry.set(chatsAtom(input.project_id), ChatsAction.Upsert({ chat: res }))
+    registry.refresh(chatsRemoteAtom(input.project_id))
+    return res
+  }),
+)
 
-export const useCreateChatMutation = (options?: MutationOptions<CreateChatMutationData, CreateChatMutationVariables>) => {
-  const { getAccessToken } = useAuth()
+export const updateChatAtom = runtime.fn(
+  Effect.fn(function* (
+    input: typeof ChatUpdateRequest.Encoded & { chatId: string },
+  ) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const res = yield* client.updateChatV1ChatsChatIdPut(input.chatId, input)
 
-  return useMutation({
-    ...options,
-    mutationFn: async ({ project_id }) => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
+    registry.set(chatAtom(input.chatId), res)
+    registry.set(chatsAtom(res.project_id), ChatsAction.Upsert({ chat: res }))
+    return res
+  }),
+)
 
-      const client = createApiClient(token)
+export const appendMessageAtom = runtime.fn(
+  Effect.fn(function* (input: { chatId: string; message: ChatMessageDto }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      chatAtom(input.chatId),
+      ChatMessagesAction.Append({
+        chatId: input.chatId,
+        message: input.message,
+      }),
+    )
+  }),
+)
 
-      const { data } = await client.POST(`/v1/chats`, {
-        body: { project_id },
-      })
-      if (!data) throw new Error('Failed to create chat')
-      return data
-    },
-  })
-}
+export const updateMessageContentAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    chatId: string
+    messageId: string
+    content: string
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      chatAtom(input.chatId),
+      ChatMessagesAction.UpdateContent({
+        chatId: input.chatId,
+        messageId: input.messageId,
+        content: input.content,
+      }),
+    )
+  }),
+)
 
-type UpdateChatMutationVariables = ChatUpdateRequest & { chatId: string }
-type UpdateChatMutationData = Chat
+export const updateMessageSourcesAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    chatId: string
+    messageId: string
+    sources: SourceDto[]
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      chatAtom(input.chatId),
+      ChatMessagesAction.UpdateSources({
+        chatId: input.chatId,
+        messageId: input.messageId,
+        sources: input.sources,
+      }),
+    )
+  }),
+)
 
-export const useUpdateChatMutation = (options?: MutationOptions<UpdateChatMutationData, UpdateChatMutationVariables>) => {
-  const { getAccessToken } = useAuth()
-
-  return useMutation({
-    ...options,
-    mutationFn: async ({ chatId, title }) => {
-      const token = await getAccessToken()
-      if (!token) throw new Error('No token')
-
-      const client = createApiClient(token)
-
-      const { data } = await client.PUT(`/v1/chats/{chat_id}`, {
-        params: {
-          path: {
-            chat_id: chatId,
-          },
-        },
-        body: { title },
-      })
-      if (!data) throw new Error('Failed to update chat')
-      return data
-    },
-    onSuccess: options?.onSuccess,
-  })
-}
+export const updateMessageToolsAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    chatId: string
+    messageId: string
+    tools: ToolCallDto[]
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      chatAtom(input.chatId),
+      ChatMessagesAction.UpdateTools({
+        chatId: input.chatId,
+        messageId: input.messageId,
+        tools: input.tools,
+      }),
+    )
+  }),
+)

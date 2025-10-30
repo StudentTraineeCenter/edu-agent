@@ -8,43 +8,43 @@ import {
 } from '@/components/ui/sidebar'
 import { ProjectChatList } from './project-chat-list'
 import { ProjectDocumentList } from './project-document-list'
-import type { Chat, Document, Project } from '@/integrations/api'
+import { currentProjectIdAtom, projectAtom } from '@/data-acess/project'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Loader2Icon } from 'lucide-react'
 
-type Props = React.ComponentProps<typeof Sidebar> & {
-  project: Pick<Project, 'id' | 'name'>
-  chats: Chat[]
-  documents: Document[]
-  onSelectChatId: (chatId: string) => void
-  onSelectDocumentId?: (documentId: string) => void
-}
+type Props = React.ComponentProps<typeof Sidebar>
 
-export function ProjectSidebarLeft({
-  chats,
-  documents,
-  onSelectChatId,
-  onSelectDocumentId,
-  project,
-  ...props
-}: Props) {
+export function ProjectSidebarLeft({ ...props }: Props) {
+  const currentProjectId = useAtomValue(currentProjectIdAtom)
+  const projectResult = useAtomValue(projectAtom(currentProjectId ?? ''))
+
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <span className="text-lg font-bold">{project.name}</span>
+            {Result.builder(projectResult)
+              .onInitialOrWaiting(() => (
+                <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2Icon className="size-4 animate-spin" />
+                  <span>Loading project...</span>
+                </div>
+              ))
+              .onFailure(() => (
+                <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
+                  <span>Failed to load project</span>
+                </div>
+              ))
+              .onSuccess((project) => (
+                <span className="text-lg font-bold">{project.name}</span>
+              ))
+              .render()}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <ProjectChatList
-          projectId={project.id}
-          chats={chats}
-          onSelectChatId={onSelectChatId}
-        />
-        <ProjectDocumentList
-          documents={documents}
-          onSelectDocumentId={onSelectDocumentId}
-        />
+        <ProjectChatList />
+        <ProjectDocumentList />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

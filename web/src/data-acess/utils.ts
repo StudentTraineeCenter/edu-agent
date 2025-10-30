@@ -1,3 +1,8 @@
-import type { UseMutationOptions } from "@tanstack/react-query";
+import type { UseMutationOptions } from '@tanstack/react-query'
 
-export type MutationOptions<TData, TVariables> = UseMutationOptions<TData, Error, TVariables, unknown>
+export type MutationOptions<TData, TVariables> = UseMutationOptions<
+  TData,
+  Error,
+  TVariables,
+  unknown
+>

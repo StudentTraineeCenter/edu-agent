@@ -1,9 +1,6 @@
-import { PublicClientApplication } from '@azure/msal-browser'
+import { msalInstance } from '@/lib/msal-service'
 import { MsalProvider } from '@azure/msal-react'
-import { msalConfig } from '@/lib/msal-config'
 import { useEffect } from 'react'
-
-const msalInstance = new PublicClientApplication(msalConfig)
 
 export const MSALProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
