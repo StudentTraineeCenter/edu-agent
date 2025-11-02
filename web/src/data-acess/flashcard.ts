@@ -1,12 +1,6 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { Atom } from '@effect-atom/atom-react'
 import { makeApiClient } from '@/integrations/api/http'
-import { Array, Data, Effect, Schema } from 'effect'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import {
-  FlashcardGroupDto,
-  ProjectCreateRequest,
-  ProjectDto,
-} from '@/integrations/api/client'
+import { Effect } from 'effect'
 
 export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   Atom.make(

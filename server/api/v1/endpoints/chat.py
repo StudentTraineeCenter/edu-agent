@@ -13,6 +13,7 @@ from schemas.chat import (
     ChatListResponse,
     ChatMessageDto,
     ChatUpdateRequest,
+    LastChatMessageDto,
     SourceDto,
     StreamingChatMessage,
     ToolCallDto,
@@ -21,6 +22,32 @@ from schemas.chat import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+def _message_to_dto(message: dict) -> ChatMessageDto:
+    message_data = {
+        "role": message['role'],
+        "content": message['content'],
+        "id": message['id'],
+        "created_at": message['created_at'],
+    }
+    if message['role'] == "assistant" and message['sources']:
+        message_data["sources"] = [SourceDto(**source) for source in message['sources']]
+    if message['role'] == "assistant" and message['tools']:
+        message_data["tools"] = [ToolCallDto(**tool) for tool in message['tools']]
+
+    return ChatMessageDto(**message_data)
+
+
+def _get_last_message(messages: List[ChatMessageDto]) -> LastChatMessageDto:
+    last_message = messages[-1] if len(messages) > 0 else None
+    if last_message:
+        return LastChatMessageDto(
+            id=last_message.id,
+            role=last_message.role,
+            content=last_message.content,
+            created_at=last_message.created_at,
+        )
+    return None
 
 
 @router.post(
@@ -39,23 +66,15 @@ def create_chat(
     logger.info("creating chat")
 
     result = chat_service.create_chat(body.project_id, current_user.id, None)
-
-    # Format messages with sources
-    formatted_messages = []
-    for msg in result.messages:
-        message_data = {"role": msg["role"], "content": msg["content"]}
-        if msg["role"] == "assistant" and "sources" in msg:
-            message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
-        if msg["role"] == "assistant" and "tools" in msg:
-            message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-        formatted_messages.append(ChatMessageDto(**message_data))
+    messages = [_message_to_dto(msg) for msg in result.messages]
 
     return ChatDto(
         id=result.id,
         project_id=result.project_id,
         user_id=result.user_id,
         title=result.title,
-        messages=formatted_messages,
+        messages=messages,
+        last_message=messages[-1] if len(messages) > 0 else None,
         created_at=result.created_at,
         updated_at=result.updated_at,
     )
@@ -81,20 +100,7 @@ def list_chats(
     # Format messages for each chat
     formatted_chats = []
     for chat in result:
-        formatted_messages = []
-        for msg in chat.messages:
-            message_data = {
-                "role": msg["role"],
-                "content": msg["content"],
-                "id": msg["id"],
-            }
-            if msg["role"] == "assistant" and "sources" in msg:
-                message_data["sources"] = [
-                    SourceDto(**source) for source in msg["sources"]
-                ]
-            if msg["role"] == "assistant" and "tools" in msg:
-                message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-            formatted_messages.append(ChatMessageDto(**message_data))
+        messages = [_message_to_dto(msg) for msg in chat.messages]
 
         formatted_chats.append(
             ChatDto(
@@ -102,9 +108,10 @@ def list_chats(
                 project_id=chat.project_id,
                 user_id=chat.user_id,
                 title=chat.title,
-                messages=formatted_messages,
+                messages=messages,
                 created_at=chat.created_at,
                 updated_at=chat.updated_at,
+                last_message=_get_last_message(messages),
             )
         )
 
@@ -139,22 +146,15 @@ def get_chat(
             detail="Chat not found",
         )
 
-    # Format messages with sources
-    formatted_messages = []
-    for msg in result.messages:
-        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
-        if msg["role"] == "assistant" and "sources" in msg:
-            message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
-        if msg["role"] == "assistant" and "tools" in msg:
-            message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-        formatted_messages.append(ChatMessageDto(**message_data))
+    messages = [_message_to_dto(msg) for msg in result.messages]
 
     return ChatDto(
         id=result.id,
         project_id=result.project_id,
         user_id=result.user_id,
         title=result.title,
-        messages=formatted_messages,
+        messages=messages,
+        last_message=_get_last_message(messages),
         created_at=result.created_at,
         updated_at=result.updated_at,
     )
@@ -178,22 +178,15 @@ def update_chat(
 
     result = chat_service.update_chat(chat_id, current_user.id, body.title)
 
-    # Format messages with sources
-    formatted_messages = []
-    for msg in result.messages:
-        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
-        if msg["role"] == "assistant" and "sources" in msg:
-            message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
-        if msg["role"] == "assistant" and "tools" in msg:
-            message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-        formatted_messages.append(ChatMessageDto(**message_data))
+    messages = [_message_to_dto(msg) for msg in result.messages]
 
     return ChatDto(
         id=result.id,
         project_id=result.project_id,
         user_id=result.user_id,
         title=result.title,
-        messages=formatted_messages,
+        messages=messages,
+        last_message=_get_last_message(messages),
         created_at=result.created_at,
         updated_at=result.updated_at,
     )
@@ -239,17 +232,9 @@ def list_chat_messages(
             detail="Chat not found",
         )
 
-    # Format messages with sources
-    formatted_messages = []
-    for msg in chat.messages:
-        message_data = {"role": msg["role"], "content": msg["content"], "id": msg["id"]}
-        if msg["role"] == "assistant" and "sources" in msg:
-            message_data["sources"] = [SourceDto(**source) for source in msg["sources"]]
-        if msg["role"] == "assistant" and "tools" in msg:
-            message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-        formatted_messages.append(ChatMessageDto(**message_data))
+    messages = [_message_to_dto(msg) for msg in chat.messages]
 
-    return formatted_messages
+    return messages
 
 
 @router.post(

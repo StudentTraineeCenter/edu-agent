@@ -1,9 +1,10 @@
 import { flashcardsAtom } from '@/data-acess/flashcard'
-import { useAtomValue } from '@effect-atom/atom-react'
-import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import React, { useEffect, useState } from 'react'
+import { Loader2Icon } from 'lucide-react'
+import { FlashcardProgress } from './flashcard-progress'
+import { FlashcardCard } from './flashcard-card'
+import { FlashcardNavigation } from './flashcard-navigation'
 
 type Props = React.ComponentProps<'div'> & {
   flashcardGroupId: string
@@ -14,128 +15,84 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
   const [showAnswer, setShowAnswer] = useState(false)
 
   const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
-  const flashcards =
-    flashcardsResult._tag === 'Success' ? flashcardsResult.value.flashcards : []
-
-  const currentCard = flashcards[currentCardIndex]
-  const isFirstCard = currentCardIndex === 0
-  const isLastCard = currentCardIndex === flashcards.length - 1
-
-  if (!currentCard || flashcards.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <p className="text-muted-foreground">No flashcards available</p>
-      </div>
-    )
-  }
 
   const toggleAnswer = () => {
     setShowAnswer(!showAnswer)
   }
 
-  const goToPreviousCard = () => {
+  const goToPreviousCard = (isFirstCard: boolean) => {
     if (!isFirstCard) {
       setCurrentCardIndex(currentCardIndex - 1)
       setShowAnswer(false)
     }
   }
 
-  const goToNextCard = () => {
+  const goToNextCard = (isLastCard: boolean) => {
     if (!isLastCard) {
       setCurrentCardIndex(currentCardIndex + 1)
       setShowAnswer(false)
     }
   }
 
-  const progressPercentage = ((currentCardIndex + 1) / flashcards.length) * 100
+  useEffect(() => {
+    setCurrentCardIndex(0)
+    setShowAnswer(false)
+  }, [flashcardGroupId])
 
   return (
-    <div className="flex flex-col space-y-12" {...props}>
-      {/* Progress indicator */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          Card {currentCardIndex + 1} of {flashcards.length}
-        </span>
-        <span>{Math.round(progressPercentage)}% complete</span>
-      </div>
-
-      {/* Progress bar */}
-      <Progress value={progressPercentage} className="h-4 my-2" />
-
-      {/* Flashcard content */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-3xl">
-          <div
-            className="bg-white border rounded-xl shadow-xl p-12 min-h-[420px] flex flex-col justify-center cursor-pointer hover:shadow-2xl transition-shadow"
-            onClick={toggleAnswer}
-          >
-            <div className="space-y-10">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  Question
-                </h3>
-                <p className="text-lg leading-relaxed">
-                  {currentCard.question}
-                </p>
-              </div>
-
-              {showAnswer && (
-                <div className="border-t pt-8">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                    Answer
-                  </h3>
-                  <p className="text-lg leading-relaxed text-green-700">
-                    {currentCard.answer}
-                  </p>
-                </div>
-              )}
-
-              {!showAnswer && (
-                <div className="text-center">
-                  <p className="text-muted-foreground text-sm">
-                    Click to reveal answer
-                  </p>
-                </div>
-              )}
-            </div>
+    <div className="flex flex-col flex-1 min-h-0" {...props}>
+      {Result.builder(flashcardsResult)
+        .onInitialOrWaiting(() => (
+          <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin" />
+            <span>Loading flashcards...</span>
           </div>
-        </div>
-      </div>
+        ))
+        .onFailure(() => (
+          <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
+            <span>Failed to load flashcards</span>
+          </div>
+        ))
+        .onSuccess((result) => {
+          const flashcards = result.flashcards ?? []
+          const currentCard = flashcards[currentCardIndex]
+          const isFirstCard = currentCardIndex === 0
+          const isLastCard = currentCardIndex === flashcards.length - 1
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between pt-8">
-        <Button
-          onClick={goToPreviousCard}
-          disabled={isFirstCard}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </Button>
+          if (!currentCard || flashcards.length === 0) {
+            return (
+              <div className="flex flex-1 items-center justify-center">
+                <p className="text-muted-foreground">No flashcards available</p>
+              </div>
+            )
+          }
 
-        <div className="flex gap-2">
-          {!showAnswer ? (
-            <Button onClick={toggleAnswer} className="px-6">
-              Show Answer
-            </Button>
-          ) : (
-            <Button onClick={toggleAnswer} variant="secondary" className="px-6">
-              Hide Answer
-            </Button>
-          )}
-        </div>
+          return (
+            <div className="flex flex-col space-y-12 flex-1 min-h-0 overflow-auto p-4">
+              <FlashcardProgress
+                currentIndex={currentCardIndex}
+                totalCount={flashcards.length}
+              />
 
-        <Button
-          onClick={goToNextCard}
-          disabled={isLastCard}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+              <FlashcardCard
+                question={currentCard.question}
+                answer={currentCard.answer}
+                showAnswer={showAnswer}
+                onToggle={toggleAnswer}
+              />
+
+              <FlashcardNavigation
+                isFirstCard={isFirstCard}
+                isLastCard={isLastCard}
+                showAnswer={showAnswer}
+                onPrevious={() => goToPreviousCard(isFirstCard)}
+                onNext={() => goToNextCard(isLastCard)}
+                onToggleAnswer={toggleAnswer}
+              />
+            </div>
+          )
+        })
+        .render()}
     </div>
   )
 }

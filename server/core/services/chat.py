@@ -3,6 +3,7 @@ import json
 import re
 from contextlib import contextmanager
 from datetime import datetime
+from db.models import ChatMessageToolCall
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from uuid import uuid4
 
@@ -223,13 +224,14 @@ Only respond with the title, nothing else. Do not use quotes."""
                         tools = to_dict_list(chunk_data.tools or [])
 
                         chat.messages = chat.messages + [
-                            {"role": "user", "content": message, "id": str(uuid4())},
+                            {"role": "user", "content": message, "id": str(uuid4()), "created_at": datetime.now().isoformat()},
                             {
                                 "id": assistant_message_id,
                                 "role": "assistant",
                                 "content": chunk_data.response,
                                 "sources": sources,
                                 "tools": tools,
+                                "created_at": datetime.now().isoformat(),
                             },
                         ]
 
@@ -275,8 +277,7 @@ Only respond with the title, nothing else. Do not use quotes."""
         # Convert your last 6 messages to history
         chat_history = []
         for m in messages[-6:]:
-            role = "human" if m.role == "user" else "ai"
-            chat_history.append({"role": role, "content": m.content})
+            chat_history.append({"role": m.role, "content": m.content})
 
         agent = make_agent(
             language_code=language_code,

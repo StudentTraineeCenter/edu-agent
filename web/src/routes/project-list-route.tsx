@@ -26,7 +26,7 @@ const ProjectsHeader = () => {
           Select a project to continue learning
         </p>
       </div>
-      <Button onClick={openDialog} className="gap-2">
+      <Button onClick={() => openDialog()} className="gap-2">
         <PlusIcon className="size-4" />
         Add Project
       </Button>

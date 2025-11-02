@@ -58,6 +58,16 @@ class ChatMessageDto(BaseModel):
     tools: Optional[List[ToolCallDto]] = Field(
         default=None, description="Tool calls made during message generation"
     )
+    created_at: datetime = Field(description="Creation timestamp")
+
+
+class LastChatMessageDto(BaseModel):
+    """Response model for last chat message data."""
+
+    id: str = Field(description="Unique ID of the message")
+    role: str = Field(description="Role of the message sender")
+    content: str = Field(description="Content of the message")
+    created_at: datetime = Field(description="Creation timestamp")
 
 
 class ChatDto(BaseModel):
@@ -75,33 +85,9 @@ class ChatDto(BaseModel):
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
 
-    @classmethod
-    def from_orm_with_messages(cls, chat):
-        """Create ChatDto from ORM object with properly formatted messages."""
-        formatted_messages = []
-        for msg in chat.messages:
-            message_data = {
-                "id": msg.get("id", ""),
-                "role": msg["role"],
-                "content": msg["content"],
-            }
-            if msg["role"] == "assistant" and "sources" in msg:
-                message_data["sources"] = [
-                    SourceDto(**source) for source in msg["sources"]
-                ]
-            if msg["role"] == "assistant" and "tools" in msg:
-                message_data["tools"] = [ToolCallDto(**tool) for tool in msg["tools"]]
-            formatted_messages.append(ChatMessageDto(**message_data))
-
-        return cls(
-            id=chat.id,
-            project_id=chat.project_id,
-            user_id=chat.user_id,
-            title=chat.title,
-            messages=formatted_messages,
-            created_at=chat.created_at,
-            updated_at=chat.updated_at,
-        )
+    last_message: Optional[LastChatMessageDto] = Field(
+        default=None, description="Last message in the chat"
+    )
 
 
 class ChatListResponse(BaseModel):

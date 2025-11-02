@@ -1,10 +1,6 @@
-import {
-  createRootRoute,
-  createRoute,
-  Outlet,
-  redirect,
-} from '@tanstack/react-router'
+import { createRootRoute, createRoute, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { AppShell } from './_app-shell'
 import { ProjectDetailPage } from './project-detail-route'
 import { IndexPage } from './home-route'
 import { ProjectListPage } from './project-list-route'
@@ -13,8 +9,6 @@ import { DocumentDetailPage } from './document-detail-route'
 import { QuizDetailPage } from './quiz-detail-route'
 import { FlashcardDetailPage } from './flashcard-detail-route'
 import { z } from 'zod'
-import { MessageSquareIcon } from 'lucide-react'
-import { ConversationEmptyState } from '@/components/ai-elements/conversation'
 
 const requireAuth = () => {
   // Check if user is authenticated by looking at MSAL keys in sessionStorage
@@ -39,7 +33,7 @@ const requireAuth = () => {
 export const rootRoute = createRootRoute({
   component: () => (
     <>
-      <Outlet />
+      <AppShell />
       <TanStackRouterDevtools />
     </>
   ),
@@ -66,52 +60,40 @@ export const projectDetailRoute = createRoute({
   component: ProjectDetailPage,
 })
 
-export const projectIndexRoute = createRoute({
-  path: '/',
-  getParentRoute: () => projectDetailRoute,
-  component: () => (
-    <div className="flex flex-1 items-center justify-center">
-      <ConversationEmptyState
-        icon={<MessageSquareIcon className="size-8" />}
-        title="Select a chat"
-        description="Choose a chat from the sidebar to start a conversation."
-      />
-    </div>
-  ),
-})
-
 export const chatDetailRoute = createRoute({
-  path: '/chats/$chatId',
-  getParentRoute: () => projectDetailRoute,
+  path: '/projects/$projectId/chats/$chatId',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
   component: ChatDetailPage,
 })
 
 export const documentDetailRoute = createRoute({
-  path: '/documents/$documentId',
-  getParentRoute: () => projectDetailRoute,
+  path: '/projects/$projectId/documents/$documentId',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
   component: DocumentDetailPage,
 })
 
 export const flashcardDetailRoute = createRoute({
-  path: '/flashcards/$flashcardGroupId',
-  getParentRoute: () => projectDetailRoute,
+  path: '/projects/$projectId/flashcards/$flashcardGroupId',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
   component: FlashcardDetailPage,
 })
 
 export const quizDetailRoute = createRoute({
-  path: '/quizzes/$quizId',
-  getParentRoute: () => projectDetailRoute,
+  path: '/projects/$projectId/quizzes/$quizId',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
   component: QuizDetailPage,
 })
 
 export const routeTree = rootRoute.addChildren([
   projectsRoute,
-  projectDetailRoute.addChildren([
-    projectIndexRoute,
-    chatDetailRoute,
-    documentDetailRoute,
-    flashcardDetailRoute,
-    quizDetailRoute,
-  ]),
+  projectDetailRoute,
+  chatDetailRoute,
+  documentDetailRoute,
+  flashcardDetailRoute,
+  quizDetailRoute,
   indexRoute,
 ])

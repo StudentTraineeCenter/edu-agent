@@ -13,7 +13,7 @@ import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const DocumentHeader = ({ title }: { title?: string }) => (
-  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
+  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
     <div className="flex flex-1 items-center gap-2 px-3">
       <SidebarTrigger />
       <Separator
@@ -23,7 +23,9 @@ const DocumentHeader = ({ title }: { title?: string }) => (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage className="line-clamp-1">{title}</BreadcrumbPage>
+            <BreadcrumbPage className="line-clamp-1 font-medium">
+              {title}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -38,20 +40,20 @@ export const DocumentDetailPage = () => {
   const previewResult = useAtomValue(documentPreviewAtom(documentId))
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       {Result.builder(documentResult)
         .onSuccess((document) => (
           <DocumentHeader title={document.file_name ?? 'Untitled document'} />
         ))
         .onInitialOrWaiting(() => (
-          <div className="h-14">
+          <div className="h-14 shrink-0">
             <Skeleton className="w-72 h-7 mt-3 ml-4" />
           </div>
         ))
         .render()}
 
-      <div className="flex flex-1 flex-col p-4">
-        <div className="max-w-5xl mx-auto w-full flex flex-col rounded-lg border h-[calc(100vh-6rem)]">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="mx-auto w-full flex flex-col flex-1 min-h-0">
           {Result.builder(previewResult)
             .onInitialOrWaiting(() => (
               <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
@@ -81,6 +83,6 @@ export const DocumentDetailPage = () => {
             .render()}
         </div>
       </div>
-    </>
+    </div>
   )
 }

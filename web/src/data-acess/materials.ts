@@ -1,4 +1,4 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { Atom, Result } from '@effect-atom/atom-react'
 import { Effect, Order, Array as Arr, Data } from 'effect'
 import { flashcardGroupsAtom } from './flashcard'
 import { quizzesAtom } from './quiz'
@@ -20,8 +20,6 @@ export const materialsAtom = Atom.family((projectId: string) =>
             val.data.map((item) => Material.FlashcardGroup({ data: item })),
           ),
         )
-
-      console.log(flashcardGroupsResult)
 
       const quizzesResult = ctx
         .get(quizzesAtom(projectId))

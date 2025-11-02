@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle } from 'lucide-react'
 
 const QuizHeader = ({ title }: { title?: string }) => (
-  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
+  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
     <div className="flex flex-1 items-center gap-2 px-3">
       <SidebarTrigger />
       <Separator
@@ -25,7 +25,9 @@ const QuizHeader = ({ title }: { title?: string }) => (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage className="line-clamp-1">{title}</BreadcrumbPage>
+            <BreadcrumbPage className="line-clamp-1 font-medium">
+              {title}
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -58,19 +60,19 @@ export const QuizDetailPage = () => {
   }, [questionsResult, selectedByQuestionId, showResults])
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       {Result.builder(quizResult)
         .onSuccess((res) => <QuizHeader title={res.quiz?.name || 'Quiz'} />)
         .onInitialOrWaiting(() => (
-          <div className="h-14">
+          <div className="h-14 shrink-0">
             <Skeleton className="w-72 h-7 mt-3 ml-4" />
           </div>
         ))
         .onFailure(() => <QuizHeader title="Quiz" />)
         .render()}
 
-      <div className="flex flex-1 flex-col p-4">
-        <div className="max-w-5xl mx-auto w-full flex flex-col rounded-lg border h-[calc(100vh-6rem)] p-4 overflow-auto">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0 overflow-auto">
           {Result.builder(questionsResult)
             .onInitialOrWaiting(() => (
               <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
@@ -83,7 +85,7 @@ export const QuizDetailPage = () => {
               </div>
             ))
             .onSuccess((res) => (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-6 p-4">
                 <div className="text-center">
                   {Result.builder(quizResult)
                     .onSuccess((qr) => (
@@ -255,6 +257,6 @@ export const QuizDetailPage = () => {
             .render()}
         </div>
       </div>
-    </>
+    </div>
   )
 }

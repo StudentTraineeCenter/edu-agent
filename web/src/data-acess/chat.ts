@@ -1,6 +1,6 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
-import { Data, Effect, Schema, Stream, Array as Arr } from 'effect'
+import { Data, Effect, Schema, Stream, Array as Arr, Order } from 'effect'
 import { HttpBody } from '@effect/platform'
 import {
   ChatDto,
@@ -43,6 +43,11 @@ type ChatMessagesAction = Data.TaggedEnum<{
 }>
 const ChatMessagesAction = Data.taggedEnum<ChatMessagesAction>()
 
+const byLastMessageCreatedAt = Order.mapInput(Order.Date, (chat: ChatDto) => {
+  const val = chat.last_message?.created_at
+  return val ? new Date(val) : new Date(chat.created_at)
+})
+
 export const chatsRemoteAtom = Atom.family((projectId: string) =>
   runtime.atom(
     Effect.fn(function* () {
@@ -50,7 +55,7 @@ export const chatsRemoteAtom = Atom.family((projectId: string) =>
       const resp = yield* client.listChatsV1ChatsGet({
         project_id: projectId,
       })
-      return resp.data
+      return Arr.sort(byLastMessageCreatedAt)(resp.data)
     }),
   ),
 )
@@ -169,6 +174,7 @@ export const streamMessageAtom = Atom.fn(
       content: input.message,
       sources: undefined,
       tools: undefined,
+      created_at: new Date().toISOString(),
     }
     get.set(
       chatAtom(input.chatId),
@@ -228,6 +234,7 @@ export const streamMessageAtom = Atom.fn(
               content,
               sources: chunk.sources ?? [],
               tools: chunk.tools ?? [],
+              created_at: new Date().toISOString(),
             }
             get.set(
               chatAtom(input.chatId),

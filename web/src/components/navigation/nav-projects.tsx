@@ -1,0 +1,154 @@
+import { Link } from '@tanstack/react-router'
+import {
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from '@/components/ui/sidebar'
+import { currentProjectIdAtom, projectsAtom } from '@/data-acess/project'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { chatsAtom } from '@/data-acess/chat'
+import { ChatDto } from '@/integrations/api/client'
+import { Cause } from 'effect'
+
+const ChatItem = ({ chat }: { chat: ChatDto }) => {
+  return (
+    <SidebarMenuSubItem key={chat.id}>
+      <SidebarMenuSubButton asChild size="md">
+        <Link
+          to="/projects/$projectId/chats/$chatId"
+          params={{
+            projectId: chat.project_id,
+            chatId: chat.id,
+          }}
+        >
+          <span>{chat.title}</span>
+        </Link>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  )
+}
+
+const ChatList = ({ projectId }: { projectId: string }) => {
+  const chatsResult = useAtomValue(chatsAtom(projectId))
+
+  return Result.builder(chatsResult)
+    .onSuccess((chats) => (
+      <>
+        {chats.map((chat) => (
+          <ChatItem key={chat.id} chat={chat} />
+        ))}
+
+        {chats.length === 0 && (
+          <SidebarMenuSubItem>
+            <SidebarMenuSubButton size="md">
+              <span className="text-sm text-muted-foreground">
+                No chats yet
+              </span>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+        )}
+      </>
+    ))
+    .onInitialOrWaiting(() => (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton size="md">
+          <span className="text-sm text-muted-foreground">Loading...</span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    ))
+    .onFailure((cause) => (
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton size="md">
+          <span className="text-sm text-muted-foreground">
+            Error: {Cause.pretty(cause)}
+          </span>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    ))
+    .render()
+}
+
+export function NavProjects() {
+  const projectsResult = useAtomValue(projectsAtom)
+
+  const currentProjectId = useAtomValue(currentProjectIdAtom)
+
+  return (
+    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SidebarMenu>
+        <SidebarMenuButton tooltip="New project">
+          <PlusIcon className="size-4 opacity-70" />
+          <span>New project</span>
+        </SidebarMenuButton>
+
+        {Result.builder(projectsResult)
+          .onSuccess((projects) => (
+            <>
+              {projects.map((project) => {
+                const isActive = project.id === currentProjectId
+                if (isActive) {
+                  return (
+                    <Collapsible
+                      key={project.id}
+                      asChild
+                      defaultOpen={isActive}
+                      className="group/collapsible"
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={project.name} asChild>
+                            <Link
+                              to="/projects/$projectId"
+                              params={{ projectId: project.id }}
+                            >
+                              <FolderIcon className="size-4 opacity-70" />
+                              <span>{project.name}</span>
+                              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                            </Link>
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            <ChatList projectId={project.id} />
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )
+                } else {
+                  return (
+                    <SidebarMenuItem key={project.id}>
+                      <SidebarMenuButton asChild>
+                        <Link
+                          to="/projects/$projectId"
+                          params={{ projectId: project.id }}
+                        >
+                          <FolderIcon className="size-4 opacity-70" />
+                          <span>{project.name}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                }
+              })}
+            </>
+          ))
+          .render()}
+      </SidebarMenu>
+    </SidebarGroup>
+  )
+}
+
+export default NavProjects
