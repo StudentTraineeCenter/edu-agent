@@ -5,7 +5,9 @@ from core.logger import get_logger
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
 from db.models import User
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import List
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from schemas.documents import (
     DocumentDto,
@@ -25,56 +27,94 @@ router = APIRouter()
     path="/upload",
     response_model=DocumentUploadResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Upload a document",
-    description="Upload and process a document for the project",
+    summary="Upload documents",
+    description="Upload one or more documents for the project. Processing happens asynchronously.",
 )
 async def upload_document(
     project_id: str,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     data_processing_service: DataProcessingService = Depends(
         get_data_processing_service
     ),
     current_user: User = Depends(get_user),
 ):
-    """Upload and process a document"""
-    logger.info(
-        "uploading document file_name=%s for project_id=%s", file.filename, project_id
-    )
-
-    # Validate file type
-    allowed_types = ["pdf", "docx", "doc", "txt", "rtf"]
-    file_extension = (
-        file.filename.split(".")[-1].lower() if "." in file.filename else ""
-    )
-
-    if file_extension not in allowed_types:
-        logger.error("unsupported file_type=%s", file_extension)
+    """Upload one or more documents and return immediately. Processing happens asynchronously."""
+    if not files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type. Allowed types: {', '.join(allowed_types)}",
+            detail="At least one file is required",
         )
 
-    try:
-        # Read file content
-        content = await file.read()
+    logger.info(
+        "uploading %d document(s) for project_id=%s", len(files), project_id
+    )
 
-        # Process document
-        document_id = await data_processing_service.process(
-            file_content=content,
-            filename=file.filename,
-            project_id=project_id,
-            owner_id=current_user.id,
+    # Validate file types
+    allowed_types = ["pdf", "docx", "doc", "txt", "rtf"]
+    document_ids = []
+    file_contents = []
+
+    for file in files:
+        file_extension = (
+            file.filename.split(".")[-1].lower() if "." in file.filename else ""
+        )
+
+        if file_extension not in allowed_types:
+            logger.error("unsupported file_type=%s for file=%s", file_extension, file.filename)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type '{file_extension}' for file '{file.filename}'. Allowed types: {', '.join(allowed_types)}",
+            )
+
+    try:
+        # Process all files
+        for file in files:
+            # Read file content
+            content = await file.read()
+
+            # Upload document and return immediately
+            document_id = data_processing_service.upload_document(
+                file_content=content,
+                filename=file.filename,
+                project_id=project_id,
+                owner_id=current_user.id,
+            )
+
+            document_ids.append(document_id)
+            file_contents.append((document_id, content))
+
+            logger.info(
+                "document uploaded document_id=%s, file_name=%s",
+                document_id,
+                file.filename,
+            )
+
+        # Schedule background processing for all documents
+        for document_id, content in file_contents:
+            background_tasks.add_task(
+                data_processing_service.process_document,
+                document_id=document_id,
+                file_content=content,
+                project_id=project_id,
+            )
+
+        logger.info(
+            "uploaded %d document(s), processing scheduled in background",
+            len(document_ids),
         )
 
         return DocumentUploadResponse(
-            document_id=document_id,
+            document_ids=document_ids,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("error uploading document: %s", e)
+        logger.error("error uploading documents: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload and process document",
+            detail="Failed to upload documents",
         )
 
 

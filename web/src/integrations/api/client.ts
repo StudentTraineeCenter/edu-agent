@@ -355,21 +355,32 @@ export class UploadDocumentV1DocumentsUploadPostParams extends S.Struct({
 export class BodyUploadDocumentV1DocumentsUploadPost extends S.Class<BodyUploadDocumentV1DocumentsUploadPost>(
   'BodyUploadDocumentV1DocumentsUploadPost',
 )({
-  file: S.instanceOf(globalThis.Blob),
+  files: S.Array(S.instanceOf(globalThis.Blob)),
 }) {}
 
 export class DocumentUploadResponse extends S.Class<DocumentUploadResponse>(
   'DocumentUploadResponse',
 )({
   /**
-   * ID of the uploaded document
+   * IDs of the uploaded documents
    */
-  document_id: S.String,
+  document_ids: S.Array(S.String),
 }) {}
 
 export class ListDocumentsV1DocumentsGetParams extends S.Struct({
   project_id: S.String,
 }) {}
+
+/**
+ * Document processing status enum.
+ */
+export class DocumentStatus extends S.Literal(
+  'uploaded',
+  'processing',
+  'processed',
+  'indexed',
+  'failed',
+) {}
 
 export class DocumentDto extends S.Class<DocumentDto>('DocumentDto')({
   id: S.String,
@@ -387,7 +398,7 @@ export class DocumentDto extends S.Class<DocumentDto>('DocumentDto')({
   /**
    * Document processing status: uploaded, processing, processed, failed, indexed
    */
-  status: S.String,
+  status: DocumentStatus,
   /**
    * Auto-generated summary
    */
@@ -1356,7 +1367,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Upload and process a document for the project
+   * Upload one or more documents for the project. Processing happens asynchronously.
    */
   readonly uploadDocumentV1DocumentsUploadPost: (options: {
     readonly params: typeof UploadDocumentV1DocumentsUploadPostParams.Encoded

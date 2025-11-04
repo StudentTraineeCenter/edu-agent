@@ -1,6 +1,7 @@
-import { Atom } from '@effect-atom/atom-react'
+import { Atom, Registry } from '@effect-atom/atom-react'
 import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect } from 'effect'
+import { runtime } from './runtime'
 
 export const documentsAtom = Atom.family((projectId: string) =>
   Atom.make(
@@ -11,7 +12,7 @@ export const documentsAtom = Atom.family((projectId: string) =>
       })
       return resp.data
     }),
-  ).pipe(Atom.keepAlive),
+  ),
 )
 
 export const documentAtom = Atom.family((documentId: string) =>
@@ -36,4 +37,18 @@ export const documentPreviewAtom = Atom.family((documentId: string) =>
       return objectUrl
     }),
   ).pipe(Atom.keepAlive),
+)
+
+export const uploadDocumentAtom = runtime.fn(
+  Effect.fn(function* (input: { projectId: string; files: Blob[] }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+
+    yield* client.uploadDocumentV1DocumentsUploadPost({
+      params: { project_id: input.projectId },
+      payload: { files: input.files },
+    })
+
+    registry.refresh(documentsAtom(input.projectId))
+  }),
 )

@@ -3,6 +3,7 @@ from typing import Literal
 from uuid import uuid4
 
 from db.base import Base
+from db.enums import DocumentStatus
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel
 from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, String, Text
@@ -80,9 +81,9 @@ class Document(Base):
     )  # Auto-generated summary of the document
 
     # Document processing metadata
-    status: Mapped[str] = mapped_column(
-        String, default="uploaded"
-    )  # uploaded, processing, processed, failed, indexed
+    status: Mapped[DocumentStatus] = mapped_column(
+        String, default=DocumentStatus.UPLOADED
+    )
 
     # Timestamps
     uploaded_at: Mapped[datetime] = mapped_column(
