@@ -1,0 +1,2310 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EduAgent API",
+    "description": "EduAgent API with Azure Entra Authentication",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/v1/projects": {
+      "get": {
+        "tags": ["projects"],
+        "summary": "List all projects",
+        "description": "List all projects",
+        "operationId": "list_projects_v1_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectListResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      },
+      "post": {
+        "tags": ["projects"],
+        "summary": "Create a new project",
+        "description": "Create a new project",
+        "operationId": "create_project_v1_projects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectCreateRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/v1/projects/{project_id}": {
+      "get": {
+        "tags": ["projects"],
+        "summary": "Get a project by id",
+        "description": "Get a project by id",
+        "operationId": "get_project_v1_projects__project_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["projects"],
+        "summary": "Update a project by id",
+        "description": "Update a project by id",
+        "operationId": "update_project_v1_projects__project_id__put",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ProjectUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project_id}/archive": {
+      "post": {
+        "tags": ["projects"],
+        "summary": "Archive a project by id",
+        "description": "Archive a project by id",
+        "operationId": "archive_project_v1_projects__project_id__archive_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats": {
+      "post": {
+        "tags": ["chats"],
+        "summary": "Create a new chat",
+        "description": "Create a new project",
+        "operationId": "create_chat_v1_chats_post",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatCreateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChatDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["chats"],
+        "summary": "List all chats",
+        "description": "List all chats",
+        "operationId": "list_chats_v1_chats_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChatListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{chat_id}": {
+      "get": {
+        "tags": ["chats"],
+        "summary": "Get a chat by id",
+        "description": "Get a chat by id",
+        "operationId": "get_chat_v1_chats__chat_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Chat Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChatDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["chats"],
+        "summary": "Update a chat by id",
+        "description": "Update a chat by id",
+        "operationId": "update_chat_v1_chats__chat_id__put",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Chat Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatUpdateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ChatDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{chat_id}/archive": {
+      "post": {
+        "tags": ["chats"],
+        "summary": "Archive a chat by id",
+        "description": "Archive a chat by id",
+        "operationId": "archive_chat_v1_chats__chat_id__archive_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Chat Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{chat_id}/messages": {
+      "get": {
+        "tags": ["chats"],
+        "summary": "List messages in a chat",
+        "description": "List all messages in a chat with sources",
+        "operationId": "list_chat_messages_v1_chats__chat_id__messages_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Chat Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ChatMessageDto" },
+                  "title": "Response List Chat Messages V1 Chats  Chat Id  Messages Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{chat_id}/messages/stream": {
+      "post": {
+        "tags": ["chats"],
+        "summary": "Send a streaming message to a chat",
+        "description": "Send a message to a chat with streaming response",
+        "operationId": "send_streaming_message_v1_chats__chat_id__messages_stream_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "chat_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Chat Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatCompletionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/upload": {
+      "post": {
+        "tags": ["documents"],
+        "summary": "Upload a document",
+        "description": "Upload and process a document for the project",
+        "operationId": "upload_document_v1_documents_upload_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_v1_documents_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "List all documents",
+        "description": "List all documents for a project",
+        "operationId": "list_documents_v1_documents_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/{document_id}": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "Get a document by id",
+        "description": "Get a document by id",
+        "operationId": "get_document_v1_documents__document_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Document Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DocumentDto" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/documents/search": {
+      "post": {
+        "tags": ["documents"],
+        "summary": "Search documents",
+        "description": "Search documents within a project using semantic search",
+        "operationId": "search_documents_v1_documents_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DocumentSearchRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/v1/documents/{document_id}/preview": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "Preview a document",
+        "description": "Stream document content for preview in browser",
+        "operationId": "preview_document_v1_documents__document_id__preview_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Document Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flashcards": {
+      "post": {
+        "tags": ["flashcards"],
+        "summary": "Create a flashcard group",
+        "description": "Create a new flashcard group for a project, optionally with generated flashcards",
+        "operationId": "create_flashcard_group_v1_flashcards_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFlashcardGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardGroupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["flashcards"],
+        "summary": "List flashcard groups",
+        "description": "List all flashcard groups for a project",
+        "operationId": "list_flashcard_groups_v1_flashcards_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardGroupListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flashcards/{group_id}": {
+      "get": {
+        "tags": ["flashcards"],
+        "summary": "Get flashcard group",
+        "description": "Get a specific flashcard group by ID",
+        "operationId": "get_flashcard_group_v1_flashcards__group_id__get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Flashcard group ID",
+              "title": "Group Id"
+            },
+            "description": "Flashcard group ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardGroupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["flashcards"],
+        "summary": "Update flashcard group",
+        "description": "Update a flashcard group",
+        "operationId": "update_flashcard_group_v1_flashcards__group_id__put",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Flashcard group ID",
+              "title": "Group Id"
+            },
+            "description": "Flashcard group ID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFlashcardGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardGroupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["flashcards"],
+        "summary": "Delete flashcard group",
+        "description": "Delete a flashcard group and all its flashcards",
+        "operationId": "delete_flashcard_group_v1_flashcards__group_id__delete",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Flashcard group ID",
+              "title": "Group Id"
+            },
+            "description": "Flashcard group ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/flashcards/{group_id}/flashcards": {
+      "get": {
+        "tags": ["flashcards"],
+        "summary": "List flashcards",
+        "description": "List all flashcards in a group",
+        "operationId": "list_flashcards_v1_flashcards__group_id__flashcards_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Flashcard group ID",
+              "title": "Group Id"
+            },
+            "description": "Flashcard group ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quizzes": {
+      "post": {
+        "tags": ["quizzes"],
+        "summary": "Create a quiz",
+        "description": "Create a new quiz for a project, optionally with generated questions",
+        "operationId": "create_quiz_v1_quizzes_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateQuizRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/QuizResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["quizzes"],
+        "summary": "List quizzes",
+        "description": "List all quizzes for a project",
+        "operationId": "list_quizzes_v1_quizzes_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/QuizListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quizzes/{quiz_id}": {
+      "get": {
+        "tags": ["quizzes"],
+        "summary": "Get quiz",
+        "description": "Get a specific quiz by ID",
+        "operationId": "get_quiz_v1_quizzes__quiz_id__get",
+        "parameters": [
+          {
+            "name": "quiz_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Quiz ID",
+              "title": "Quiz Id"
+            },
+            "description": "Quiz ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/QuizResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["quizzes"],
+        "summary": "Update quiz",
+        "description": "Update a quiz",
+        "operationId": "update_quiz_v1_quizzes__quiz_id__put",
+        "parameters": [
+          {
+            "name": "quiz_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Quiz ID",
+              "title": "Quiz Id"
+            },
+            "description": "Quiz ID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateQuizRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/QuizResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["quizzes"],
+        "summary": "Delete quiz",
+        "description": "Delete a quiz and all its questions",
+        "operationId": "delete_quiz_v1_quizzes__quiz_id__delete",
+        "parameters": [
+          {
+            "name": "quiz_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Quiz ID",
+              "title": "Quiz Id"
+            },
+            "description": "Quiz ID"
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/quizzes/{quiz_id}/questions": {
+      "get": {
+        "tags": ["quizzes"],
+        "summary": "List quiz questions",
+        "description": "List all questions in a quiz",
+        "operationId": "list_quiz_questions_v1_quizzes__quiz_id__questions_get",
+        "parameters": [
+          {
+            "name": "quiz_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Quiz ID",
+              "title": "Quiz Id"
+            },
+            "description": "Quiz ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizQuestionListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/attempts": {
+      "post": {
+        "tags": ["attempts"],
+        "summary": "Create an attempt record",
+        "description": "Create a new study attempt record for a flashcard or quiz question",
+        "operationId": "create_attempt_v1_attempts_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAttemptRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AttemptResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["attempts"],
+        "summary": "List attempt records",
+        "description": "List study attempt records for the current user, optionally filtered by project",
+        "operationId": "list_attempts_v1_attempts_get",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "description": "Optional project ID filter",
+              "title": "Project Id"
+            },
+            "description": "Optional project ID filter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AttemptListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/attempts/batch": {
+      "post": {
+        "tags": ["attempts"],
+        "summary": "Create multiple attempt records",
+        "description": "Create multiple study attempt records in a single batch operation",
+        "operationId": "create_attempts_batch_v1_attempts_batch_post",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Project Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAttemptBatchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AttemptListResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "Get Current User Info",
+        "description": "Get authenticated user information (requires auth)",
+        "operationId": "get_current_user_info_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDto" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Simple health check that doesn't require database",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AttemptDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "user_id": { "type": "string", "title": "User Id" },
+          "project_id": { "type": "string", "title": "Project Id" },
+          "item_type": { "type": "string", "title": "Item Type" },
+          "item_id": { "type": "string", "title": "Item Id" },
+          "topic": { "type": "string", "title": "Topic" },
+          "user_answer": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "User Answer"
+          },
+          "correct_answer": { "type": "string", "title": "Correct Answer" },
+          "was_correct": { "type": "boolean", "title": "Was Correct" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "project_id",
+          "item_type",
+          "item_id",
+          "topic",
+          "correct_answer",
+          "was_correct",
+          "created_at"
+        ],
+        "title": "AttemptDto",
+        "description": "Attempt data transfer object."
+      },
+      "AttemptListResponse": {
+        "properties": {
+          "attempts": {
+            "items": { "$ref": "#/components/schemas/AttemptDto" },
+            "type": "array",
+            "title": "Attempts"
+          },
+          "total": { "type": "integer", "title": "Total" }
+        },
+        "type": "object",
+        "required": ["attempts", "total"],
+        "title": "AttemptListResponse",
+        "description": "Response model for listing attempts."
+      },
+      "AttemptResponse": {
+        "properties": {
+          "attempt": { "$ref": "#/components/schemas/AttemptDto" },
+          "message": { "type": "string", "title": "Message" }
+        },
+        "type": "object",
+        "required": ["attempt", "message"],
+        "title": "AttemptResponse",
+        "description": "Response model for attempt operations."
+      },
+      "Body_upload_document_v1_documents_upload_post": {
+        "properties": {
+          "file": { "type": "string", "format": "binary", "title": "File" }
+        },
+        "type": "object",
+        "required": ["file"],
+        "title": "Body_upload_document_v1_documents_upload_post"
+      },
+      "ChatCompletionRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "User message to process"
+          }
+        },
+        "type": "object",
+        "required": ["message"],
+        "title": "ChatCompletionRequest",
+        "description": "Request model for chat completion with RAG."
+      },
+      "ChatCreateRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "ID of the project this chat belongs to"
+          }
+        },
+        "type": "object",
+        "required": ["project_id"],
+        "title": "ChatCreateRequest",
+        "description": "Request model for creating a new chat."
+      },
+      "ChatDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the chat"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "ID of the project this chat belongs to"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id",
+            "description": "ID of the user who created the chat"
+          },
+          "title": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Title",
+            "description": "Title of the chat"
+          },
+          "messages": {
+            "items": { "$ref": "#/components/schemas/ChatMessageDto" },
+            "type": "array",
+            "title": "Messages",
+            "description": "List of messages in the chat"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp"
+          },
+          "last_message": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/LastChatMessageDto" },
+              { "type": "null" }
+            ],
+            "description": "Last message in the chat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "user_id",
+          "title",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ChatDto",
+        "description": "Response model for chat data."
+      },
+      "ChatListResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/ChatDto" },
+            "type": "array",
+            "title": "Data",
+            "description": "List of chats"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "Total number of chats"
+          }
+        },
+        "type": "object",
+        "required": ["data", "total_count"],
+        "title": "ChatListResponse",
+        "description": "Response model for listing chats."
+      },
+      "ChatMessageDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the message"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Content of the message"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/SourceDto" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Sources",
+            "description": "Source documents for assistant messages"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/ToolCallDto" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Tools",
+            "description": "Tool calls made during message generation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          }
+        },
+        "type": "object",
+        "required": ["id", "role", "content", "created_at"],
+        "title": "ChatMessageDto",
+        "description": "Response model for chat message data."
+      },
+      "ChatUpdateRequest": {
+        "properties": {
+          "title": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Title",
+            "description": "Title of the chat"
+          }
+        },
+        "type": "object",
+        "title": "ChatUpdateRequest",
+        "description": "Request model for updating a chat."
+      },
+      "CreateAttemptBatchRequest": {
+        "properties": {
+          "attempts": {
+            "items": { "$ref": "#/components/schemas/CreateAttemptRequest" },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Attempts",
+            "description": "List of attempts to create"
+          }
+        },
+        "type": "object",
+        "required": ["attempts"],
+        "title": "CreateAttemptBatchRequest",
+        "description": "Request model for creating multiple attempt records."
+      },
+      "CreateAttemptRequest": {
+        "properties": {
+          "item_type": {
+            "type": "string",
+            "pattern": "^(flashcard|quiz)$",
+            "title": "Item Type",
+            "description": "Type of item: flashcard or quiz"
+          },
+          "item_id": {
+            "type": "string",
+            "title": "Item Id",
+            "description": "ID of the flashcard or quiz question"
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Topic",
+            "description": "Topic extracted from question"
+          },
+          "user_answer": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "User Answer",
+            "description": "User's answer (only for quizzes, null for flashcards)"
+          },
+          "correct_answer": {
+            "type": "string",
+            "title": "Correct Answer",
+            "description": "The correct answer - flashcard answer or quiz correct option"
+          },
+          "was_correct": {
+            "type": "boolean",
+            "title": "Was Correct",
+            "description": "Whether the user got it right"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_type",
+          "item_id",
+          "topic",
+          "correct_answer",
+          "was_correct"
+        ],
+        "title": "CreateAttemptRequest",
+        "description": "Request model for creating an attempt record."
+      },
+      "CreateFlashcardGroupRequest": {
+        "properties": {
+          "flashcard_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Flashcard Count",
+            "description": "Number of flashcards to generate",
+            "default": 30
+          },
+          "user_prompt": {
+            "anyOf": [
+              { "type": "string", "maxLength": 2000 },
+              { "type": "null" }
+            ],
+            "title": "User Prompt",
+            "description": "Custom prompt to enhance generation"
+          }
+        },
+        "type": "object",
+        "title": "CreateFlashcardGroupRequest",
+        "description": "Request model for creating a flashcard group."
+      },
+      "CreateQuizRequest": {
+        "properties": {
+          "question_count": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Question Count",
+            "description": "Number of quiz questions to generate",
+            "default": 30
+          },
+          "user_prompt": {
+            "anyOf": [
+              { "type": "string", "maxLength": 2000 },
+              { "type": "null" }
+            ],
+            "title": "User Prompt",
+            "description": "Custom prompt to enhance generation"
+          }
+        },
+        "type": "object",
+        "title": "CreateQuizRequest",
+        "description": "Request model for creating a quiz."
+      },
+      "DocumentDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "owner_id": { "type": "string", "title": "Owner Id" },
+          "project_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Project Id"
+          },
+          "file_name": { "type": "string", "title": "File Name" },
+          "file_type": {
+            "type": "string",
+            "title": "File Type",
+            "description": "File extension (pdf, docx, txt, etc.)"
+          },
+          "file_size": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "File Size",
+            "description": "File size in bytes"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Document processing status: uploaded, processing, processed, failed, indexed"
+          },
+          "summary": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Summary",
+            "description": "Auto-generated summary"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploaded At"
+          },
+          "processed_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Processed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "owner_id",
+          "project_id",
+          "file_name",
+          "file_type",
+          "file_size",
+          "status",
+          "uploaded_at",
+          "processed_at"
+        ],
+        "title": "DocumentDto"
+      },
+      "DocumentListResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/DocumentDto" },
+            "type": "array",
+            "title": "Data"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          }
+        },
+        "type": "object",
+        "required": ["data", "total_count"],
+        "title": "DocumentListResponse"
+      },
+      "DocumentSearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "Search query"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "Project ID to search within"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "description": "Number of results to return",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": ["query", "project_id"],
+        "title": "DocumentSearchRequest"
+      },
+      "DocumentSearchResponse": {
+        "properties": {
+          "results": {
+            "items": { "$ref": "#/components/schemas/SearchResultDto" },
+            "type": "array",
+            "title": "Results"
+          },
+          "total_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Count"
+          },
+          "query": { "type": "string", "title": "Query" }
+        },
+        "type": "object",
+        "required": ["results", "total_count", "query"],
+        "title": "DocumentSearchResponse"
+      },
+      "DocumentUploadResponse": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "ID of the uploaded document"
+          }
+        },
+        "type": "object",
+        "required": ["document_id"],
+        "title": "DocumentUploadResponse"
+      },
+      "FlashcardDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "group_id": { "type": "string", "title": "Group Id" },
+          "project_id": { "type": "string", "title": "Project Id" },
+          "question": { "type": "string", "title": "Question" },
+          "answer": { "type": "string", "title": "Answer" },
+          "difficulty_level": { "type": "string", "title": "Difficulty Level" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "group_id",
+          "project_id",
+          "question",
+          "answer",
+          "difficulty_level",
+          "created_at"
+        ],
+        "title": "FlashcardDto",
+        "description": "Flashcard data transfer object."
+      },
+      "FlashcardGroupDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "project_id": { "type": "string", "title": "Project Id" },
+          "name": { "type": "string", "title": "Name" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "project_id", "name", "created_at", "updated_at"],
+        "title": "FlashcardGroupDto",
+        "description": "Flashcard group data transfer object."
+      },
+      "FlashcardGroupListResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/FlashcardGroupDto" },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": { "type": "integer", "title": "Total" }
+        },
+        "type": "object",
+        "required": ["data", "total"],
+        "title": "FlashcardGroupListResponse",
+        "description": "Response model for listing flashcard groups."
+      },
+      "FlashcardGroupResponse": {
+        "properties": {
+          "flashcard_group": {
+            "$ref": "#/components/schemas/FlashcardGroupDto"
+          },
+          "message": { "type": "string", "title": "Message" }
+        },
+        "type": "object",
+        "required": ["flashcard_group", "message"],
+        "title": "FlashcardGroupResponse",
+        "description": "Response model for flashcard group operations."
+      },
+      "FlashcardListResponse": {
+        "properties": {
+          "flashcards": {
+            "items": { "$ref": "#/components/schemas/FlashcardDto" },
+            "type": "array",
+            "title": "Flashcards"
+          },
+          "total": { "type": "integer", "title": "Total" }
+        },
+        "type": "object",
+        "required": ["flashcards", "total"],
+        "title": "FlashcardListResponse",
+        "description": "Response model for listing flashcards."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LastChatMessageDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the message"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Content of the message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          }
+        },
+        "type": "object",
+        "required": ["id", "role", "content", "created_at"],
+        "title": "LastChatMessageDto",
+        "description": "Response model for last chat message data."
+      },
+      "ProjectCreateRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the project"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description",
+            "description": "Description of the project"
+          },
+          "language_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language Code",
+            "description": "Language code (e.g., 'en', 'es', 'fr')",
+            "default": "en"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "ProjectCreateRequest",
+        "description": "Request model for creating a new project."
+      },
+      "ProjectDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the project"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id",
+            "description": "ID of the project owner"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the project"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description",
+            "description": "Description of the project"
+          },
+          "language_code": {
+            "type": "string",
+            "title": "Language Code",
+            "description": "Language code"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "owner_id",
+          "name",
+          "description",
+          "language_code",
+          "created_at"
+        ],
+        "title": "ProjectDto",
+        "description": "Response model for project data."
+      },
+      "ProjectListResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/ProjectDto" },
+            "type": "array",
+            "title": "Data",
+            "description": "List of projects"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "Total number of projects"
+          }
+        },
+        "type": "object",
+        "required": ["data", "total_count"],
+        "title": "ProjectListResponse",
+        "description": "Response model for listing projects."
+      },
+      "ProjectUpdateRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Name",
+            "description": "Name of the project"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description",
+            "description": "Description of the project"
+          },
+          "language_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language Code",
+            "description": "Language code (e.g., 'en', 'es', 'fr')"
+          }
+        },
+        "type": "object",
+        "title": "ProjectUpdateRequest",
+        "description": "Request model for updating a project."
+      },
+      "QuizDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "project_id": { "type": "string", "title": "Project Id" },
+          "name": { "type": "string", "title": "Name" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "project_id", "name", "created_at", "updated_at"],
+        "title": "QuizDto",
+        "description": "Quiz data transfer object."
+      },
+      "QuizListResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/QuizDto" },
+            "type": "array",
+            "title": "Data"
+          },
+          "total": { "type": "integer", "title": "Total" }
+        },
+        "type": "object",
+        "required": ["data", "total"],
+        "title": "QuizListResponse",
+        "description": "Response model for listing quizzes."
+      },
+      "QuizQuestionDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "quiz_id": { "type": "string", "title": "Quiz Id" },
+          "project_id": { "type": "string", "title": "Project Id" },
+          "question_text": { "type": "string", "title": "Question Text" },
+          "option_a": { "type": "string", "title": "Option A" },
+          "option_b": { "type": "string", "title": "Option B" },
+          "option_c": { "type": "string", "title": "Option C" },
+          "option_d": { "type": "string", "title": "Option D" },
+          "correct_option": { "type": "string", "title": "Correct Option" },
+          "explanation": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Explanation"
+          },
+          "difficulty_level": { "type": "string", "title": "Difficulty Level" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "quiz_id",
+          "project_id",
+          "question_text",
+          "option_a",
+          "option_b",
+          "option_c",
+          "option_d",
+          "correct_option",
+          "difficulty_level",
+          "created_at"
+        ],
+        "title": "QuizQuestionDto",
+        "description": "Quiz question data transfer object."
+      },
+      "QuizQuestionListResponse": {
+        "properties": {
+          "quiz_questions": {
+            "items": { "$ref": "#/components/schemas/QuizQuestionDto" },
+            "type": "array",
+            "title": "Quiz Questions"
+          },
+          "total": { "type": "integer", "title": "Total" }
+        },
+        "type": "object",
+        "required": ["quiz_questions", "total"],
+        "title": "QuizQuestionListResponse",
+        "description": "Response model for listing quiz questions."
+      },
+      "QuizResponse": {
+        "properties": {
+          "quiz": { "$ref": "#/components/schemas/QuizDto" },
+          "message": { "type": "string", "title": "Message" }
+        },
+        "type": "object",
+        "required": ["quiz", "message"],
+        "title": "QuizResponse",
+        "description": "Response model for quiz operations."
+      },
+      "SearchResultDto": {
+        "properties": {
+          "citation_index": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Citation Index",
+            "description": "Citation number"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "Document ID"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Document title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Relevant content excerpt"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "Relevance score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "citation_index",
+          "document_id",
+          "title",
+          "content",
+          "score"
+        ],
+        "title": "SearchResultDto"
+      },
+      "SourceDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the source segment"
+          },
+          "citation_index": {
+            "type": "integer",
+            "title": "Citation Index",
+            "description": "Citation number for [n] references"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Content of the source segment"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Title/name of the source document"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id",
+            "description": "ID of the source document"
+          },
+          "preview_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Preview Url",
+            "description": "URL to preview/download the document"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Relevance score of the source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "citation_index",
+          "content",
+          "title",
+          "document_id",
+          "score"
+        ],
+        "title": "SourceDto",
+        "description": "Response model for source document data."
+      },
+      "ToolCallDto": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique ID of the tool call"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Tool type identifier"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Name of the tool being called"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "input-streaming",
+              "input-available",
+              "output-available",
+              "output-error"
+            ],
+            "title": "State",
+            "description": "Current state of the tool call"
+          },
+          "input": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Input",
+            "description": "Input parameters for the tool"
+          },
+          "output": {
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
+            "title": "Output",
+            "description": "Output result from the tool"
+          },
+          "error_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error Text",
+            "description": "Error message if failed"
+          }
+        },
+        "type": "object",
+        "required": ["id", "type", "name", "state"],
+        "title": "ToolCallDto",
+        "description": "Response model for tool call data."
+      },
+      "UpdateFlashcardGroupRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Name",
+            "description": "Name of the flashcard group"
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string", "maxLength": 1000 },
+              { "type": "null" }
+            ],
+            "title": "Description",
+            "description": "Description of the flashcard group"
+          }
+        },
+        "type": "object",
+        "title": "UpdateFlashcardGroupRequest",
+        "description": "Request model for updating a flashcard group."
+      },
+      "UpdateQuizRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Name",
+            "description": "Name of the quiz"
+          },
+          "description": {
+            "anyOf": [
+              { "type": "string", "maxLength": 1000 },
+              { "type": "null" }
+            ],
+            "title": "Description",
+            "description": "Description of the quiz"
+          }
+        },
+        "type": "object",
+        "title": "UpdateQuizRequest",
+        "description": "Request model for updating a quiz."
+      },
+      "UserDto": {
+        "properties": {
+          "id": { "type": "string", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "email": { "type": "string", "title": "Email" },
+          "azure_oid": { "type": "string", "title": "Azure Oid" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "email", "azure_oid", "created_at"],
+        "title": "UserDto"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "AzureEntra": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://login.microsoftonline.com/ce716f69-d4fc-4efe-999b-47553cdcbc3d/oauth2/v2.0/authorize",
+            "tokenUrl": "https://login.microsoftonline.com/ce716f69-d4fc-4efe-999b-47553cdcbc3d/oauth2/v2.0/token",
+            "scopes": {
+              "api://04598a73-4879-4c7b-9115-fef83c59fba6/user_impersonation": "Access API as user",
+              "openid": "OpenID Connect",
+              "profile": "User profile",
+              "email": "User email"
+            }
+          },
+          "implicit": {
+            "authorizationUrl": "https://login.microsoftonline.com/ce716f69-d4fc-4efe-999b-47553cdcbc3d/oauth2/v2.0/authorize",
+            "scopes": {
+              "openid": "OpenID Connect",
+              "profile": "User profile",
+              "email": "User email"
+            }
+          }
+        }
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [{ "BearerAuth": [] }]
+}

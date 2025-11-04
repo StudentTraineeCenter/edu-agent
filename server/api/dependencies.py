@@ -1,5 +1,6 @@
 from core.agents.search import DocumentSearchAdapter
 from core.auth import get_current_user
+from core.services.attempts import AttemptService
 from core.services.chat import ChatService
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
@@ -20,6 +21,7 @@ search_interface = DocumentSearchAdapter(document_service)
 chat_service = ChatService(search_interface=search_interface)
 flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
+attempt_service = AttemptService()
 
 
 def get_document_service():
@@ -40,6 +42,10 @@ def get_flashcard_service():
 
 def get_quiz_service():
     return quiz_service
+
+
+def get_attempt_service():
+    return attempt_service
 
 
 def get_user(current_user: User = Depends(get_current_user)) -> User:

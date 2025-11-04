@@ -675,6 +675,104 @@ export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
   total: S.Int,
 }) {}
 
+export class ListAttemptsV1AttemptsGetParams extends S.Struct({
+  /**
+   * Optional project ID filter
+   */
+  project_id: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+/**
+ * Attempt data transfer object.
+ */
+export class AttemptDto extends S.Class<AttemptDto>('AttemptDto')({
+  id: S.String,
+  user_id: S.String,
+  project_id: S.String,
+  item_type: S.String,
+  item_id: S.String,
+  topic: S.String,
+  user_answer: S.optionalWith(S.String, { nullable: true }),
+  correct_answer: S.String,
+  was_correct: S.Boolean,
+  created_at: S.String,
+}) {}
+
+/**
+ * Response model for listing attempts.
+ */
+export class AttemptListResponse extends S.Class<AttemptListResponse>(
+  'AttemptListResponse',
+)({
+  attempts: S.Array(AttemptDto),
+  total: S.Int,
+}) {}
+
+export class CreateAttemptV1AttemptsPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating an attempt record.
+ */
+export class CreateAttemptRequest extends S.Class<CreateAttemptRequest>(
+  'CreateAttemptRequest',
+)({
+  /**
+   * Type of item: flashcard or quiz
+   */
+  item_type: S.String.pipe(S.pattern(new RegExp('^(flashcard|quiz)$'))),
+  /**
+   * ID of the flashcard or quiz question
+   */
+  item_id: S.String,
+  /**
+   * Topic extracted from question
+   */
+  topic: S.String.pipe(S.maxLength(500)),
+  /**
+   * User's answer (only for quizzes, null for flashcards)
+   */
+  user_answer: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * The correct answer - flashcard answer or quiz correct option
+   */
+  correct_answer: S.String,
+  /**
+   * Whether the user got it right
+   */
+  was_correct: S.Boolean,
+}) {}
+
+/**
+ * Response model for attempt operations.
+ */
+export class AttemptResponse extends S.Class<AttemptResponse>(
+  'AttemptResponse',
+)({
+  attempt: AttemptDto,
+  message: S.String,
+}) {}
+
+export class CreateAttemptsBatchV1AttemptsBatchPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating multiple attempt records.
+ */
+export class CreateAttemptBatchRequest extends S.Class<CreateAttemptBatchRequest>(
+  'CreateAttemptBatchRequest',
+)({
+  /**
+   * List of attempts to create
+   */
+  attempts: S.NonEmptyArray(CreateAttemptRequest).pipe(
+    S.minItems(1),
+    S.maxItems(100),
+  ),
+}) {}
+
 export class UserDto extends S.Class<UserDto>('UserDto')({
   id: S.String,
   name: S.String,
@@ -1062,6 +1160,47 @@ export const make = (
           }),
         ),
       ),
+    listAttemptsV1AttemptsGet: (options) =>
+      HttpClientRequest.get(`/v1/attempts`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options?.['project_id'] as any,
+        }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(AttemptListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createAttemptV1AttemptsPost: (options) =>
+      HttpClientRequest.post(`/v1/attempts`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(AttemptResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createAttemptsBatchV1AttemptsBatchPost: (options) =>
+      HttpClientRequest.post(`/v1/attempts/batch`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(AttemptListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     getCurrentUserInfoV1AuthMeGet: () =>
       HttpClientRequest.get(`/v1/auth/me`).pipe(
         withResponse(
@@ -1404,6 +1543,41 @@ export interface Client {
     quizId: string,
   ) => Effect.Effect<
     typeof QuizQuestionListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List study attempt records for the current user, optionally filtered by project
+   */
+  readonly listAttemptsV1AttemptsGet: (
+    options?: typeof ListAttemptsV1AttemptsGetParams.Encoded | undefined,
+  ) => Effect.Effect<
+    typeof AttemptListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new study attempt record for a flashcard or quiz question
+   */
+  readonly createAttemptV1AttemptsPost: (options: {
+    readonly params: typeof CreateAttemptV1AttemptsPostParams.Encoded
+    readonly payload: typeof CreateAttemptRequest.Encoded
+  }) => Effect.Effect<
+    typeof AttemptResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create multiple study attempt records in a single batch operation
+   */
+  readonly createAttemptsBatchV1AttemptsBatchPost: (options: {
+    readonly params: typeof CreateAttemptsBatchV1AttemptsBatchPostParams.Encoded
+    readonly payload: typeof CreateAttemptBatchRequest.Encoded
+  }) => Effect.Effect<
+    typeof AttemptListResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

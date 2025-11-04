@@ -7,6 +7,7 @@ from core.config import app_config
 # add your model's MetaData object here
 # for 'autogenerate' support
 from db.base import Base
+from db import models  # noqa: F401 - Import models to register with Base.metadata
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
