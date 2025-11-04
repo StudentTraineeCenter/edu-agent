@@ -5,7 +5,7 @@ from uuid import uuid4
 from db.base import Base
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -281,4 +281,38 @@ class QuizQuestion(Base):
 
     # Relationships
     quiz = relationship("Quiz", back_populates="questions")
+    project = relationship("Project")
+
+
+class StudyAttempt(Base):
+    __tablename__ = "study_attempts"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id"), index=True
+    )
+
+    item_type: Mapped[str] = mapped_column(
+        String, index=True
+    )  # "flashcard" or "quiz"
+    item_id: Mapped[str] = mapped_column(String, index=True)  # flashcard_id or quiz_question_id
+    topic: Mapped[str] = mapped_column(Text)  # Extracted from question/flashcard text
+    user_answer: Mapped[str] = mapped_column(
+        String, nullable=True
+    )  # Only for quizzes, what user selected; null for flashcards
+    correct_answer: Mapped[str] = mapped_column(
+        Text
+    )  # The correct answer - for flashcards this is the answer field, for quizzes the correct option
+    was_correct: Mapped[bool] = mapped_column(
+        Boolean, default=False
+    )  # Whether the user got it right
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
     project = relationship("Project")

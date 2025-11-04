@@ -1,4 +1,5 @@
 from api.v1.endpoints.auth import router as auth_router
+from api.v1.endpoints.attempts import router as attempts_router
 from api.v1.endpoints.chat import router as chats_router
 from api.v1.endpoints.documents import router as documents_router
 from api.v1.endpoints.flashcards import router as flashcards_router
@@ -17,4 +18,5 @@ v1_router.include_router(
     router=flashcards_router, prefix="/flashcards", tags=["flashcards"]
 )
 v1_router.include_router(router=quizzes_router, prefix="/quizzes", tags=["quizzes"])
+v1_router.include_router(router=attempts_router, prefix="/attempts", tags=["attempts"])
 v1_router.include_router(router=auth_router, prefix="/auth", tags=["auth"])
