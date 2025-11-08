@@ -12,6 +12,7 @@ from core.agents.factory import make_agent
 from core.agents.search import SearchInterface
 from core.config import app_config
 from core.logger import get_logger
+from core.services.usage import UsageService
 from db.models import Chat, ChatMessage, ChatMessageSource, ChatMessageToolCall
 from db.session import SessionLocal
 from langchain_openai import AzureChatOpenAI
@@ -30,8 +31,9 @@ class MessageChunk(BaseModel):
 
 
 class ChatService:
-    def __init__(self, search_interface: SearchInterface):
+    def __init__(self, search_interface: SearchInterface, usage_service: UsageService = None):
         self.search_interface = search_interface
+        self.usage_service = usage_service or UsageService()
         self.credential = DefaultAzureCredential()
 
         self.token_provider = get_bearer_token_provider(
@@ -217,6 +219,7 @@ Only respond with the title, nothing else. Do not use quotes."""
                     messages=messages,
                     language_code=chat.project.language_code,
                     project_id=chat.project_id,
+                    user_id=user_id,
                 ):
                     # If this is the final chunk, save the complete message to database
                     if chunk_data.done and (chunk_data.response is not None):
@@ -273,6 +276,7 @@ Only respond with the title, nothing else. Do not use quotes."""
         messages: list[ChatMessage],
         project_id: str,
         language_code: str,
+        user_id: str = None,
     ):
         # Convert your last 6 messages to history
         chat_history = []
@@ -283,6 +287,8 @@ Only respond with the title, nothing else. Do not use quotes."""
             language_code=language_code,
             project_id=project_id,
             search_interface=self.search_interface,
+            user_id=user_id,
+            usage_service=self.usage_service,
         )
         user_input = query
 

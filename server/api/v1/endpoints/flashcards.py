@@ -1,6 +1,7 @@
-from api.dependencies import get_flashcard_service, get_user
+from api.dependencies import get_flashcard_service, get_user, get_usage_service
 from core.logger import get_logger
 from core.services.flashcards import FlashcardService
+from core.services.usage import UsageService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from schemas.flashcards import (
@@ -30,9 +31,13 @@ async def create_flashcard_group(
     request: CreateFlashcardGroupRequest,
     flashcard_service: FlashcardService = Depends(get_flashcard_service),
     current_user: User = Depends(get_user),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Create a new flashcard group, optionally with generated flashcards."""
     try:
+        # Check usage limit before processing
+        usage_service.check_and_increment(current_user.id, "flashcard_generation")
+        
         logger.info("creating flashcard group for project_id=%s", project_id)
 
         group_id = await flashcard_service.create_flashcard_group_with_flashcards(

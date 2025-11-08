@@ -197,7 +197,7 @@ export const ChatDetailPage = () => {
 
   const status = useMemo(() => {
     if (streamMessageResult.waiting) return 'streaming'
-    if (streamMessageResult._tag === 'Failure') return 'error'
+    // if (streamMessageResult._tag === 'Failure') return 'error'
     if (streamMessageResult._tag === 'Success') return 'submitted'
     return 'ready'
   }, [streamMessageResult.waiting, streamMessageResult._tag])

@@ -11,7 +11,8 @@ import {
   type ChatCreateRequest,
   type ChatUpdateRequest,
 } from '@/integrations/api/client'
-import { runtime } from './runtime'
+import { runtime, UsageLimitExceededError } from './runtime'
+import { usageAtom } from './usage'
 
 export const currentChatIdAtom = Atom.make<string | null>(null).pipe(
   Atom.keepAlive,
@@ -25,6 +26,7 @@ const ChatsAction = Data.taggedEnum<ChatsAction>()
 
 type ChatMessagesAction = Data.TaggedEnum<{
   Append: { readonly chatId: string; readonly message: ChatMessageDto }
+  RemoveTemporaryMessage: {}
   UpdateContent: {
     readonly chatId: string
     readonly messageId: string
@@ -136,6 +138,9 @@ export const chatAtom = Atom.family((chatId: string) =>
               msg.id === messageId ? { ...msg, tools } : msg,
             )
           },
+          RemoveTemporaryMessage: () => {
+            return messages.filter((msg) => msg.id !== 'temporary-message-id')
+          },
         })
 
         ctx.setSelf(
@@ -165,6 +170,8 @@ export const streamMessageAtom = Atom.fn(
     input: typeof ChatCompletionRequest.Encoded & { chatId: string },
     get: Atom.FnContext,
   ) {
+    const registry = yield* Registry.AtomRegistry
+
     // Add user message using the new action pattern
     const userMessage: ChatMessageDto = {
       id: 'temporary-message-id',
@@ -191,6 +198,18 @@ export const streamMessageAtom = Atom.fn(
           Effect.sync(() => get.refresh(chatRemoteAtom(input.chatId))),
         ),
       )
+
+    if (resp.status === 429) {
+      registry.set(
+        chatAtom(input.chatId),
+        ChatMessagesAction.RemoveTemporaryMessage(),
+      )
+      registry.refresh(usageAtom)
+      return yield* new UsageLimitExceededError({
+        message: 'Usage limit exceeded',
+      })
+    }
+
     const decoder = new TextDecoder()
 
     const respStream = resp.stream.pipe(
@@ -313,6 +332,8 @@ export const streamMessageAtom = Atom.fn(
       ),
     )
     yield* Stream.runCollect(respStream)
+
+    get.refresh(usageAtom)
   }),
 ).pipe(Atom.keepAlive)
 

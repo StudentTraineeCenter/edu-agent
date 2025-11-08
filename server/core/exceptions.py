@@ -85,3 +85,27 @@ class TooManyRequestsError(HTTPException):
     ):
         self.details = details or {}
         super().__init__(status_code=429, detail=message)
+
+
+class UsageLimitExceeded(HTTPException):
+    """Exception raised when user exceeds usage limit."""
+
+    def __init__(
+        self,
+        usage_type: str,
+        current_count: int,
+        limit: int,
+        message: Optional[str] = None,
+    ):
+        self.usage_type = usage_type
+        self.current_count = current_count
+        self.limit = limit
+        if not message:
+            message = (
+                f"Usage limit exceeded for {usage_type}. "
+                f"You have used {current_count} out of {limit} allowed per day."
+            )
+        super().__init__(
+            status_code=429,
+            detail=message,
+        )

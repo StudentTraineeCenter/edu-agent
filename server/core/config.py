@@ -50,5 +50,17 @@ class AppConfig:
     AZURE_CU_KEY: str = os.getenv("AZURE_CU_KEY") or "missing_env_var"
     AZURE_CU_ANALYZER_ID: str = os.getenv("AZURE_CU_ANALYZER_ID") or "missing_env_var"
 
+    # USAGE LIMITS (per day per user)
+    MAX_CHAT_MESSAGES_PER_DAY: int = int(os.getenv("MAX_CHAT_MESSAGES_PER_DAY", "50"))
+    MAX_FLASHCARD_GENERATIONS_PER_DAY: int = int(
+        os.getenv("MAX_FLASHCARD_GENERATIONS_PER_DAY", "10")
+    )
+    MAX_QUIZ_GENERATIONS_PER_DAY: int = int(
+        os.getenv("MAX_QUIZ_GENERATIONS_PER_DAY", "10")
+    )
+    MAX_DOCUMENT_UPLOADS_PER_DAY: int = int(
+        os.getenv("MAX_DOCUMENT_UPLOADS_PER_DAY", "5")
+    )
+
 
 app_config = AppConfig()

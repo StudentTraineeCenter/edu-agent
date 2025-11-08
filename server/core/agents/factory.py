@@ -3,17 +3,31 @@ from core.agents.llm import make_llm_streaming
 from core.agents.quiz import build_quiz_tools
 from core.agents.rag import make_project_retrieval_tool
 from core.agents.search import SearchInterface
+from core.services.usage import UsageService
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from typing import Optional
 
 
 def make_agent(
-    language_code: str, project_id: str, search_interface: SearchInterface
+    language_code: str,
+    project_id: str,
+    search_interface: SearchInterface,
+    user_id: Optional[str] = None,
+    usage_service: Optional[UsageService] = None,
 ) -> AgentExecutor:
     retrieval_tool = make_project_retrieval_tool(project_id, search_interface)
 
-    flashcard_tools = build_flashcard_tools(search_interface=search_interface)
-    quiz_tools = build_quiz_tools(search_interface=search_interface)
+    flashcard_tools = build_flashcard_tools(
+        search_interface=search_interface,
+        user_id=user_id,
+        usage_service=usage_service,
+    )
+    quiz_tools = build_quiz_tools(
+        search_interface=search_interface,
+        user_id=user_id,
+        usage_service=usage_service,
+    )
 
     system = f"""<role>
 You are an educational AI tutor specializing in helping students learn and understand course material.

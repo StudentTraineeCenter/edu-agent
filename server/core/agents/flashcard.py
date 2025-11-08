@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from core.agents.llm import make_llm_streaming
 from core.agents.search import SearchInterface
 from core.services.flashcards import FlashcardService
+from core.services.usage import UsageService
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import StructuredTool
@@ -65,12 +66,26 @@ class UpdateFlashcardGroupInput(BaseModel):
     description: Optional[str] = None
 
 
-def build_flashcard_tools(search_interface: SearchInterface):
+def build_flashcard_tools(
+    search_interface: SearchInterface,
+    user_id: Optional[str] = None,
+    usage_service: Optional[UsageService] = None,
+):
     svc = FlashcardService(search_interface=search_interface)
 
     async def _create_flashcards(
         project_id: str, count: int = 30, user_prompt: Optional[str] = None
     ) -> CreateFlashcardsOutput:
+        # Increment usage if user_id and usage_service are provided
+        if user_id and usage_service:
+            try:
+                usage_service.check_and_increment(user_id, "flashcard_generation")
+            except Exception as e:
+                # Log error but don't fail the operation
+                from core.logger import get_logger
+                logger = get_logger(__name__)
+                logger.warning("failed to increment usage: %s", e)
+
         group_id = await svc.create_flashcard_group_with_flashcards(
             project_id=project_id,
             count=count,
@@ -99,6 +114,16 @@ def build_flashcard_tools(search_interface: SearchInterface):
         document_ids: Optional[List[str]] = None,
         query: Optional[str] = None,
     ) -> CreateFlashcardsOutput:
+        # Increment usage if user_id and usage_service are provided
+        if user_id and usage_service:
+            try:
+                usage_service.check_and_increment(user_id, "flashcard_generation")
+            except Exception as e:
+                # Log error but don't fail the operation
+                from core.logger import get_logger
+                logger = get_logger(__name__)
+                logger.warning("failed to increment usage: %s", e)
+
         # For now, the service doesn't support document scoping, so we'll use the general method
         # TODO: Implement document scoping in the service layer
         enhanced_prompt = user_prompt or ""
