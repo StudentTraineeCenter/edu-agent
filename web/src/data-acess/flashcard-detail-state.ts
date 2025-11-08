@@ -27,6 +27,13 @@ type FlashcardDetailAction = Data.TaggedEnum<{
 }>
 const FlashcardDetailAction = Data.taggedEnum<FlashcardDetailAction>()
 
+// const attempts = Object.values(pendingAttempts)
+//       const total = attempts.length
+//       const correct = attempts.filter((a) => a.was_correct).length
+//       const incorrect = attempts.filter((a) => !a.was_correct).length
+//       const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
+//       return { total, correct, incorrect, percentage }
+
 const initialState: FlashcardDetailState = {
   currentCardIndex: 0,
   showAnswer: false,
@@ -88,6 +95,49 @@ export const flashcardDetailStateAtom = Atom.family(
         initial: initialState,
       },
     ),
+)
+
+export const flashcardStatsAtom = Atom.family((flashcardGroupId: string) =>
+  Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(flashcardDetailStateAtom(flashcardGroupId))
+      if (Option.isNone(state))
+        return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
+
+      const pendingAttempts = state.value.pendingAttempts
+      const attempts = Object.values(pendingAttempts)
+      const total = attempts.length
+      const correct = attempts.filter((a) => a.was_correct).length
+      const incorrect = attempts.filter((a) => !a.was_correct).length
+      const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
+      return { total, correct, incorrect, percentage }
+    }),
+  ),
+)
+
+export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
+  Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(flashcardDetailStateAtom(flashcardGroupId))
+      if (Option.isNone(state)) return { correct: [], incorrect: [] }
+      const pendingAttempts = state.value.pendingAttempts
+      const attempts = Object.values(pendingAttempts)
+
+      const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
+      if (!Result.isSuccess(flashcardsResult))
+        return { correct: [], incorrect: [] }
+      const { flashcards } = flashcardsResult.value
+
+      const correct = flashcards.filter((f) =>
+        attempts.some((a) => a.item_id === f.id && a.was_correct),
+      )
+      const incorrect = flashcards.filter((f) =>
+        attempts.some((a) => a.item_id === f.id && !a.was_correct),
+      )
+
+      return { correct, incorrect }
+    }),
+  ),
 )
 
 export const setCurrentCardIndexAtom = runtime.fn(

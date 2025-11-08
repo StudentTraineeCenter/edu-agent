@@ -1,0 +1,137 @@
+import { Link } from '@tanstack/react-router'
+import { format } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  FileIcon,
+  Loader2Icon,
+  CheckCircle2Icon,
+  XCircleIcon,
+  MoreVerticalIcon,
+  TrashIcon,
+  type LucideIcon,
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useAtomSet } from '@effect-atom/atom-react'
+import { deleteDocumentAtom } from '@/data-acess/document'
+import { DocumentStatus } from '@/integrations/api/client'
+import { cn } from '@/lib/utils'
+import type { DocumentDto } from '@/integrations/api/client'
+
+type Props = {
+  document: DocumentDto
+}
+
+const getDocumentStatus = (
+  status: typeof DocumentStatus.Type,
+): {
+  label: string
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'
+  icon: LucideIcon
+} => {
+  switch (status) {
+    case 'uploaded':
+    case 'processing':
+      return {
+        label: 'In progress',
+        variant: 'secondary',
+        icon: Loader2Icon,
+      }
+    case 'processed':
+    case 'indexed':
+      return {
+        label: 'Ready',
+        variant: 'default',
+        icon: CheckCircle2Icon,
+      }
+    case 'failed':
+      return {
+        label: 'Failed',
+        variant: 'destructive',
+        icon: XCircleIcon,
+      }
+    default:
+      return {
+        label: 'In progress',
+        variant: 'secondary',
+        icon: Loader2Icon,
+      }
+  }
+}
+
+export const DocumentListItem = ({ document }: Props) => {
+  const statusInfo = getDocumentStatus(document.status)
+  const StatusIcon = statusInfo.icon
+
+  const deleteDocument = useAtomSet(deleteDocumentAtom, { mode: 'promise' })
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await deleteDocument({
+      documentId: document.id,
+      projectId: document.project_id ?? '',
+    })
+  }
+
+  return (
+    <li className="rounded-md p-3 hover:bg-muted/50 group">
+      <div className="flex items-center gap-2">
+        <Link
+          to="/p/$projectId/d/$documentId"
+          params={{
+            projectId: document.project_id ?? '',
+            documentId: document.id,
+          }}
+          className="flex-1"
+        >
+          <div className="grid grid-cols-6 items-center">
+            <div className="flex flex-col w-full col-span-5">
+              <div className="flex items-center gap-2">
+                <FileIcon className="size-4" />
+                <span>{document.file_name}</span>
+                <Badge variant={statusInfo.variant} className="gap-1">
+                  <StatusIcon
+                    className={cn(
+                      'size-3',
+                      statusInfo.variant === 'secondary' && 'animate-spin',
+                    )}
+                  />
+                  {statusInfo.label}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex flex-col col-span-1 text-right">
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(document.uploaded_at), 'MM/dd HH:mm')}
+              </span>
+            </div>
+          </div>
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <TrashIcon className="size-4" />
+              <span>Delete</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </li>
+  )
+}

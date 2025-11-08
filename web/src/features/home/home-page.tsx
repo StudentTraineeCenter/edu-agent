@@ -4,7 +4,7 @@ import { LoginButton } from '@/components/auth/login-button'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
-export const IndexPage = () => {
+export const HomePage = () => {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const search = useSearch({ from: '/' })
