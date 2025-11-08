@@ -9,6 +9,7 @@ from azure.storage.blob import BlobServiceClient
 from core.config import app_config
 from core.logger import get_logger
 from core.services.content_understanding import AzureContentUnderstandingClient
+from db.enums import DocumentStatus
 from db.models import Document, DocumentSegment
 from db.session import SessionLocal
 from langchain_openai import AzureOpenAIEmbeddings
@@ -45,16 +46,14 @@ class DataProcessingService:
             azure_ad_token_provider=self.token_provider,
         )
 
-    async def process(
+    def upload_document(
         self, file_content: bytes, filename: str, project_id: str, owner_id: str
     ) -> str:
-        """Upload document to blob storage and trigger indexing."""
-
+        """Upload document to blob storage and return immediately."""
         with self._get_db_session() as db:
-            document_id = None
             try:
                 logger.info(
-                    "starting document upload file_name=%s for project_id=%s by owner_id=%s",
+                    "uploading document file_name=%s for project_id=%s by owner_id=%s",
                     filename,
                     project_id,
                     owner_id,
@@ -89,12 +88,26 @@ class DataProcessingService:
                     "updated document with blob reference document_id=%s", document_id
                 )
 
-                # Step 4: Extract text using Document Intelligence
+                return document_id
+
+            except Exception as e:
+                logger.error("error uploading document: %s", e)
+                raise
+
+    async def process_document(
+        self, document_id: str, file_content: bytes, project_id: str
+    ) -> None:
+        """Process document asynchronously: analyze, index, and create embeddings."""
+        with self._get_db_session() as db:
+            try:
+                logger.info("starting document processing document_id=%s", document_id)
+
+                # Step 1: Extract text using Document Intelligence
                 analyzed_result = self._analyze_document(file_content=file_content)
                 analyzed_content = analyzed_result.get("content", "")
                 analyzed_summary = analyzed_result.get("summary", "")
 
-                # Step 5: Store processed text
+                # Step 2: Store processed text
                 processed_blob_name = self._store_processed_text(
                     content=analyzed_content,
                     project_id=project_id,
@@ -102,7 +115,7 @@ class DataProcessingService:
                 )
                 logger.info("stored processed text blob_name=%s", processed_blob_name)
 
-                # # Step 6: Update document status to processed
+                # Step 3: Update document status to processed
                 self._update_document_processed_status(
                     db=db,
                     document_id=document_id,
@@ -113,7 +126,7 @@ class DataProcessingService:
                     "updated document status to processed document_id=%s", document_id
                 )
 
-                # # Step 7: Create segments and embeddings
+                # Step 4: Create segments and embeddings
                 await self._create_segments_and_embeddings(
                     db=db, document_id=document_id, content=analyzed_content
                 )
@@ -121,16 +134,31 @@ class DataProcessingService:
                     "created segments and embeddings document_id=%s", document_id
                 )
 
-                # # Step 8: Mark document as indexed
+                # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
                 logger.info("document successfully indexed document_id=%s", document_id)
-                return document_id
 
             except Exception as e:
                 logger.error("error processing document_id=%s: %s", document_id, e)
-                if document_id:
-                    self._mark_document_failed(db=db, document_id=document_id)
+                self._mark_document_failed(db=db, document_id=document_id)
                 raise
+
+    async def process(
+        self, file_content: bytes, filename: str, project_id: str, owner_id: str
+    ) -> str:
+        """Upload document to blob storage and trigger indexing (synchronous version for backward compatibility)."""
+        document_id = self.upload_document(
+            file_content=file_content,
+            filename=filename,
+            project_id=project_id,
+            owner_id=owner_id,
+        )
+        await self.process_document(
+            document_id=document_id,
+            file_content=file_content,
+            project_id=project_id,
+        )
+        return document_id
 
     @staticmethod
     def _get_file_type(filename: str) -> str:
@@ -153,7 +181,7 @@ class DataProcessingService:
             file_name=filename,
             file_type=self._get_file_type(filename),
             file_size=len(file_content),
-            status="uploaded",
+            status=DocumentStatus.UPLOADED,
             uploaded_at=datetime.now(),
         )
         db.add(document)
@@ -187,7 +215,7 @@ class DataProcessingService:
         document = db.query(Document).filter(Document.id == document_id).first()
         if document:
             document.original_blob_name = raw_blob_name
-            document.status = "processing"
+            document.status = DocumentStatus.PROCESSING
 
     def _analyze_document(self, file_content: bytes) -> dict[str, str]:
         """Analyze document using Azure Content Understanding."""
@@ -228,7 +256,7 @@ class DataProcessingService:
         )
         if document:
             document.processed_text_blob_name = processed_blob_name
-            document.status = "processed"
+            document.status = DocumentStatus.PROCESSED
             document.processed_at = datetime.now()
             document.summary = summary
             db.commit()
@@ -240,9 +268,7 @@ class DataProcessingService:
             db.query(Document).filter(Document.id == document_id).first()
         )
         if document:
-            document.status = "indexed"
-            document.search_indexed = True
-            document.search_indexed_at = datetime.now()
+            document.status = DocumentStatus.INDEXED
             db.commit()
 
     @staticmethod
@@ -252,7 +278,7 @@ class DataProcessingService:
             db.query(Document).filter(Document.id == document_id).first()
         )
         if document:
-            document.status = "failed"
+            document.status = DocumentStatus.FAILED
             db.commit()
 
     async def _create_segments_and_embeddings(
@@ -342,8 +368,6 @@ class DataProcessingService:
             # Store embeddings for the batch
             for segment, embedding in zip(batch_segments, batch_embeddings):
                 segment.embedding_vector = embedding
-                segment.search_indexed = True
-                segment.search_indexed_at = datetime.now()
 
             db.commit()
 

@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from db.enums import DocumentStatus
+from pydantic import BaseModel, Field
 
 
 class DocumentDto(BaseModel):
@@ -11,33 +12,13 @@ class DocumentDto(BaseModel):
     file_name: str
     file_type: str = Field(..., description="File extension (pdf, docx, txt, etc.)")
     file_size: int = Field(..., gt=0, description="File size in bytes")
-    status: str = Field(
+    status: DocumentStatus = Field(
         ...,
         description="Document processing status: uploaded, processing, processed, failed, indexed",
     )
     summary: Optional[str] = Field(None, description="Auto-generated summary")
     uploaded_at: datetime
     processed_at: Optional[datetime]
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, v: str) -> str:
-        allowed_statuses = ["uploaded", "processing", "processed", "failed", "indexed"]
-        if v not in allowed_statuses:
-            raise ValueError(
-                f"Status must be one of: {', '.join(allowed_statuses)}, got: {v}"
-            )
-        return v
-
-    @field_validator("file_type")
-    @classmethod
-    def validate_file_type(cls, v: str) -> str:
-        allowed_types = ["pdf", "docx", "doc", "txt", "rtf"]
-        if v.lower() not in allowed_types:
-            raise ValueError(
-                f"File type must be one of: {', '.join(allowed_types)}, got: {v}"
-            )
-        return v.lower()
 
     class Config:
         from_attributes = True
@@ -47,17 +28,9 @@ class DocumentListResponse(BaseModel):
     data: List[DocumentDto]
     total_count: int = Field(..., ge=0)
 
-    @field_validator("total_count")
-    @classmethod
-    def validate_total_count(cls, v: int, info) -> int:
-        data = info.data.get("data", [])
-        if v < len(data):
-            raise ValueError("total_count cannot be less than number of items in data")
-        return v
-
 
 class DocumentUploadResponse(BaseModel):
-    document_id: str = Field(..., description="ID of the uploaded document")
+    document_ids: List[str] = Field(..., description="IDs of the uploaded documents")
 
 
 class DocumentSearchRequest(BaseModel):

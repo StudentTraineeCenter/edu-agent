@@ -2,7 +2,7 @@ import { currentProjectIdAtom, projectAtom } from '@/data-acess/project'
 import { projectDetailRoute } from '@/routes/_config'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -13,18 +13,25 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { chatsAtom, createChatAtom } from '@/data-acess/chat'
-import type { ChatDto, DocumentDto } from '@/integrations/api/client'
+import { ChatDto, DocumentDto, DocumentStatus } from '@/integrations/api/client'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   BrainCircuitIcon,
   FileIcon,
   ListChecksIcon,
   PlusIcon,
+  Loader2Icon,
+  CheckCircle2Icon,
+  XCircleIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { documentsAtom } from '@/data-acess/document'
 import { Material, materialsAtom } from '@/data-acess/materials'
+import { useUploadDocumentDialog } from '@/components/documents/upload-document-dialog'
+import { cn } from '@/lib/utils'
+import { Data, Match } from 'effect'
 
 const ProjectHeader = ({ title }: { title: string }) => {
   return (
@@ -50,6 +57,11 @@ const ProjectHeader = ({ title }: { title: string }) => {
 }
 
 const ChatListItem = ({ chat }: { chat: ChatDto }) => {
+  const lastMessageContent = useMemo(() => {
+    const value = chat.last_message?.content ?? 'No messages yet'
+    return value.length > 100 ? value.slice(0, 100) + '...' : value
+  }, [chat.last_message])
+
   return (
     <li className="rounded-md p-3 hover:bg-muted/50">
       <Link
@@ -63,7 +75,7 @@ const ChatListItem = ({ chat }: { chat: ChatDto }) => {
           <div className="flex flex-col w-full col-span-5">
             <span>{chat.title ?? 'Untitled chat'}</span>
             <span className="text-sm text-muted-foreground">
-              {chat.last_message?.content ?? 'No messages yet'}
+              {lastMessageContent}
             </span>
           </div>
           <div className="flex flex-col col-span-1 text-right">
@@ -77,7 +89,47 @@ const ChatListItem = ({ chat }: { chat: ChatDto }) => {
   )
 }
 
+const getDocumentStatus = (
+  status: typeof DocumentStatus.Type,
+): {
+  label: string
+  variant: 'default' | 'secondary' | 'destructive' | 'outline'
+  icon: LucideIcon
+} => {
+  switch (status) {
+    case 'uploaded':
+    case 'processing':
+      return {
+        label: 'In progress',
+        variant: 'secondary',
+        icon: Loader2Icon,
+      }
+    case 'processed':
+    case 'indexed':
+      return {
+        label: 'Ready',
+        variant: 'default',
+        icon: CheckCircle2Icon,
+      }
+    case 'failed':
+      return {
+        label: 'Failed',
+        variant: 'destructive',
+        icon: XCircleIcon,
+      }
+    default:
+      return {
+        label: 'In progress',
+        variant: 'secondary',
+        icon: Loader2Icon,
+      }
+  }
+}
+
 const DocumentListItem = ({ document }: { document: DocumentDto }) => {
+  const statusInfo = getDocumentStatus(document.status)
+  const StatusIcon = statusInfo.icon
+
   return (
     <li className="rounded-md p-3 hover:bg-muted/50">
       <Link
@@ -92,6 +144,15 @@ const DocumentListItem = ({ document }: { document: DocumentDto }) => {
             <div className="flex items-center gap-2">
               <FileIcon className="size-4" />
               <span>{document.file_name}</span>
+              <Badge variant={statusInfo.variant} className="gap-1">
+                <StatusIcon
+                  className={cn(
+                    'size-3',
+                    statusInfo.variant === 'secondary' && 'animate-spin',
+                  )}
+                />
+                {statusInfo.label}
+              </Badge>
             </div>
           </div>
           <div className="flex flex-col col-span-1 text-right">
@@ -187,6 +248,7 @@ export const ProjectDetailPage = () => {
   const createChat = useAtomSet(createChatAtom, {
     mode: 'promise',
   })
+  const openUploadDialog = useUploadDocumentDialog((state) => state.open)
 
   const handleCreateChat = async () => {
     const chat = await createChat({ project_id: params.projectId })
@@ -196,7 +258,9 @@ export const ProjectDetailPage = () => {
     })
   }
 
-  const handleCreateDocument = async () => {}
+  const handleCreateDocument = () => {
+    openUploadDialog(params.projectId)
+  }
 
   useEffect(() => {
     setCurrentProject(params.projectId)
