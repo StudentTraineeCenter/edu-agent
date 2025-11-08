@@ -19,7 +19,7 @@ export const currentChatIdAtom = Atom.make<string | null>(null).pipe(
 
 type ChatsAction = Data.TaggedEnum<{
   Upsert: { readonly chat: ChatDto }
-  Del: { readonly chatId: string }
+  Archive: { readonly chatId: string }
 }>
 const ChatsAction = Data.taggedEnum<ChatsAction>()
 
@@ -85,7 +85,7 @@ export const chatsAtom = Atom.family((projectId: string) =>
               return result.value.map((c) => (c.id === chat.id ? chat : c))
             return Arr.prepend(result.value, chat)
           },
-          Del: ({ chatId }) => {
+          Archive: ({ chatId }) => {
             return result.value.filter((c) => c.id !== chatId)
           },
         })
@@ -165,8 +165,6 @@ export const streamMessageAtom = Atom.fn(
     input: typeof ChatCompletionRequest.Encoded & { chatId: string },
     get: Atom.FnContext,
   ) {
-    const chat = yield* get.result(chatRemoteAtom(input.chatId))
-
     // Add user message using the new action pattern
     const userMessage: ChatMessageDto = {
       id: 'temporary-message-id',
@@ -254,13 +252,19 @@ export const streamMessageAtom = Atom.fn(
               }),
             )
 
+            // Helper to get current message state
+            const getCurrentMessage = function* () {
+              const chat = yield* get.result(chatAtom(input.chatId))
+              return Array.from(chat.messages ?? []).find(
+                (msg) => msg.id === messageId,
+              )
+            }
+
             // Update sources if provided
             if (chunk.sources && chunk.sources.length > 0) {
-              const existingSources = messages[msgIdx]?.sources ?? []
-              const newSources = chunk.sources ?? []
-
-              // Filter out sources that already exist by ID
-              const uniqueNewSources = newSources.filter(
+              const currentMessage = yield* getCurrentMessage()
+              const existingSources = currentMessage?.sources ?? []
+              const uniqueNewSources = chunk.sources.filter(
                 (newSource) =>
                   !existingSources.some(
                     (existing) => existing.id === newSource.id,
@@ -279,35 +283,36 @@ export const streamMessageAtom = Atom.fn(
               }
             }
 
-            // Update tools if provided
+            // Update tools if provided - deep merge by ID
             if (chunk.tools && chunk.tools.length > 0) {
-              const existingTools = messages[msgIdx]?.tools ?? []
-              const newTools = chunk.tools ?? []
+              const currentMessage = yield* getCurrentMessage()
+              const existingTools = currentMessage?.tools ?? []
 
-              // Filter out tools that already exist by ID
-              const uniqueNewTools = newTools.filter(
-                (newTool) =>
-                  !existingTools.some((existing) => existing.id === newTool.id),
+              // Deep merge tools by ID in a single pass
+              const mergedTools = [
+                ...existingTools.map((existing) => {
+                  const newTool = chunk.tools!.find((t) => t.id === existing.id)
+                  return newTool ? { ...existing, ...newTool } : existing
+                }),
+                ...chunk.tools.filter(
+                  (newTool) => !existingTools.some((t) => t.id === newTool.id),
+                ),
+              ]
+
+              get.set(
+                chatAtom(input.chatId),
+                ChatMessagesAction.UpdateTools({
+                  chatId: input.chatId,
+                  messageId,
+                  tools: mergedTools,
+                }),
               )
-
-              if (uniqueNewTools.length > 0) {
-                get.set(
-                  chatAtom(input.chatId),
-                  ChatMessagesAction.UpdateTools({
-                    chatId: input.chatId,
-                    messageId,
-                    tools: [...existingTools, ...uniqueNewTools],
-                  }),
-                )
-              }
             }
           }
         }),
       ),
     )
     yield* Stream.runCollect(respStream)
-    get.refresh(chatRemoteAtom(input.chatId))
-    get.refresh(chatsAtom(chat.project_id))
   }),
 ).pipe(Atom.keepAlive)
 
@@ -400,6 +405,19 @@ export const updateMessageToolsAtom = runtime.fn(
         messageId: input.messageId,
         tools: input.tools,
       }),
+    )
+  }),
+)
+
+export const archiveChatAtom = runtime.fn(
+  Effect.fn(function* (input: { chatId: string; projectId: string }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.archiveChatV1ChatsChatIdArchivePost(input.chatId)
+
+    registry.set(
+      chatsAtom(input.projectId),
+      ChatsAction.Archive({ chatId: input.chatId }),
     )
   }),
 )

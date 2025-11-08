@@ -24,14 +24,25 @@ import {
   Loader2Icon,
   CheckCircle2Icon,
   XCircleIcon,
+  MoreVerticalIcon,
+  ArchiveIcon,
+  TrashIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { documentsAtom } from '@/data-acess/document'
+import { deleteDocumentAtom, documentsAtom } from '@/data-acess/document'
 import { Material, materialsAtom } from '@/data-acess/materials'
 import { useUploadDocumentDialog } from '@/components/documents/upload-document-dialog'
 import { cn } from '@/lib/utils'
-import { Data, Match } from 'effect'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { archiveChatAtom } from '@/data-acess/chat'
+import { deleteFlashcardGroupAtom } from '@/data-acess/flashcard'
+import { deleteQuizAtom } from '@/data-acess/quiz'
 
 const ProjectHeader = ({ title }: { title: string }) => {
   return (
@@ -62,29 +73,61 @@ const ChatListItem = ({ chat }: { chat: ChatDto }) => {
     return value.length > 100 ? value.slice(0, 100) + '...' : value
   }, [chat.last_message])
 
+  const archiveChat = useAtomSet(archiveChatAtom, { mode: 'promise' })
+
+  const handleArchive = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await archiveChat({
+      chatId: chat.id,
+      projectId: chat.project_id,
+    })
+  }
+
   return (
-    <li className="rounded-md p-3 hover:bg-muted/50">
-      <Link
-        to="/projects/$projectId/chats/$chatId"
-        params={{
-          projectId: chat.project_id,
-          chatId: chat.id,
-        }}
-      >
-        <div className="grid grid-cols-6 items-center">
-          <div className="flex flex-col w-full col-span-5">
-            <span>{chat.title ?? 'Untitled chat'}</span>
-            <span className="text-sm text-muted-foreground">
-              {lastMessageContent}
-            </span>
+    <li className="rounded-md p-3 hover:bg-muted/50 group">
+      <div className="flex items-center gap-2">
+        <Link
+          to="/projects/$projectId/chats/$chatId"
+          params={{
+            projectId: chat.project_id,
+            chatId: chat.id,
+          }}
+          className="flex-1"
+        >
+          <div className="grid grid-cols-6 items-center">
+            <div className="flex flex-col w-full col-span-5">
+              <span>{chat.title ?? 'Untitled chat'}</span>
+              <span className="text-sm text-muted-foreground">
+                {lastMessageContent}
+              </span>
+            </div>
+            <div className="flex flex-col col-span-1 text-right">
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(chat.created_at), 'MM/dd HH:mm')}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col col-span-1 text-right">
-            <span className="text-xs text-muted-foreground">
-              {format(new Date(chat.created_at), 'MM/dd HH:mm')}
-            </span>
-          </div>
-        </div>
-      </Link>
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleArchive} variant="destructive">
+              <ArchiveIcon className="size-4" />
+              <span>Archive</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </li>
   )
 }
@@ -130,43 +173,80 @@ const DocumentListItem = ({ document }: { document: DocumentDto }) => {
   const statusInfo = getDocumentStatus(document.status)
   const StatusIcon = statusInfo.icon
 
+  const deleteDocument = useAtomSet(deleteDocumentAtom, { mode: 'promise' })
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    await deleteDocument({
+      documentId: document.id,
+      projectId: document.project_id ?? '',
+    })
+  }
+
   return (
-    <li className="rounded-md p-3 hover:bg-muted/50">
-      <Link
-        to="/projects/$projectId/documents/$documentId"
-        params={{
-          projectId: document.project_id ?? '',
-          documentId: document.id,
-        }}
-      >
-        <div className="grid grid-cols-6 items-center">
-          <div className="flex flex-col w-full col-span-5">
-            <div className="flex items-center gap-2">
-              <FileIcon className="size-4" />
-              <span>{document.file_name}</span>
-              <Badge variant={statusInfo.variant} className="gap-1">
-                <StatusIcon
-                  className={cn(
-                    'size-3',
-                    statusInfo.variant === 'secondary' && 'animate-spin',
-                  )}
-                />
-                {statusInfo.label}
-              </Badge>
+    <li className="rounded-md p-3 hover:bg-muted/50 group">
+      <div className="flex items-center gap-2">
+        <Link
+          to="/projects/$projectId/documents/$documentId"
+          params={{
+            projectId: document.project_id ?? '',
+            documentId: document.id,
+          }}
+          className="flex-1"
+        >
+          <div className="grid grid-cols-6 items-center">
+            <div className="flex flex-col w-full col-span-5">
+              <div className="flex items-center gap-2">
+                <FileIcon className="size-4" />
+                <span>{document.file_name}</span>
+                <Badge variant={statusInfo.variant} className="gap-1">
+                  <StatusIcon
+                    className={cn(
+                      'size-3',
+                      statusInfo.variant === 'secondary' && 'animate-spin',
+                    )}
+                  />
+                  {statusInfo.label}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex flex-col col-span-1 text-right">
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(document.uploaded_at), 'MM/dd HH:mm')}
+              </span>
             </div>
           </div>
-          <div className="flex flex-col col-span-1 text-right">
-            <span className="text-xs text-muted-foreground">
-              {format(new Date(document.uploaded_at), 'MM/dd HH:mm')}
-            </span>
-          </div>
-        </div>
-      </Link>
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <TrashIcon className="size-4" />
+              <span>Delete</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </li>
   )
 }
 
 const MaterialListItem = ({ material }: { material: Material }) => {
+  const deleteFlashcardGroup = useAtomSet(deleteFlashcardGroupAtom, {
+    mode: 'promise',
+  })
+  const deleteQuiz = useAtomSet(deleteQuizAtom, { mode: 'promise' })
+
   const renderContent = ({
     name,
     created_at,
@@ -195,40 +275,100 @@ const MaterialListItem = ({ material }: { material: Material }) => {
 
   return Material.$match(material, {
     FlashcardGroup: ({ data: flashcardGroup }) => {
+      const handleDelete = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        await deleteFlashcardGroup({
+          flashcardGroupId: flashcardGroup.id,
+          projectId: flashcardGroup.project_id ?? '',
+        })
+      }
+
       return (
-        <li className="rounded-md p-3 hover:bg-muted/50">
-          <Link
-            to="/projects/$projectId/flashcards/$flashcardGroupId"
-            params={{
-              projectId: flashcardGroup.project_id ?? '',
-              flashcardGroupId: flashcardGroup.id,
-            }}
-          >
-            {renderContent({
-              name: flashcardGroup.name,
-              created_at: flashcardGroup.created_at,
-              icon: BrainCircuitIcon,
-            })}
-          </Link>
+        <li className="rounded-md p-3 hover:bg-muted/50 group">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/projects/$projectId/flashcards/$flashcardGroupId"
+              params={{
+                projectId: flashcardGroup.project_id ?? '',
+                flashcardGroupId: flashcardGroup.id,
+              }}
+              className="flex-1"
+            >
+              {renderContent({
+                name: flashcardGroup.name,
+                created_at: flashcardGroup.created_at,
+                icon: BrainCircuitIcon,
+              })}
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVerticalIcon className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDelete} variant="destructive">
+                  <TrashIcon className="size-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </li>
       )
     },
     Quiz: ({ data: quiz }) => {
+      const handleDelete = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        await deleteQuiz({
+          quizId: quiz.id,
+          projectId: quiz.project_id ?? '',
+        })
+      }
+
       return (
-        <li className="rounded-md p-3 hover:bg-muted/50">
-          <Link
-            to="/projects/$projectId/quizzes/$quizId"
-            params={{
-              projectId: quiz.project_id ?? '',
-              quizId: quiz.id,
-            }}
-          >
-            {renderContent({
-              name: quiz.name,
-              created_at: quiz.created_at,
-              icon: ListChecksIcon,
-            })}
-          </Link>
+        <li className="rounded-md p-3 hover:bg-muted/50 group">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/projects/$projectId/quizzes/$quizId"
+              params={{
+                projectId: quiz.project_id ?? '',
+                quizId: quiz.id,
+              }}
+              className="flex-1"
+            >
+              {renderContent({
+                name: quiz.name,
+                created_at: quiz.created_at,
+                icon: ListChecksIcon,
+              })}
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVerticalIcon className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDelete} variant="destructive">
+                  <TrashIcon className="size-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </li>
       )
     },
@@ -313,13 +453,19 @@ export const ProjectDetailPage = () => {
               .onFailure(() => (
                 <div className="text-destructive">Failed to load chats</div>
               ))
-              .onSuccess((chats) => (
-                <ul className="space-y-2">
-                  {chats.map((chat) => (
-                    <ChatListItem key={chat.id} chat={chat} />
-                  ))}
-                </ul>
-              ))
+              .onSuccess((chats) =>
+                chats.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>No chats yet. Create your first chat to get started.</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {chats.map((chat) => (
+                      <ChatListItem key={chat.id} chat={chat} />
+                    ))}
+                  </ul>
+                ),
+              )
               .render()}
           </div>
 
@@ -345,13 +491,22 @@ export const ProjectDetailPage = () => {
               .onFailure(() => (
                 <div className="text-destructive">Failed to load documents</div>
               ))
-              .onSuccess((documents) => (
-                <ul className="space-y-2">
-                  {documents.map((document) => (
-                    <DocumentListItem key={document.id} document={document} />
-                  ))}
-                </ul>
-              ))
+              .onSuccess((documents) =>
+                documents.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>
+                      No documents yet. Upload your first document to get
+                      started.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {documents.map((document) => (
+                      <DocumentListItem key={document.id} document={document} />
+                    ))}
+                  </ul>
+                ),
+              )
               .render()}
           </div>
 
@@ -377,16 +532,22 @@ export const ProjectDetailPage = () => {
               .onDefect(() => (
                 <div className="text-destructive">Failed to load materials</div>
               ))
-              .onSuccess((materials) => (
-                <ul className="space-y-2">
-                  {materials.map((material) => (
-                    <MaterialListItem
-                      key={material.data.id}
-                      material={material}
-                    />
-                  ))}
-                </ul>
-              ))
+              .onSuccess((materials) =>
+                materials.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    <p>No materials yet.</p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {materials.map((material) => (
+                      <MaterialListItem
+                        key={material.data.id}
+                        material={material}
+                      />
+                    ))}
+                  </ul>
+                ),
+              )
               .render()}
           </div>
         </div>

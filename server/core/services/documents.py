@@ -386,3 +386,73 @@ class DocumentService:
         except Exception as e:
             logger.error("error streaming blob for document_id=%s: %s", document_id, e)
             raise
+
+    def delete_document(self, document_id: str, user_id: str) -> bool:
+        """Delete a document and all its associated blobs."""
+        with self._get_db_session() as db:
+            try:
+                logger.info("deleting document_id=%s", document_id)
+                document = (
+                    db.query(Document)
+                    .filter(Document.id == document_id, Document.owner_id == user_id)
+                    .first()
+                )
+                if not document:
+                    logger.info("document_id=%s not found", document_id)
+                    raise ValueError(f"Document with id {document_id} not found")
+
+                # Delete original blob from Azure Storage if it exists
+                if document.original_blob_name:
+                    try:
+                        blob_client = self.blob_service_client.get_blob_client(
+                            container=app_config.AZURE_STORAGE_CONTAINER_NAME,
+                            blob=document.original_blob_name,
+                        )
+                        blob_client.delete_blob()
+                        logger.info(
+                            "deleted original blob blob_name=%s for document_id=%s",
+                            document.original_blob_name,
+                            document_id,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "error deleting original blob blob_name=%s for document_id=%s: %s",
+                            document.original_blob_name,
+                            document_id,
+                            e,
+                        )
+
+                # Delete processed text blob from Azure Storage if it exists
+                if document.processed_text_blob_name:
+                    try:
+                        processed_blob_client = self.blob_service_client.get_blob_client(
+                            container=app_config.AZURE_STORAGE_CONTAINER_NAME,
+                            blob=document.processed_text_blob_name,
+                        )
+                        processed_blob_client.delete_blob()
+                        logger.info(
+                            "deleted processed text blob blob_name=%s for document_id=%s",
+                            document.processed_text_blob_name,
+                            document_id,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "error deleting processed text blob blob_name=%s for document_id=%s: %s",
+                            document.processed_text_blob_name,
+                            document_id,
+                            e,
+                        )
+
+                # Delete document from database (cascade will delete segments)
+                db.delete(document)
+                db.commit()
+
+                logger.info("deleted document_id=%s", document_id)
+                return True
+
+            except ValueError:
+                raise
+            except Exception as e:
+                logger.error("error deleting document_id=%s: %s", document_id, e)
+                db.rollback()
+                raise

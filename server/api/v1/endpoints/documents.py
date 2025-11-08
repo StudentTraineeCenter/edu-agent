@@ -1,3 +1,4 @@
+import asyncio
 from urllib.parse import quote
 
 from api.dependencies import get_data_processing_service, get_document_service, get_user
@@ -8,7 +9,7 @@ from db.models import User
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from schemas.documents import (
     DocumentDto,
     DocumentListResponse,
@@ -68,27 +69,35 @@ async def upload_document(
             )
 
     try:
-        # Process all files
-        for file in files:
-            # Read file content
+        # Read all files concurrently
+        async def read_file(file: UploadFile) -> tuple[str, bytes]:
             content = await file.read()
+            return file.filename, content
 
-            # Upload document and return immediately
-            document_id = data_processing_service.upload_document(
+        file_data = await asyncio.gather(*[read_file(file) for file in files])
+
+        # Upload all documents concurrently
+        async def upload_single_document(filename: str, content: bytes) -> tuple[str, bytes]:
+            document_id = await asyncio.to_thread(
+                data_processing_service.upload_document,
                 file_content=content,
-                filename=file.filename,
+                filename=filename,
                 project_id=project_id,
                 owner_id=current_user.id,
             )
-
-            document_ids.append(document_id)
-            file_contents.append((document_id, content))
-
             logger.info(
                 "document uploaded document_id=%s, file_name=%s",
                 document_id,
-                file.filename,
+                filename,
             )
+            return document_id, content
+
+        upload_results = await asyncio.gather(
+            *[upload_single_document(filename, content) for filename, content in file_data]
+        )
+
+        document_ids = [doc_id for doc_id, _ in upload_results]
+        file_contents = upload_results
 
         # Schedule background processing for all documents
         for document_id, content in file_contents:
@@ -302,4 +311,44 @@ def preview_document(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to preview document",
+        )
+
+
+@router.delete(
+    path="/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a document by id",
+    description="Delete a document by id",
+)
+def delete_document(
+    document_id: str,
+    document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
+):
+    """Delete a document by id"""
+    logger.info("deleting document_id=%s", document_id)
+
+    try:
+        success = document_service.delete_document(document_id, current_user.id)
+
+        if not success:
+            logger.error("document_id=%s not found", document_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
+
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    except ValueError as e:
+        logger.error("document_id=%s not found: %s", document_id, e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("error deleting document: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete document",
         )

@@ -98,7 +98,7 @@ class ChatService:
             try:
                 return (
                     db.query(Chat)
-                    .filter(Chat.project_id == project_id, Chat.user_id == user_id)
+                    .filter(Chat.project_id == project_id, Chat.user_id == user_id, Chat.archived_at.is_(None))
                     .all()
                 )
             except Exception as e:
