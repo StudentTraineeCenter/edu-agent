@@ -1,10 +1,16 @@
 import asyncio
 from urllib.parse import quote
 
-from api.dependencies import get_data_processing_service, get_document_service, get_user
+from api.dependencies import (
+    get_data_processing_service,
+    get_document_service,
+    get_user,
+    get_usage_service,
+)
 from core.logger import get_logger
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
+from core.services.usage import UsageService
 from db.models import User
 from typing import List
 
@@ -39,6 +45,7 @@ async def upload_document(
         get_data_processing_service
     ),
     current_user: User = Depends(get_user),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Upload one or more documents and return immediately. Processing happens asynchronously."""
     if not files:
@@ -46,6 +53,10 @@ async def upload_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one file is required",
         )
+
+    # Check usage limit for each file upload
+    for _ in files:
+        usage_service.check_and_increment(current_user.id, "document_upload")
 
     logger.info(
         "uploading %d document(s) for project_id=%s", len(files), project_id

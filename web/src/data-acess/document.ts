@@ -2,6 +2,7 @@ import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Data, Effect } from 'effect'
 import { runtime } from './runtime'
+import { usageAtom } from './usage'
 
 type DocumentsAction = Data.TaggedEnum<{
   Del: { readonly documentId: string }
@@ -78,6 +79,7 @@ export const uploadDocumentAtom = runtime.fn(
     })
 
     registry.refresh(documentsRemoteAtom(input.projectId))
+    registry.refresh(usageAtom)
   }),
 )
 

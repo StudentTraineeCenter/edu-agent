@@ -5,6 +5,7 @@ from api.v1.endpoints.documents import router as documents_router
 from api.v1.endpoints.flashcards import router as flashcards_router
 from api.v1.endpoints.projects import router as projects_router
 from api.v1.endpoints.quizzes import router as quizzes_router
+from api.v1.endpoints.usage import router as usage_router
 from fastapi import APIRouter
 
 v1_router = APIRouter()
@@ -20,3 +21,4 @@ v1_router.include_router(
 v1_router.include_router(router=quizzes_router, prefix="/quizzes", tags=["quizzes"])
 v1_router.include_router(router=attempts_router, prefix="/attempts", tags=["attempts"])
 v1_router.include_router(router=auth_router, prefix="/auth", tags=["auth"])
+v1_router.include_router(router=usage_router, prefix="/usage", tags=["usage"])

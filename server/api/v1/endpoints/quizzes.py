@@ -1,6 +1,8 @@
-from api.dependencies import get_quiz_service
+from api.dependencies import get_quiz_service, get_usage_service, get_user
 from core.logger import get_logger
 from core.services.quizzes import QuizService
+from core.services.usage import UsageService
+from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from schemas.quizzes import (
     CreateQuizRequest,
@@ -28,9 +30,14 @@ async def create_quiz(
     project_id: str,
     request: CreateQuizRequest,
     quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Create a new quiz, optionally with generated questions."""
     try:
+        # Check usage limit before processing
+        usage_service.check_and_increment(current_user.id, "quiz_generation")
+        
         logger.info("creating quiz for project_id=%s", project_id)
 
         quiz = await quiz_service.create_quiz_with_questions(

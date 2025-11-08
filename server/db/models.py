@@ -29,6 +29,7 @@ class User(Base):
     projects = relationship("Project", back_populates="owner")
     documents = relationship("Document", back_populates="owner")
     chats = relationship("Chat", back_populates="user")
+    usage = relationship("UserUsage", back_populates="user", uselist=False)
 
 
 class Project(Base):
@@ -317,3 +318,35 @@ class StudyAttempt(Base):
     # Relationships
     user = relationship("User")
     project = relationship("Project")
+
+
+class UserUsage(Base):
+    __tablename__ = "user_usage"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id"), index=True, unique=True
+    )
+
+    # Daily usage counters (reset daily)
+    chat_messages_today: Mapped[int] = mapped_column(Integer, default=0)
+    flashcard_generations_today: Mapped[int] = mapped_column(Integer, default=0)
+    quiz_generations_today: Mapped[int] = mapped_column(Integer, default=0)
+    document_uploads_today: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Last reset date
+    last_reset_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")

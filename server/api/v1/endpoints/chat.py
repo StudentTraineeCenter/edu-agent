@@ -1,8 +1,9 @@
 from typing import AsyncGenerator, List
 
-from api.dependencies import get_chat_service, get_user
+from api.dependencies import get_chat_service, get_user, get_usage_service
 from core.logger import get_logger
 from core.services.chat import ChatService
+from core.services.usage import UsageService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
@@ -248,10 +249,14 @@ async def send_streaming_message(
     body: ChatCompletionRequest,
     chat_service: ChatService = Depends(get_chat_service),
     current_user: User = Depends(get_user),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Send a streaming message to a chat"""
 
     user_id = current_user.id
+
+    # Check usage limit before processing
+    usage_service.check_and_increment(user_id, "chat_message")
 
     async def generate_stream() -> AsyncGenerator[str, None]:
         """Generate streaming response chunks"""

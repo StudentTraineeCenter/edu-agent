@@ -7,6 +7,7 @@ from core.services.documents import DocumentService
 from core.services.flashcards import FlashcardService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
+from core.services.usage import UsageService
 from db.models import User
 from fastapi import Depends
 
@@ -17,8 +18,11 @@ data_processing_service = DataProcessingService()
 # Create unified search interface - single source of truth
 search_interface = DocumentSearchAdapter(document_service)
 
+# Create usage service first
+usage_service = UsageService()
+
 # Create services with unified search interface
-chat_service = ChatService(search_interface=search_interface)
+chat_service = ChatService(search_interface=search_interface, usage_service=usage_service)
 flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
 attempt_service = AttemptService()
@@ -55,3 +59,7 @@ def get_user(current_user: User = Depends(get_current_user)) -> User:
 
 def get_data_processing_service():
     return data_processing_service
+
+
+def get_usage_service():
+    return usage_service

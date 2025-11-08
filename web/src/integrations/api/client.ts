@@ -792,6 +792,52 @@ export class UserDto extends S.Class<UserDto>('UserDto')({
   created_at: S.String,
 }) {}
 
+/**
+ * DTO for usage limit information.
+ */
+export class UsageLimitDto extends S.Class<UsageLimitDto>('UsageLimitDto')({
+  /**
+   * Number of operations used today
+   */
+  used: S.Int,
+  /**
+   * Maximum number of operations allowed per day
+   */
+  limit: S.Int,
+}) {}
+
+/**
+ * DTO for user usage statistics.
+ */
+export class UsageDto extends S.Class<UsageDto>('UsageDto')({
+  /**
+   * Chat message usage statistics
+   */
+  chat_messages: UsageLimitDto,
+  /**
+   * Flashcard generation usage statistics
+   */
+  flashcard_generations: UsageLimitDto,
+  /**
+   * Quiz generation usage statistics
+   */
+  quiz_generations: UsageLimitDto,
+  /**
+   * Document upload usage statistics
+   */
+  document_uploads: UsageLimitDto,
+}) {}
+
+/**
+ * Response model for usage statistics.
+ */
+export class UsageResponse extends S.Class<UsageResponse>('UsageResponse')({
+  /**
+   * User usage statistics
+   */
+  usage: UsageDto,
+}) {}
+
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
 
 export const make = (
@@ -1231,6 +1277,15 @@ export const make = (
           }),
         ),
       ),
+    getUsageV1UsageGet: () =>
+      HttpClientRequest.get(`/v1/usage`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(UsageResponse),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     healthCheckHealthGet: () =>
       HttpClientRequest.get(`/health`).pipe(
         withResponse(
@@ -1619,6 +1674,13 @@ export interface Client {
    */
   readonly getCurrentUserInfoV1AuthMeGet: () => Effect.Effect<
     typeof UserDto.Type,
+    HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Get current usage statistics for the authenticated user
+   */
+  readonly getUsageV1UsageGet: () => Effect.Effect<
+    typeof UsageResponse.Type,
     HttpClientError.HttpClientError | ParseError
   >
   /**
