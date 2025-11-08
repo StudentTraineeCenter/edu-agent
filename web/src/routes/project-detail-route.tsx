@@ -114,7 +114,7 @@ const ChatListItem = ({ chat }: { chat: ChatDto }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+              className="h-8 w-8 p-0"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVerticalIcon className="size-4" />
@@ -223,7 +223,7 @@ const DocumentListItem = ({ document }: { document: DocumentDto }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+              className="h-8 w-8 p-0"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVerticalIcon className="size-4" />
@@ -306,7 +306,7 @@ const MaterialListItem = ({ material }: { material: Material }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                  className="h-8 w-8 p-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVerticalIcon className="size-4" />
@@ -355,7 +355,7 @@ const MaterialListItem = ({ material }: { material: Material }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 h-8 w-8 p-0"
+                  className="h-8 w-8 p-0"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVerticalIcon className="size-4" />

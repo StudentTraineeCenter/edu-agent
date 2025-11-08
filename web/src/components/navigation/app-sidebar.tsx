@@ -41,9 +41,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           items={[
             {
               title: 'Documentation',
-              url: '/docs',
+              url: 'https://github.com/StudentTraineeCenter/edu-agent/tree/master/docs',
               icon: BookOpen,
-              items: [{ title: 'Changelog', url: '/docs' }],
             },
             {
               title: 'Settings',
