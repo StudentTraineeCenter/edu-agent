@@ -102,13 +102,16 @@ class DataProcessingService:
             try:
                 logger.info("starting document processing document_id=%s", document_id)
 
-                # Step 1: Extract text using Document Intelligence
-                analyzed_result = self._analyze_document(file_content=file_content)
+                # Step 1: Extract text using Content Understanding (run in thread pool to avoid blocking)
+                analyzed_result = await asyncio.to_thread(
+                    self._analyze_document, file_content=file_content
+                )
                 analyzed_content = analyzed_result.get("content", "")
                 analyzed_summary = analyzed_result.get("summary", "")
 
-                # Step 2: Store processed text
-                processed_blob_name = self._store_processed_text(
+                # Step 2: Store processed text (run in thread pool to avoid blocking)
+                processed_blob_name = await asyncio.to_thread(
+                    self._store_processed_text,
                     content=analyzed_content,
                     project_id=project_id,
                     document_id=document_id,

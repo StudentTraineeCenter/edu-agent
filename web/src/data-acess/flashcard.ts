@@ -1,6 +1,7 @@
-import { Atom } from '@effect-atom/atom-react'
+import { Atom, Registry } from '@effect-atom/atom-react'
 import { makeApiClient } from '@/integrations/api/http'
 import { Effect } from 'effect'
+import { runtime } from './runtime'
 
 export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   Atom.make(
@@ -33,4 +34,16 @@ export const flashcardsAtom = Atom.family((flashcardGroupId: string) =>
       )
     }),
   ).pipe(Atom.keepAlive),
+)
+
+export const deleteFlashcardGroupAtom = runtime.fn(
+  Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.deleteFlashcardGroupV1FlashcardsGroupIdDelete(
+      input.flashcardGroupId,
+    )
+
+    registry.refresh(flashcardGroupsAtom(input.projectId))
+  }),
 )

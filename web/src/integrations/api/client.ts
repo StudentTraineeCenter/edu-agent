@@ -1012,6 +1012,16 @@ export const make = (
           }),
         ),
       ),
+    deleteDocumentV1DocumentsDocumentIdDelete: (documentId) =>
+      HttpClientRequest.del(`/v1/documents/${documentId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     searchDocumentsV1DocumentsSearchPost: (options) =>
       HttpClientRequest.post(`/v1/documents/search`).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
@@ -1396,6 +1406,17 @@ export interface Client {
     documentId: string,
   ) => Effect.Effect<
     typeof DocumentDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a document by id
+   */
+  readonly deleteDocumentV1DocumentsDocumentIdDelete: (
+    documentId: string,
+  ) => Effect.Effect<
+    void,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

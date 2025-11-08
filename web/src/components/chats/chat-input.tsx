@@ -23,18 +23,16 @@ export const ChatInput: React.FC<Props> = ({
   onSubmit,
   textareaRef,
 }) => (
-  <div className="p-4">
-    <PromptInput multiple onSubmit={onSubmit}>
-      <PromptInputBody>
-        <PromptInputTextarea
-          onChange={(e) => onChange(e.target.value)}
-          ref={textareaRef}
-          value={value}
-        />
-      </PromptInputBody>
-      <PromptInputToolbar className="justify-end">
-        <PromptInputSubmit status={status} />
-      </PromptInputToolbar>
-    </PromptInput>
-  </div>
+  <PromptInput multiple onSubmit={onSubmit}>
+    <PromptInputBody>
+      <PromptInputTextarea
+        onChange={(e) => onChange(e.target.value)}
+        ref={textareaRef}
+        value={value}
+      />
+    </PromptInputBody>
+    <PromptInputToolbar className="justify-end">
+      <PromptInputSubmit status={status} />
+    </PromptInputToolbar>
+  </PromptInput>
 )

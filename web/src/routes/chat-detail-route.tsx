@@ -53,7 +53,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ChatInput } from '@/components/chats/chat-input'
 
 const ChatHeader = ({ title }: { title?: string }) => (
-  <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
+  <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
     <div className="flex flex-1 items-center gap-2 px-3">
       <SidebarTrigger />
       <Separator
@@ -94,8 +94,8 @@ const ChatMessages = ({
   }, [photoUrl])
 
   return (
-    <Conversation className="flex-1 overflow-hidden">
-      <ConversationContent>
+    <Conversation className="flex-1 min-h-0 max-h-full w-full">
+      <ConversationContent className="max-w-5xl mx-auto">
         {messages.length === 0 ? (
           <ConversationEmptyState
             icon={<MessageSquareIcon className="size-6" />}
@@ -221,7 +221,7 @@ export const ChatDetailPage = () => {
   }, [params.chatId, setCurrentChat])
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col max-h-screen">
       {Result.builder(chatResult)
         .onSuccess((chat) => (
           <ChatHeader title={chat.title ?? 'Untitled chat'} />
@@ -233,24 +233,26 @@ export const ChatDetailPage = () => {
         ))
         .render()}
 
-      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-        <div className="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0">
-          {Result.builder(chatResult)
-            .onInitialOrWaiting(() => (
-              <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
-                <Loader2Icon className="size-4 animate-spin" />
-                <span>Loading chat...</span>
-              </div>
-            ))
-            .onFailure(() => (
-              <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
-                <span>Failed to load chat</span>
-              </div>
-            ))
-            .onSuccess((chat) => (
-              <>
+      <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] overflow-hidden w-full">
+        {Result.builder(chatResult)
+          .onInitialOrWaiting(() => (
+            <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+              <Loader2Icon className="size-4 animate-spin" />
+              <span>Loading chat...</span>
+            </div>
+          ))
+          .onFailure(() => (
+            <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
+              <span>Failed to load chat</span>
+            </div>
+          ))
+          .onSuccess((chat) => (
+            <>
+              <div className="flex-1 min-h-0 max-h-full overflow-hidden w-full">
                 <ChatMessages messages={chat.messages ?? []} />
-                <div className="shrink-0">
+              </div>
+              <div className="shrink-0 bg-background w-full pb-4">
+                <div className="max-w-5xl mx-auto">
                   <ChatInput
                     value={prompt}
                     onChange={setPrompt}
@@ -259,10 +261,10 @@ export const ChatDetailPage = () => {
                     textareaRef={textareaRef}
                   />
                 </div>
-              </>
-            ))
-            .render()}
-        </div>
+              </div>
+            </>
+          ))
+          .render()}
       </div>
     </div>
   )
