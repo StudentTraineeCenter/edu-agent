@@ -26,7 +26,7 @@ const ChatItem = ({ chat }: { chat: ChatDto }) => {
     <SidebarMenuSubItem key={chat.id}>
       <SidebarMenuSubButton asChild size="md">
         <Link
-          to="/projects/$projectId/chats/$chatId"
+          to="/p/$projectId/c/$chatId"
           params={{
             projectId: chat.project_id,
             chatId: chat.id,
@@ -110,7 +110,7 @@ export function NavProjects() {
                         <CollapsibleTrigger asChild>
                           <SidebarMenuButton tooltip={project.name} asChild>
                             <Link
-                              to="/projects/$projectId"
+                              to="/p/$projectId"
                               params={{ projectId: project.id }}
                             >
                               <FolderIcon className="size-4 opacity-70" />
@@ -132,7 +132,7 @@ export function NavProjects() {
                     <SidebarMenuItem key={project.id}>
                       <SidebarMenuButton asChild>
                         <Link
-                          to="/projects/$projectId"
+                          to="/p/$projectId"
                           params={{ projectId: project.id }}
                         >
                           <FolderIcon className="size-4 opacity-70" />

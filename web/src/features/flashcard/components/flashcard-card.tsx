@@ -1,22 +1,37 @@
+import { useAtom, useAtomSet } from '@effect-atom/atom-react'
+import {
+  flashcardDetailStateAtom,
+  setShowAnswerAtom,
+} from '@/data-acess/flashcard-detail-state'
+import { Option } from 'effect'
+
 type FlashcardCardProps = {
+  flashcardGroupId: string
   question: string
   answer: string
-  showAnswer: boolean
-  onToggle: () => void
 }
 
 export const FlashcardCard = ({
+  flashcardGroupId,
   question,
   answer,
-  showAnswer,
-  onToggle,
 }: FlashcardCardProps) => {
+  const [stateResult] = useAtom(flashcardDetailStateAtom(flashcardGroupId))
+  const state = Option.isSome(stateResult) ? stateResult.value : null
+  const showAnswer = state?.showAnswer ?? false
+
+  const setShowAnswer = useAtomSet(setShowAnswerAtom)
+
+  const handleToggle = () => {
+    setShowAnswer({ flashcardGroupId, show: !showAnswer })
+  }
+
   return (
     <div className="flex-1 flex items-center justify-center">
       <div className="w-full max-w-3xl">
         <div
           className="bg-card border rounded-xl shadow-lg p-12 min-h-[420px] flex flex-col justify-center cursor-pointer hover:shadow-xl transition-shadow"
-          onClick={onToggle}
+          onClick={handleToggle}
         >
           <div className="space-y-10">
             <div>

@@ -1,13 +1,12 @@
 import { createRootRoute, createRoute, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { AppShell } from './_app-shell'
-import { ProjectDetailPage } from './project-detail-route'
-import { IndexPage } from './home-route'
-import { ProjectListPage } from './project-list-route'
-import { ChatDetailPage } from './chat-detail-route'
-import { DocumentDetailPage } from './document-detail-route'
-import { QuizDetailPage } from './quiz-detail-route'
-import { FlashcardDetailPage } from './flashcard-detail-route'
+import { ProjectDetailRoute } from './project-detail-route'
+import { HomePage } from '@/features/home/home-page'
+import { ChatDetailRoute } from './chat-detail-route'
+import { DocumentDetailRoute } from './document-detail-route'
+import { QuizDetailRoute } from './quiz-detail-route'
+import { FlashcardDetailRoute } from './flashcard-detail-route'
 import { z } from 'zod'
 
 const requireAuth = () => {
@@ -43,53 +42,45 @@ export const indexRoute = createRoute({
   path: '/',
   getParentRoute: () => rootRoute,
   validateSearch: z.object({ redirect: z.string().optional() }).optional(),
-  component: IndexPage,
-})
-
-export const projectsRoute = createRoute({
-  path: '/projects',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
-  component: ProjectListPage,
+  component: HomePage,
 })
 
 export const projectDetailRoute = createRoute({
-  path: '/projects/$projectId',
+  path: '/p/$projectId',
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
-  component: ProjectDetailPage,
+  component: ProjectDetailRoute,
 })
 
 export const chatDetailRoute = createRoute({
-  path: '/projects/$projectId/chats/$chatId',
+  path: '/p/$projectId/c/$chatId',
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
-  component: ChatDetailPage,
+  component: ChatDetailRoute,
 })
 
 export const documentDetailRoute = createRoute({
-  path: '/projects/$projectId/documents/$documentId',
+  path: '/p/$projectId/d/$documentId',
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
-  component: DocumentDetailPage,
+  component: DocumentDetailRoute,
 })
 
 export const flashcardDetailRoute = createRoute({
-  path: '/projects/$projectId/flashcards/$flashcardGroupId',
+  path: '/p/$projectId/f/$flashcardGroupId',
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
-  component: FlashcardDetailPage,
+  component: FlashcardDetailRoute,
 })
 
 export const quizDetailRoute = createRoute({
-  path: '/projects/$projectId/quizzes/$quizId',
+  path: '/p/$projectId/q/$quizId',
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
-  component: QuizDetailPage,
+  component: QuizDetailRoute,
 })
 
 export const routeTree = rootRoute.addChildren([
-  projectsRoute,
   projectDetailRoute,
   chatDetailRoute,
   documentDetailRoute,

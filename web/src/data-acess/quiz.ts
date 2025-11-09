@@ -27,7 +27,9 @@ export const quizQuestionsAtom = Atom.family((quizId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const client = yield* makeApiClient
-      return yield* client.listQuizQuestionsV1QuizzesQuizIdQuestionsGet(quizId)
+      const resp =
+        yield* client.listQuizQuestionsV1QuizzesQuizIdQuestionsGet(quizId)
+      return resp.quiz_questions
     }),
   ).pipe(Atom.keepAlive),
 )

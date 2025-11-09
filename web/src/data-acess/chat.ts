@@ -14,10 +14,6 @@ import {
 import { runtime, UsageLimitExceededError } from './runtime'
 import { usageAtom } from './usage'
 
-export const currentChatIdAtom = Atom.make<string | null>(null).pipe(
-  Atom.keepAlive,
-)
-
 type ChatsAction = Data.TaggedEnum<{
   Upsert: { readonly chat: ChatDto }
   Archive: { readonly chatId: string }
@@ -51,15 +47,17 @@ const byLastMessageCreatedAt = Order.mapInput(Order.Date, (chat: ChatDto) => {
 })
 
 export const chatsRemoteAtom = Atom.family((projectId: string) =>
-  runtime.atom(
-    Effect.fn(function* () {
-      const client = yield* makeApiClient
-      const resp = yield* client.listChatsV1ChatsGet({
-        project_id: projectId,
-      })
-      return Arr.sort(byLastMessageCreatedAt)(resp.data)
-    }),
-  ),
+  runtime
+    .atom(
+      Effect.fn(function* () {
+        const client = yield* makeApiClient
+        const resp = yield* client.listChatsV1ChatsGet({
+          project_id: projectId,
+        })
+        return Arr.sort(byLastMessageCreatedAt)(resp.data)
+      }),
+    )
+    .pipe(Atom.keepAlive),
 )
 
 export const chatRemoteAtom = Atom.family((chatId: string) =>
