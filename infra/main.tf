@@ -43,9 +43,6 @@ locals {
   database_server_name = substr("sql-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 63)
   database_name        = substr("sqldb-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 63)
 
-  # OpenAI: oai-{org}-{env}-{region}-{workload}-{instance} (max 64 chars)
-  openai_account_name = substr("oai-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 64)
-  openai_subdomain_name = lower(substr("oai${local.org_short}${local.env_short}${local.region_short}${replace(local.workload_part, "-", "")}${local.instance}", 0, 64))
 
   # AI Foundry Hub: aif-{org}-{env}-{region}-{workload}-{instance} (max 64 chars)
   ai_foundry_hub_name = substr("aif-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 64)
@@ -117,8 +114,6 @@ module "ai" {
 
   location            = module.resource_group.location
   resource_group_name = module.resource_group.name
-  openai_account_name = local.openai_account_name
-  openai_custom_subdomain_name = local.openai_subdomain_name
   ai_foundry_hub_name = local.ai_foundry_hub_name
   ai_foundry_project_name = local.ai_foundry_project_name
   ai_services_name    = local.ai_services_name
@@ -151,9 +146,9 @@ module "app_service" {
     "POSTGRES_PORT"     = "5432"
     "DATABASE_URL"      = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres"
 
-    # Azure OpenAI
-    "AZURE_OPENAI_ENDPOINT"             = module.ai.openai_endpoint
-    "AZURE_OPENAI_API_KEY"              = module.ai.openai_api_key
+    # Azure AI Foundry
+    "AZURE_OPENAI_ENDPOINT"             = module.ai.ai_foundry_endpoint
+    "AZURE_OPENAI_API_KEY"              = module.ai.ai_foundry_api_key
     "AZURE_OPENAI_DEFAULT_MODEL"        = module.ai.gpt4o_deployment_name
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT" = module.ai.text_embedding_3_large_deployment_name
     "AZURE_OPENAI_CHAT_DEPLOYMENT"      = module.ai.gpt4o_deployment_name
@@ -202,7 +197,7 @@ module "rbac" {
   api_app_identity_principal_id = module.app_service.api_app_identity_principal_id
   web_app_identity_principal_id = module.app_service.web_app_identity_principal_id
   storage_account_id            = module.storage.storage_account_id
-  openai_account_id             = module.ai.openai_account_id
+  ai_foundry_project_id         = module.ai.ai_foundry_project_id
 }
 
 # Data source for current client config

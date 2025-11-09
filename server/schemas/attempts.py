@@ -18,8 +18,7 @@ class AttemptDto(BaseModel):
     was_correct: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CreateAttemptRequest(BaseModel):
@@ -58,6 +57,4 @@ class AttemptResponse(BaseModel):
 class AttemptListResponse(BaseModel):
     """Response model for listing attempts."""
 
-    attempts: List[AttemptDto]
-    total: int
-
+    data: List[AttemptDto] = Field(description="List of attempts")

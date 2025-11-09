@@ -32,15 +32,15 @@ output "storage_account_identity_principal_id" {
   value       = module.storage.identity_principal_id
 }
 
-# Azure OpenAI
-output "openai_endpoint" {
-  description = "Azure OpenAI endpoint"
-  value       = module.ai.openai_endpoint
+# Azure AI Foundry
+output "ai_foundry_endpoint" {
+  description = "Azure AI Foundry project endpoint"
+  value       = module.ai.ai_foundry_endpoint
 }
 
-output "openai_api_key" {
-  description = "Azure OpenAI API key"
-  value       = module.ai.openai_api_key
+output "ai_foundry_api_key" {
+  description = "Azure AI Foundry API key"
+  value       = module.ai.ai_foundry_api_key
   sensitive   = true
 }
 

@@ -77,7 +77,7 @@ export const deleteProjectAtom = runtime.fn(
   Effect.fn(function* (projectId: string) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.archiveProjectV1ProjectsProjectIdArchivePost(projectId)
+    yield* client.deleteProjectV1ProjectsProjectIdDeletePost(projectId)
 
     registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
     registry.refresh(projectsRemoteAtom)

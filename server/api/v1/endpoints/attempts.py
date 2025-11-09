@@ -118,7 +118,7 @@ async def create_attempts_batch(
         )
 
         return AttemptListResponse(
-            attempts=[
+            data=[
                 AttemptDto(
                     id=attempt.id,
                     user_id=attempt.user_id,
@@ -133,7 +133,6 @@ async def create_attempts_batch(
                 )
                 for attempt in created_attempts
             ],
-            total=len(created_attempts),
         )
 
     except ValueError as e:
@@ -172,7 +171,7 @@ async def list_attempts(
         )
 
         return AttemptListResponse(
-            attempts=[
+            data=[
                 AttemptDto(
                     id=attempt.id,
                     user_id=attempt.user_id,
@@ -187,7 +186,6 @@ async def list_attempts(
                 )
                 for attempt in attempts
             ],
-            total=len(attempts),
         )
 
     except Exception as e:
@@ -196,4 +194,3 @@ async def list_attempts(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list attempts",
         )
-

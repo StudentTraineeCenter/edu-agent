@@ -23,7 +23,7 @@ export const attemptsRemoteAtom = Atom.family((projectId: string) =>
         const resp = yield* apiClient.listAttemptsV1AttemptsGet({
           project_id: projectId,
         })
-        return resp.attempts
+        return resp.data
       }),
     )
     .pipe(Atom.keepAlive),
@@ -99,10 +99,10 @@ export const submitAttemptsBatchAtom = runtime.fn(
     registry.set(
       attemptsAtom(input.projectId),
       AttemptsAction.CreateBatch({
-        attempts: resp.attempts,
+        attempts: resp.data,
       }),
     )
     registry.refresh(attemptsRemoteAtom(input.projectId))
-    return resp.attempts
+    return resp.data
   }),
 )

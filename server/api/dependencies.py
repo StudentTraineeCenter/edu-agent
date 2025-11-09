@@ -22,7 +22,9 @@ search_interface = DocumentSearchAdapter(document_service)
 usage_service = UsageService()
 
 # Create services with unified search interface
-chat_service = ChatService(search_interface=search_interface, usage_service=usage_service)
+chat_service = ChatService(
+    search_interface=search_interface, usage_service=usage_service
+)
 flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
 attempt_service = AttemptService()

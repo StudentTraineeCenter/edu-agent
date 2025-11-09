@@ -1,162 +1,125 @@
-from core.agents.flashcard import build_flashcard_tools
+from typing import Any
+
+from langchain.agents import create_agent
+from langchain.agents.middleware import (
+    before_model,
+    after_model,
+    dynamic_prompt,
+    ModelRequest,
+)
+from langchain_core.messages import BaseMessage
+from langgraph.runtime import Runtime
+
+from core.agents.context import CustomAgentContext, CustomAgentState
+from core.agents.flashcard import tools as flashcard_tools
 from core.agents.llm import make_llm_streaming
-from core.agents.quiz import build_quiz_tools
-from core.agents.rag import make_project_retrieval_tool
-from core.agents.search import SearchInterface
-from core.services.usage import UsageService
-from langchain.agents import AgentExecutor, create_openai_tools_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from typing import Optional
+from core.agents.quiz import tools as quiz_tools
+from db.models import ChatMessageSource
 
 
-def make_agent(
-    language_code: str,
-    project_id: str,
-    search_interface: SearchInterface,
-    user_id: Optional[str] = None,
-    usage_service: Optional[UsageService] = None,
-) -> AgentExecutor:
-    retrieval_tool = make_project_retrieval_tool(project_id, search_interface)
+@before_model(state_schema=CustomAgentState)
+async def fetch_and_set_sources(
+    state: CustomAgentState, runtime: Runtime[CustomAgentContext]
+) -> dict[str, Any] | None:
+    """Fetch documents via RAG and set sources in agent state (once per user message)."""
+    if state.get("sources"):
+        return None
 
-    flashcard_tools = build_flashcard_tools(
-        search_interface=search_interface,
-        user_id=user_id,
-        usage_service=usage_service,
-    )
-    quiz_tools = build_quiz_tools(
-        search_interface=search_interface,
-        user_id=user_id,
-        usage_service=usage_service,
+    msgs: list[BaseMessage] = state.get("messages", [])
+    if not msgs:
+        return None
+
+    # Find last user message
+    user_query = next(
+        (msg.content for msg in reversed(msgs) if msg.type == "human"), None
     )
 
-    system = f"""<role>
-You are an educational AI tutor specializing in helping students learn and understand course material.
-Always respond in {language_code}.
+    if not user_query:
+        return None
+
+    # Perform RAG search
+    search_results = await runtime.context.search.search_documents(
+        query=user_query, project_id=runtime.context.project_id, top_k=5
+    )
+
+    # Build sources
+    sources = [
+        ChatMessageSource(
+            id=result.id,
+            citation_index=i,
+            content=result.content or "",
+            title=result.title or f"Document {i}",
+            document_id=result.document_id,
+            preview_url=result.preview_url,
+            score=result.score,
+        )
+        for i, result in enumerate(search_results, 1)
+    ]
+
+    return {"sources": sources} if sources else None
+
+
+@dynamic_prompt
+async def dynamic_system_prompt(request: ModelRequest) -> str:
+    """Generate dynamic system prompt with document context."""
+    sources = request.state.get("sources", [])
+
+    # Build context blocks from sources
+    context_blocks = [
+        f"[{source.citation_index}] {source.title}\n{(source.content or '')[:1000]}\n"
+        for source in sources
+    ]
+
+    documents_context = (
+        "\n\n".join(context_blocks)
+        if context_blocks
+        else "No relevant documents found."
+    )
+    language = request.runtime.context.language or "English"
+
+    return f"""<role>
+You are an educational AI tutor helping students learn course material.
+Always respond in {language}.
 </role>
 
-<pedagogical_principles>
-- Guide learning through explanation and understanding, not just answers
-- Encourage critical thinking and deeper exploration of topics
-- Break down complex concepts into digestible parts
-- Provide context and connections between ideas
-- Adapt explanations to the user's level of understanding
-- Use examples and analogies when helpful
-- Be patient, supportive, and encouraging
-</pedagogical_principles>
+<rules>
+- For content questions: Base your answers ONLY on the retrieved documents provided in context below
+- Cite sources with inline [n] citations after each fact
+- Never use general knowledge when documents exist
+- Guide learning through explanation, not just answers
+- Break down complex concepts, use examples when helpful
+- Do not execute tools unless explicitly requested by the user (e.g. "create flashcards", "create a quiz")
+- For explanation requests, answer directly using the context - do not call tools
+</rules>
 
-<mandatory_retrieval_policy>
-CRITICAL: For ANY question about course content, concepts, or topics, you MUST ALWAYS:
-1. FIRST call the retrieval tool to search the project documents
-2. Base your answer EXCLUSIVELY on the retrieved content
-3. Include inline citations [n] immediately after each fact or claim
-4. Return the sources in your response for transparency
+<context>
+Use the following retrieved documents to answer the question:
 
-NEVER answer content questions from general knowledge. Always search first.
-If no relevant documents are found, acknowledge this and suggest the user upload relevant materials.
-</mandatory_retrieval_policy>
+{documents_context}
+</context>"""
 
-<tool_selection_policy>
-<flashcard_creation>
-When user requests flashcards (e.g., "make flashcards", "anki cards", "create cards"):
-1. If input references specific documents (phrases like "from this/that/these/those" or indices [1], [3]):
-   - FIRST call retrieval tool to identify the documents
-   - THEN call flashcards_create_scoped with the document_ids from sources
-2. Otherwise:
-   - Call flashcards_create with sensible count (default 15-30)
-   - Include any user preferences (difficulty, focus topic, concept emphasis)
-</flashcard_creation>
 
-<quiz_creation>
-When user requests a quiz (e.g., "quiz me", "test my knowledge", "MCQ", "multiple choice"):
-1. If input references specific documents:
-   - FIRST call retrieval tool
-   - THEN call quiz_create_scoped with document_ids from sources
-2. Otherwise:
-   - Call quiz_create with sensible count (default 10-30)
-   - Include user preferences (difficulty, question types, topic focus)
-</quiz_creation>
+@after_model(state_schema=CustomAgentState)
+def ensure_sources_in_stream(
+    state: CustomAgentState, runtime: Runtime[CustomAgentContext]
+) -> dict[str, Any] | None:
+    """Ensure sources are included in the model node update for streaming."""
+    sources = state.get("sources", [])
+    return {"sources": sources} if sources else None
 
-<content_questions>
-For ANY question about course material, concepts, or topics:
-1. ALWAYS call retrieval tool FIRST with a well-formed search query
-2. Use top_k parameter (5-10) based on question complexity
-3. Analyze retrieved context carefully
-4. Synthesize answer from multiple sources when relevant
-5. Add inline [n] citations after each fact or claim
-6. Explain concepts clearly with examples when appropriate
-</content_questions>
-</tool_selection_policy>
 
-<citation_requirements>
-- ALWAYS add inline citations [n] immediately after sentences containing retrieved information
-- Citations must correspond to the citation_index in the sources
-- Multiple sources can support one statement: [1][2]
-- Be precise about what each source supports
-- If information spans multiple sources, cite all relevant ones
-</citation_requirements>
-
-<response_formatting>
-<general_answers>
-- Provide clear, educational explanations
-- Use proper paragraph structure
-- Include examples and context when helpful
-- Encourage follow-up questions
-- Be conversational but academically sound
-</general_answers>
-
-<tool_success_messages>
-When flashcards or quizzes are successfully created:
-- The tool returns a "message" field with success confirmation
-- Simply repeat this message - it already contains proper formatting
-- DO NOT display raw JSON, tool outputs, or technical details
-- DO NOT use backticks, code blocks, or markdown formatting
-- Keep response as plain text
-</tool_success_messages>
-
-<error_handling>
-- If retrieval finds no relevant content, acknowledge this clearly
-- Suggest user upload relevant documents or refine their question
-- Never fabricate information or answer from general knowledge when documents exist
-- Be honest about limitations
-</error_handling>
-</response_formatting>
-
-<document_scoping>
-- Retrieval tool returns "sources" with citation_index and document_id fields
-- When user references indices [n] or pronouns (this/that/these/those):
-  * Map to document_id values from latest retrieval call
-  * Pass these document_ids to scoped creation tools
-- When user specifies focus topics (e.g., "focus on definitions"):
-  * Pass as user_prompt or query parameter to bias content selection
-</document_scoping>
-
-<quality_standards>
-- Accuracy: Only use information from retrieved documents
-- Transparency: Always cite sources
-- Clarity: Explain concepts in accessible language
-- Completeness: Address all aspects of the question
-- Engagement: Foster curiosity and deeper learning
-</quality_standards>
-"""
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system),
-            MessagesPlaceholder("chat_history"),
-            ("human", "{input}"),
-            MessagesPlaceholder("agent_scratchpad"),
-        ]
-    )
-
-    tools = [retrieval_tool] + flashcard_tools + quiz_tools
-
+def make_agent():
     llm = make_llm_streaming()
-    agent = create_openai_tools_agent(llm, tools, prompt)
+    tools = [*flashcard_tools, *quiz_tools]
 
-    return AgentExecutor(
-        agent=agent,
+    return create_agent(
+        model=llm,
         tools=tools,
-        verbose=False,
-        handle_parsing_errors=True,
-        max_iterations=8,
+        middleware=[
+            fetch_and_set_sources,
+            dynamic_system_prompt,
+            ensure_sources_in_stream,
+        ],
+        state_schema=CustomAgentState,
+        context_schema=CustomAgentContext,
     )

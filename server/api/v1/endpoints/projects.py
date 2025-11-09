@@ -7,7 +7,6 @@ from schemas.projects import (
     ProjectCreateRequest,
     ProjectDto,
     ProjectListResponse,
-    ProjectUpdateRequest,
 )
 
 logger = get_logger(__name__)
@@ -63,7 +62,6 @@ def list_projects(
 
     return ProjectListResponse(
         data=[ProjectDto.model_validate(project) for project in result],
-        total_count=len(result),
     )
 
 
@@ -95,44 +93,18 @@ def get_project(
     return ProjectDto.model_validate(result)
 
 
-@router.put(
-    path="/{project_id}",
-    response_model=ProjectDto,
-    status_code=status.HTTP_200_OK,
-    summary="Update a project by id",
-    description="Update a project by id",
-)
-def update_project(
-    project_id: str,
-    body: ProjectUpdateRequest,
-    project_service: ProjectService = Depends(get_project_service),
-    current_user: User = Depends(get_user),
-):
-    """Update a project by id"""
-    logger.info(f"Updating project: {project_id}")
-
-    result = project_service.update_project(
-        project_id,
-        current_user.id,
-        body.name,
-        body.description,
-        body.language_code,
-    )
-    return ProjectDto.model_validate(result)
-
-
 @router.post(
-    "/{project_id}/archive",
+    "/{project_id}/delete",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Archive a project by id",
-    description="Archive a project by id",
+    summary="Delete a project by id",
+    description="Delete a project by id",
 )
-def archive_project(
+def delete_project(
     project_id: str,
     project_service: ProjectService = Depends(get_project_service),
     current_user: User = Depends(get_user),
 ):
-    """Archive a project by id"""
-    logger.info(f"Archiving project: {project_id}")
-    project_service.archive_project(project_id, current_user.id)
+    """Delete a project by id"""
+    logger.info(f"Deleting project: {project_id}")
+    project_service.delete_project(project_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

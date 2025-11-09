@@ -14,8 +14,7 @@ class QuizDto(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class QuizQuestionDto(BaseModel):
@@ -34,8 +33,7 @@ class QuizQuestionDto(BaseModel):
     difficulty_level: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CreateQuizRequest(BaseModel):
@@ -50,7 +48,7 @@ class CreateQuizRequest(BaseModel):
     user_prompt: Optional[str] = Field(
         None,
         max_length=2000,
-        description="Custom prompt to enhance generation",
+        description="Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.",
     )
 
 
@@ -75,12 +73,10 @@ class QuizResponse(BaseModel):
 class QuizListResponse(BaseModel):
     """Response model for listing quizzes."""
 
-    data: List[QuizDto]
-    total: int
+    data: List[QuizDto] = Field(description="List of quizzes")
 
 
 class QuizQuestionListResponse(BaseModel):
     """Response model for listing quiz questions."""
 
-    quiz_questions: List[QuizQuestionDto]
-    total: int
+    data: List[QuizQuestionDto] = Field(description="List of quiz questions")

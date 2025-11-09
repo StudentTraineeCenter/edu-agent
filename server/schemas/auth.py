@@ -1,14 +1,14 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
 
 class UserDto(BaseModel):
     id: str
-    name: str
-    email: str
-    azure_oid: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+    azure_oid: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

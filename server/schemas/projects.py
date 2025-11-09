@@ -41,4 +41,3 @@ class ProjectListResponse(BaseModel):
     """Response model for listing projects."""
 
     data: List[ProjectDto] = Field(description="List of projects")
-    total_count: int = Field(description="Total number of projects")

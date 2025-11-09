@@ -14,8 +14,7 @@ class FlashcardGroupDto(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class FlashcardDto(BaseModel):
@@ -29,8 +28,7 @@ class FlashcardDto(BaseModel):
     difficulty_level: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CreateFlashcardGroupRequest(BaseModel):
@@ -45,7 +43,7 @@ class CreateFlashcardGroupRequest(BaseModel):
     user_prompt: Optional[str] = Field(
         None,
         max_length=2000,
-        description="Custom prompt to enhance generation",
+        description="Topic or custom instructions for flashcard generation. If provided, will filter documents by topic relevance.",
     )
 
 
@@ -82,8 +80,7 @@ class FlashcardGroupResponse(BaseModel):
 class FlashcardGroupListResponse(BaseModel):
     """Response model for listing flashcard groups."""
 
-    data: List[FlashcardGroupDto]
-    total: int
+    data: List[FlashcardGroupDto] = Field(description="List of flashcard groups")
 
 
 class FlashcardResponse(BaseModel):
@@ -96,5 +93,4 @@ class FlashcardResponse(BaseModel):
 class FlashcardListResponse(BaseModel):
     """Response model for listing flashcards."""
 
-    flashcards: List[FlashcardDto]
-    total: int
+    data: List[FlashcardDto] = Field(description="List of flashcards")

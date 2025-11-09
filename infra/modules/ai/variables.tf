@@ -8,21 +8,6 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "openai_account_name" {
-  description = "Name of the OpenAI cognitive account"
-  type        = string
-}
-
-variable "openai_sku_name" {
-  description = "SKU name for OpenAI account"
-  type        = string
-  default     = "S0"
-}
-
-variable "openai_custom_subdomain_name" {
-  description = "Custom subdomain name for OpenAI"
-  type        = string
-}
 
 variable "gpt4o_deployment_name" {
   description = "Name of the GPT-4o deployment"

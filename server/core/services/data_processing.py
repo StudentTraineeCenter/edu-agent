@@ -1,3 +1,5 @@
+"""Service for processing documents with Azure Content Understanding."""
+
 import asyncio
 import uuid
 from contextlib import contextmanager
@@ -6,24 +8,36 @@ from typing import Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_text_splitters import (
+    MarkdownHeaderTextSplitter,
+    RecursiveCharacterTextSplitter,
+)
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from core.config import app_config
 from core.logger import get_logger
 from core.services.content_understanding import AzureContentUnderstandingClient
 from db.enums import DocumentStatus
 from db.models import Document, DocumentSegment
 from db.session import SessionLocal
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_text_splitters import (
-    MarkdownHeaderTextSplitter,
-    RecursiveCharacterTextSplitter,
-)
-from sqlalchemy.orm import Session
 
 logger = get_logger(__name__)
 
 
+class DocumentAnalysisResult(BaseModel):
+    """Model for document analysis result."""
+
+    content: str
+    summary: str
+
+
 class DataProcessingService:
-    def __init__(self):
+    """Service for processing documents with Azure Content Understanding."""
+
+    def __init__(self) -> None:
+        """Initialize the data processing service."""
         self.credential = DefaultAzureCredential()
 
         self.blob_service_client = BlobServiceClient.from_connection_string(
@@ -49,14 +63,24 @@ class DataProcessingService:
     def upload_document(
         self, file_content: bytes, filename: str, project_id: str, owner_id: str
     ) -> str:
-        """Upload document to blob storage and return immediately."""
+        """Upload document to blob storage and return immediately.
+
+        Args:
+            file_content: The file content as bytes
+            filename: Name of the file
+            project_id: The project ID
+            owner_id: The owner's user ID
+
+        Returns:
+            ID of the created document
+
+        Raises:
+            Exception: If upload fails
+        """
         with self._get_db_session() as db:
             try:
                 logger.info(
-                    "uploading document file_name=%s for project_id=%s by owner_id=%s",
-                    filename,
-                    project_id,
-                    owner_id,
+                    f"uploading document file_name={filename} for project_id={project_id} by owner_id={owner_id}"
                 )
 
                 # Step 1: Create document record
@@ -67,7 +91,7 @@ class DataProcessingService:
                     project_id=project_id,
                     owner_id=owner_id,
                 )
-                logger.info("created document record document_id=%s", document_id)
+                logger.info(f"created document record document_id={document_id}")
 
                 # Step 2: Upload to blob storage
                 raw_blob_name = self._upload_to_blob_storage(
@@ -77,7 +101,7 @@ class DataProcessingService:
                     document_id=document_id,
                 )
                 logger.info(
-                    "uploaded document to blob storage blob_name=%s", raw_blob_name
+                    f"uploaded document to blob storage blob_name={raw_blob_name}"
                 )
 
                 # Step 3: Update document with blob reference
@@ -85,29 +109,37 @@ class DataProcessingService:
                     db=db, document_id=document_id, raw_blob_name=raw_blob_name
                 )
                 logger.info(
-                    "updated document with blob reference document_id=%s", document_id
+                    f"updated document with blob reference document_id={document_id}"
                 )
 
                 return document_id
-
             except Exception as e:
-                logger.error("error uploading document: %s", e)
+                logger.error(f"error uploading document filename={filename}: {e}")
                 raise
 
     async def process_document(
         self, document_id: str, file_content: bytes, project_id: str
     ) -> None:
-        """Process document asynchronously: analyze, index, and create embeddings."""
+        """Process document asynchronously: analyze, index, and create embeddings.
+
+        Args:
+            document_id: The document ID
+            file_content: The file content as bytes
+            project_id: The project ID
+
+        Raises:
+            Exception: If processing fails
+        """
         with self._get_db_session() as db:
             try:
-                logger.info("starting document processing document_id=%s", document_id)
+                logger.info(f"starting document processing document_id={document_id}")
 
                 # Step 1: Extract text using Content Understanding (run in thread pool to avoid blocking)
                 analyzed_result = await asyncio.to_thread(
                     self._analyze_document, file_content=file_content
                 )
-                analyzed_content = analyzed_result.get("content", "")
-                analyzed_summary = analyzed_result.get("summary", "")
+                analyzed_content = analyzed_result.content
+                analyzed_summary = analyzed_result.summary
 
                 # Step 2: Store processed text (run in thread pool to avoid blocking)
                 processed_blob_name = await asyncio.to_thread(
@@ -116,7 +148,7 @@ class DataProcessingService:
                     project_id=project_id,
                     document_id=document_id,
                 )
-                logger.info("stored processed text blob_name=%s", processed_blob_name)
+                logger.info(f"stored processed text blob_name={processed_blob_name}")
 
                 # Step 3: Update document status to processed
                 self._update_document_processed_status(
@@ -126,7 +158,7 @@ class DataProcessingService:
                     summary=analyzed_summary,
                 )
                 logger.info(
-                    "updated document status to processed document_id=%s", document_id
+                    f"updated document status to processed document_id={document_id}"
                 )
 
                 # Step 4: Create segments and embeddings
@@ -134,22 +166,31 @@ class DataProcessingService:
                     db=db, document_id=document_id, content=analyzed_content
                 )
                 logger.info(
-                    "created segments and embeddings document_id=%s", document_id
+                    f"created segments and embeddings document_id={document_id}"
                 )
 
                 # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
-                logger.info("document successfully indexed document_id=%s", document_id)
-
+                logger.info(f"document successfully indexed document_id={document_id}")
             except Exception as e:
-                logger.error("error processing document_id=%s: %s", document_id, e)
+                logger.error(f"error processing document_id={document_id}: {e}")
                 self._mark_document_failed(db=db, document_id=document_id)
                 raise
 
     async def process(
         self, file_content: bytes, filename: str, project_id: str, owner_id: str
     ) -> str:
-        """Upload document to blob storage and trigger indexing (synchronous version for backward compatibility)."""
+        """Upload document to blob storage and trigger indexing (synchronous version for backward compatibility).
+
+        Args:
+            file_content: The file content as bytes
+            filename: Name of the file
+            project_id: The project ID
+            owner_id: The owner's user ID
+
+        Returns:
+            ID of the created document
+        """
         document_id = self.upload_document(
             file_content=file_content,
             filename=filename,
@@ -163,11 +204,6 @@ class DataProcessingService:
         )
         return document_id
 
-    @staticmethod
-    def _get_file_type(filename: str) -> str:
-        """Extract file type from filename."""
-        return filename.split(".")[-1].lower() if "." in filename else "unknown"
-
     def _create_document_record(
         self,
         db: Session,
@@ -176,7 +212,18 @@ class DataProcessingService:
         project_id: str,
         owner_id: str,
     ) -> str:
-        """Create initial document record in database."""
+        """Create initial document record in database.
+
+        Args:
+            db: Database session
+            file_content: The file content as bytes
+            filename: Name of the file
+            project_id: The project ID
+            owner_id: The owner's user ID
+
+        Returns:
+            ID of the created document
+        """
         document = Document(
             id=str(uuid.uuid4()),
             owner_id=owner_id,
@@ -191,37 +238,41 @@ class DataProcessingService:
         db.commit()
         db.refresh(document)
         logger.info(
-            "created document record document_id=%s (file_name=%s, size=%d bytes)",
-            document.id,
-            filename,
-            len(file_content),
+            f"created document record document_id={document.id} (file_name={filename}, size={len(file_content)} bytes)"
         )
         return document.id
 
     def _upload_to_blob_storage(
         self, file_content: bytes, filename: str, project_id: str, document_id: str
     ) -> str:
-        """Upload document to blob storage."""
+        """Upload document to blob storage.
+
+        Args:
+            file_content: The file content as bytes
+            filename: Name of the file
+            project_id: The project ID
+            document_id: The document ID
+
+        Returns:
+            Blob name where the document was uploaded
+        """
         raw_blob_name = f"raw-documents/{project_id}/{document_id}_{filename}"
         blob_client = self.blob_service_client.get_blob_client(
             container=app_config.AZURE_STORAGE_CONTAINER_NAME, blob=raw_blob_name
         )
         blob_client.upload_blob(data=file_content, overwrite=True)
-        logger.info("document uploaded to blob storage blob_name=%s", raw_blob_name)
+        logger.info(f"document uploaded to blob storage blob_name={raw_blob_name}")
         return raw_blob_name
 
-    @staticmethod
-    def _update_document_blob_reference(
-        db: Session, document_id: str, raw_blob_name: str
-    ) -> None:
-        """Update document with blob storage reference."""
-        document = db.query(Document).filter(Document.id == document_id).first()
-        if document:
-            document.original_blob_name = raw_blob_name
-            document.status = DocumentStatus.PROCESSING
+    def _analyze_document(self, file_content: bytes) -> DocumentAnalysisResult:
+        """Analyze document using Azure Content Understanding.
 
-    def _analyze_document(self, file_content: bytes) -> dict[str, str]:
-        """Analyze document using Azure Content Understanding."""
+        Args:
+            file_content: The file content as bytes
+
+        Returns:
+            DocumentAnalysisResult containing content and summary
+        """
         response = self.cu_client.begin_analyze_data(
             analyzer_id=app_config.AZURE_CU_ANALYZER_ID, data=file_content
         )
@@ -232,15 +283,24 @@ class DataProcessingService:
         content = contents_item["markdown"]
         summary = contents_item["fields"]["Summary"]["valueString"]
 
-        return {
-            "content": content,
-            "summary": summary,
-        }
+        return DocumentAnalysisResult(
+            content=content,
+            summary=summary,
+        )
 
     def _store_processed_text(
         self, content: str, project_id: str, document_id: str
     ) -> str:
-        """Store processed text in blob storage."""
+        """Store processed text in blob storage.
+
+        Args:
+            content: The processed content
+            project_id: The project ID
+            document_id: The document ID
+
+        Returns:
+            Blob name where the processed text was stored
+        """
         processed_blob_name = f"processed-documents/{project_id}/{document_id}.txt"
         blob_client = self.blob_service_client.get_blob_client(
             container=app_config.AZURE_STORAGE_CONTAINER_NAME,
@@ -249,103 +309,54 @@ class DataProcessingService:
         blob_client.upload_blob(content.encode("utf-8"), overwrite=True)
         return processed_blob_name
 
-    @staticmethod
-    def _update_document_processed_status(
-        db: Session, document_id: str, processed_blob_name: str, summary: str
-    ) -> None:
-        """Update document status to processed."""
-        document: Optional[Document] = (
-            db.query(Document).filter(Document.id == document_id).first()
-        )
-        if document:
-            document.processed_text_blob_name = processed_blob_name
-            document.status = DocumentStatus.PROCESSED
-            document.processed_at = datetime.now()
-            document.summary = summary
-            db.commit()
-
-    @staticmethod
-    def _mark_document_indexed(db: Session, document_id: str) -> None:
-        """Mark document as indexed."""
-        document: Optional[Document] = (
-            db.query(Document).filter(Document.id == document_id).first()
-        )
-        if document:
-            document.status = DocumentStatus.INDEXED
-            db.commit()
-
-    @staticmethod
-    def _mark_document_failed(db: Session, document_id: str) -> None:
-        """Mark document as failed."""
-        document: Optional[Document] = (
-            db.query(Document).filter(Document.id == document_id).first()
-        )
-        if document:
-            document.status = DocumentStatus.FAILED
-            db.commit()
-
     async def _create_segments_and_embeddings(
         self, db: Session, document_id: str, content: str
     ) -> None:
-        """Create document segments and generate embeddings."""
+        """Create document segments and generate embeddings.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+            content: The document content
+        """
         try:
             logger.info(
-                "starting segment creation and embedding generation for document_id=%s",
-                document_id,
+                f"starting segment creation and embedding generation for document_id={document_id}"
             )
 
             # Split text into chunks
             chunks = self.split_markdown_with_headers(text=content)
             logger.info(
-                "split content into %d chunks for document_id=%s",
-                len(chunks),
-                document_id,
+                f"split content into {len(chunks)} chunks for document_id={document_id}"
             )
 
             # Create segments in database with page information
             self._create_document_segments(
                 document_id=document_id, chunks=chunks, db=db
             )
-            logger.info("created %d document segments in database", len(chunks))
+            logger.info(f"created {len(chunks)} document segments in database")
 
             # Generate embeddings for all segments
             await self._generate_embeddings_for_segments(document_id=document_id, db=db)
             logger.info(
-                "generated embeddings for all segments of document_id=%s",
-                document_id,
+                f"generated embeddings for all segments of document_id={document_id}"
             )
-
         except Exception as e:
             logger.error(
-                "error creating segments and embeddings for document_id=%s: %s",
-                document_id,
-                e,
+                f"error creating segments and embeddings for document_id={document_id}: {e}"
             )
             raise
-
-    @staticmethod
-    def _create_document_segments(
-        db: Session,
-        document_id: str,
-        chunks: list[str],
-    ) -> None:
-        """Create document segments in database with page information."""
-        segments = [
-            DocumentSegment(
-                document_id=document_id,
-                content=chunk,
-                content_type="text",
-            )
-            for chunk in chunks
-        ]
-        db.add_all(segments)
-        db.commit()
 
     async def _generate_embeddings_for_segments(
         self, db: Session, document_id: str
     ) -> None:
-        """Generate embeddings for document segments with rate limiting."""
-        segments: list[type[DocumentSegment]] = (
+        """Generate embeddings for document segments with rate limiting.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+        """
+        segments = (
             db.query(DocumentSegment)
             .filter(
                 DocumentSegment.document_id == document_id,
@@ -357,7 +368,7 @@ class DataProcessingService:
         if not segments:
             return
 
-        texts: list[str] = [str(segment.content) for segment in segments]
+        texts = [str(segment.content) for segment in segments]
 
         embeddings_list = await self.embeddings.aembed_documents(texts)
 
@@ -387,6 +398,18 @@ class DataProcessingService:
         length_function=len,
         delimiter: str = "<!-- PageBreak -->",
     ) -> list[str]:
+        """Split markdown text into chunks using headers and page breaks.
+
+        Args:
+            text: The text to split
+            chunk_size: Maximum size of each chunk
+            chunk_overlap: Overlap between chunks
+            length_function: Function to calculate length
+            delimiter: Page break delimiter
+
+        Returns:
+            List of text chunks
+        """
         pages = [p.strip() for p in text.split(delimiter) if p.strip()]
 
         header_splitter = MarkdownHeaderTextSplitter(
@@ -412,6 +435,104 @@ class DataProcessingService:
                 for sec in sections:
                     chunks.extend(chunker.split_text(sec.page_content))
         return chunks
+
+    @staticmethod
+    def _get_file_type(filename: str) -> str:
+        """Extract file type from filename.
+
+        Args:
+            filename: Name of the file
+
+        Returns:
+            File extension or 'unknown'
+        """
+        return filename.split(".")[-1].lower() if "." in filename else "unknown"
+
+    @staticmethod
+    def _update_document_blob_reference(
+        db: Session, document_id: str, raw_blob_name: str
+    ) -> None:
+        """Update document with blob storage reference.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+            raw_blob_name: The blob name in storage
+        """
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if document:
+            document.original_blob_name = raw_blob_name
+            document.status = DocumentStatus.PROCESSING
+
+    @staticmethod
+    def _update_document_processed_status(
+        db: Session, document_id: str, processed_blob_name: str, summary: str
+    ) -> None:
+        """Update document status to processed.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+            processed_blob_name: The processed blob name
+            summary: Document summary
+        """
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if document:
+            document.processed_text_blob_name = processed_blob_name
+            document.status = DocumentStatus.PROCESSED
+            document.processed_at = datetime.now()
+            document.summary = summary
+            db.commit()
+
+    @staticmethod
+    def _mark_document_indexed(db: Session, document_id: str) -> None:
+        """Mark document as indexed.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+        """
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if document:
+            document.status = DocumentStatus.INDEXED
+            db.commit()
+
+    @staticmethod
+    def _mark_document_failed(db: Session, document_id: str) -> None:
+        """Mark document as failed.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+        """
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if document:
+            document.status = DocumentStatus.FAILED
+            db.commit()
+
+    @staticmethod
+    def _create_document_segments(
+        db: Session,
+        document_id: str,
+        chunks: list[str],
+    ) -> None:
+        """Create document segments in database with page information.
+
+        Args:
+            db: Database session
+            document_id: The document ID
+            chunks: List of text chunks
+        """
+        segments = [
+            DocumentSegment(
+                document_id=document_id,
+                content=chunk,
+                content_type="text",
+            )
+            for chunk in chunks
+        ]
+        db.add_all(segments)
+        db.commit()
 
     @contextmanager
     def _get_db_session(self):

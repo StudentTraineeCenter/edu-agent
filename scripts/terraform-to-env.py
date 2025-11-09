@@ -21,10 +21,10 @@ def terraform_to_env(terraform_output: dict) -> str:
     lines.append(f"AZURE_STORAGE_CONTAINER_NAME={terraform_output['documents_container_name']['value']}")
     lines.append("")
     
-    # Azure OpenAI
-    lines.append("# Azure OpenAI")
-    lines.append(f"AZURE_OPENAI_API_KEY={terraform_output['openai_api_key']['value']}")
-    lines.append(f"AZURE_OPENAI_ENDPOINT={terraform_output['openai_endpoint']['value']}")
+    # Azure AI Foundry
+    lines.append("# Azure AI Foundry")
+    lines.append(f"AZURE_OPENAI_API_KEY={terraform_output['ai_foundry_api_key']['value']}")
+    lines.append(f"AZURE_OPENAI_ENDPOINT={terraform_output['ai_foundry_endpoint']['value']}")
     lines.append(f"AZURE_OPENAI_CHAT_DEPLOYMENT={terraform_output['gpt4o_deployment_name']['value']}")
     lines.append(f"AZURE_OPENAI_EMBEDDING_DEPLOYMENT={terraform_output['text_embedding_3_large_deployment_name']['value']}")
     lines.append(f"AZURE_OPENAI_DEFAULT_MODEL={terraform_output['gpt4o_deployment_name']['value']}")

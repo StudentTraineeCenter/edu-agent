@@ -14,15 +14,20 @@ from core.services.usage import UsageService
 from db.models import User
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from fastapi.responses import Response, StreamingResponse
 from schemas.documents import (
     DocumentDto,
     DocumentListResponse,
-    DocumentSearchRequest,
-    DocumentSearchResponse,
     DocumentUploadResponse,
-    SearchResultDto,
 )
 
 logger = get_logger(__name__)
@@ -58,9 +63,7 @@ async def upload_document(
     for _ in files:
         usage_service.check_and_increment(current_user.id, "document_upload")
 
-    logger.info(
-        "uploading %d document(s) for project_id=%s", len(files), project_id
-    )
+    logger.info("uploading %d document(s) for project_id=%s", len(files), project_id)
 
     # Validate file types
     allowed_types = ["pdf", "docx", "doc", "txt", "rtf"]
@@ -73,7 +76,9 @@ async def upload_document(
         )
 
         if file_extension not in allowed_types:
-            logger.error("unsupported file_type=%s for file=%s", file_extension, file.filename)
+            logger.error(
+                "unsupported file_type=%s for file=%s", file_extension, file.filename
+            )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unsupported file type '{file_extension}' for file '{file.filename}'. Allowed types: {', '.join(allowed_types)}",
@@ -88,7 +93,9 @@ async def upload_document(
         file_data = await asyncio.gather(*[read_file(file) for file in files])
 
         # Upload all documents concurrently
-        async def upload_single_document(filename: str, content: bytes) -> tuple[str, bytes]:
+        async def upload_single_document(
+            filename: str, content: bytes
+        ) -> tuple[str, bytes]:
             document_id = await asyncio.to_thread(
                 data_processing_service.upload_document,
                 file_content=content,
@@ -104,7 +111,10 @@ async def upload_document(
             return document_id, content
 
         upload_results = await asyncio.gather(
-            *[upload_single_document(filename, content) for filename, content in file_data]
+            *[
+                upload_single_document(filename, content)
+                for filename, content in file_data
+            ]
         )
 
         document_ids = [doc_id for doc_id, _ in upload_results]
@@ -158,7 +168,6 @@ def list_documents(
 
         return DocumentListResponse(
             data=[DocumentDto.model_validate(doc) for doc in documents],
-            total_count=len(documents),
         )
     except Exception as e:
         logger.error("error listing documents: %s", e)
@@ -200,59 +209,6 @@ def get_document(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get document",
-        )
-
-
-@router.post(
-    path="/search",
-    response_model=DocumentSearchResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Search documents",
-    description="Search documents within a project using semantic search",
-)
-async def search_documents(
-    request: DocumentSearchRequest,
-    document_service: DocumentService = Depends(get_document_service),
-    current_user: User = Depends(get_user),
-):
-    """Search documents using semantic search with validated typed results."""
-    logger.info(
-        "searching documents for project_id=%s with query: '%.100s...'",
-        request.project_id,
-        request.query,
-    )
-
-    try:
-        results = await document_service.search_documents(
-            query=request.query, project_id=request.project_id, top_k=request.top_k
-        )
-
-        # Convert to DTOs
-        search_results = [
-            SearchResultDto(
-                citation_index=result.citation_index,
-                document_id=result.document_id,
-                title=result.title,
-                content=result.content,
-                score=result.score,
-            )
-            for result in results
-        ]
-
-        return DocumentSearchResponse(
-            results=search_results,
-            total_count=len(search_results),
-            query=request.query,
-        )
-
-    except ValueError as e:
-        logger.error("validation error in search: %s", e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error("error searching documents: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to search documents",
         )
 
 

@@ -44,9 +44,6 @@ class Project(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    archived_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
 
     owner = relationship("User", back_populates="projects")
     documents = relationship("Document", back_populates="project")
@@ -179,9 +176,6 @@ class Chat(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    archived_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
 
     # Relationships
     project = relationship("Project", back_populates="chats")
@@ -296,10 +290,10 @@ class StudyAttempt(Base):
         String, ForeignKey("projects.id"), index=True
     )
 
-    item_type: Mapped[str] = mapped_column(
+    item_type: Mapped[str] = mapped_column(String, index=True)  # "flashcard" or "quiz"
+    item_id: Mapped[str] = mapped_column(
         String, index=True
-    )  # "flashcard" or "quiz"
-    item_id: Mapped[str] = mapped_column(String, index=True)  # flashcard_id or quiz_question_id
+    )  # flashcard_id or quiz_question_id
     topic: Mapped[str] = mapped_column(Text)  # Extracted from question/flashcard text
     user_answer: Mapped[str] = mapped_column(
         String, nullable=True

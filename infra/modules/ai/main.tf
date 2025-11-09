@@ -1,48 +1,3 @@
-# Azure OpenAI (AI Foundry)
-resource "azurerm_cognitive_account" "openai" {
-  name                  = var.openai_account_name
-  location              = var.location
-  resource_group_name   = var.resource_group_name
-  kind                  = "OpenAI"
-  sku_name              = var.openai_sku_name
-  custom_subdomain_name = var.openai_custom_subdomain_name
-
-  tags = var.tags
-}
-
-# OpenAI Model Deployments
-resource "azurerm_cognitive_deployment" "gpt4o" {
-  name                 = var.gpt4o_deployment_name
-  cognitive_account_id = azurerm_cognitive_account.openai.id
-
-  model {
-    format  = "OpenAI"
-    name    = var.gpt4o_model_name
-    version = var.gpt4o_model_version
-  }
-
-  sku {
-    name     = var.gpt4o_sku_name
-    capacity = var.gpt4o_sku_capacity
-  }
-}
-
-resource "azurerm_cognitive_deployment" "text_embedding_3_large" {
-  name                 = var.text_embedding_deployment_name
-  cognitive_account_id = azurerm_cognitive_account.openai.id
-
-  model {
-    format  = "OpenAI"
-    name    = var.text_embedding_model_name
-    version = var.text_embedding_model_version
-  }
-
-  sku {
-    name     = var.text_embedding_sku_name
-    capacity = var.text_embedding_sku_capacity
-  }
-}
-
 # AI Foundry Hub
 resource "azurerm_ai_foundry" "hub" {
   name                = var.ai_foundry_hub_name
@@ -59,6 +14,12 @@ resource "azurerm_ai_foundry" "hub" {
   tags = var.tags
 }
 
+# Data source to get cognitive account details (AI Foundry hub is a cognitive account)
+data "azurerm_cognitive_account" "hub" {
+  name                = azurerm_ai_foundry.hub.name
+  resource_group_name = var.resource_group_name
+}
+
 # AI Foundry Project
 resource "azurerm_ai_foundry_project" "project" {
   name               = var.ai_foundry_project_name
@@ -70,6 +31,39 @@ resource "azurerm_ai_foundry_project" "project" {
   }
 
   tags = var.tags
+}
+
+# AI Foundry Model Deployments (attached to hub)
+resource "azurerm_cognitive_deployment" "gpt4o" {
+  name                 = var.gpt4o_deployment_name
+  cognitive_account_id = data.azurerm_cognitive_account.hub.id
+
+  model {
+    format  = "OpenAI"
+    name    = var.gpt4o_model_name
+    version = var.gpt4o_model_version
+  }
+
+  sku {
+    name     = var.gpt4o_sku_name
+    capacity = var.gpt4o_sku_capacity
+  }
+}
+
+resource "azurerm_cognitive_deployment" "text_embedding_3_large" {
+  name                 = var.text_embedding_deployment_name
+  cognitive_account_id = data.azurerm_cognitive_account.hub.id
+
+  model {
+    format  = "OpenAI"
+    name    = var.text_embedding_model_name
+    version = var.text_embedding_model_version
+  }
+
+  sku {
+    name     = var.text_embedding_sku_name
+    capacity = var.text_embedding_sku_capacity
+  }
 }
 
 # AI Services

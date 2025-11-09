@@ -18,8 +18,8 @@ variable "storage_account_id" {
   type        = string
 }
 
-variable "openai_account_id" {
-  description = "ID of the OpenAI cognitive account"
+variable "ai_foundry_project_id" {
+  description = "ID of the AI Foundry project"
   type        = string
 }
 

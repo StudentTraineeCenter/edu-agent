@@ -8,9 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ArchiveIcon, MoreVerticalIcon } from 'lucide-react'
+import { TrashIcon, MoreVerticalIcon } from 'lucide-react'
 import { useAtomSet } from '@effect-atom/atom-react'
-import { archiveChatAtom } from '@/data-acess/chat'
+import { deleteChatAtom } from '@/data-acess/chat'
 import type { ChatDto } from '@/integrations/api/client'
 
 type Props = {
@@ -23,12 +23,12 @@ export const ChatListItem = ({ chat }: Props) => {
     return value.length > 100 ? value.slice(0, 100) + '...' : value
   }, [chat.last_message])
 
-  const archiveChat = useAtomSet(archiveChatAtom, { mode: 'promise' })
+  const deleteChat = useAtomSet(deleteChatAtom, { mode: 'promise' })
 
-  const handleArchive = async (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    await archiveChat({
+    await deleteChat({
       chatId: chat.id,
       projectId: chat.project_id,
     })
@@ -71,9 +71,9 @@ export const ChatListItem = ({ chat }: Props) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleArchive} variant="destructive">
-              <ArchiveIcon className="size-4" />
-              <span>Archive</span>
+            <DropdownMenuItem onClick={handleDelete} variant="destructive">
+              <TrashIcon className="size-4" />
+              <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

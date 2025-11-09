@@ -195,7 +195,7 @@ export const ProjectDetailPage = ({ projectId }: ProjectDetailPageProps) => {
     <div className="flex h-full flex-col max-h-screen">
       <ProjectHeader projectId={projectId} />
 
-      <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] overflow-hidden w-full">
+      <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] w-full">
         <ProjectContent projectId={projectId} />
       </div>
     </div>
