@@ -1,91 +1,105 @@
+# Resource Group
 output "resource_group_name" {
   description = "Name of the resource group"
-  value       = azurerm_resource_group.main.name
+  value       = module.resource_group.name
 }
 
+# Storage
 output "storage_account_name" {
   description = "Name of the storage account"
-  value       = azurerm_storage_account.main.name
+  value       = module.storage.storage_account_name
 }
 
 output "storage_account_key" {
   description = "Primary access key for the storage account"
-  value       = azurerm_storage_account.main.primary_access_key
+  value       = module.storage.primary_access_key
   sensitive   = true
 }
 
 output "storage_connection_string" {
   description = "Connection string for the storage account"
-  value       = azurerm_storage_account.main.primary_connection_string
+  value       = module.storage.primary_connection_string
   sensitive   = true
 }
 
 output "documents_container_name" {
   description = "Name of the documents container"
-  value       = azurerm_storage_container.documents.name
+  value       = module.storage.container_name
 }
 
+output "storage_account_identity_principal_id" {
+  description = "Principal ID of the storage account managed identity"
+  value       = module.storage.identity_principal_id
+}
+
+# Azure OpenAI
 output "openai_endpoint" {
   description = "Azure OpenAI endpoint"
-  value       = azurerm_cognitive_account.openai.endpoint
+  value       = module.ai.openai_endpoint
 }
 
 output "openai_api_key" {
   description = "Azure OpenAI API key"
-  value       = azurerm_cognitive_account.openai.primary_access_key
+  value       = module.ai.openai_api_key
   sensitive   = true
 }
 
 output "gpt4o_deployment_name" {
   description = "Name of the GPT-4o deployment"
-  value       = azurerm_cognitive_deployment.gpt4o.name
+  value       = module.ai.gpt4o_deployment_name
 }
 
 output "text_embedding_3_large_deployment_name" {
   description = "Name of the text-embedding-3-large deployment"
-  value       = azurerm_cognitive_deployment.text_embedding_3_large.name
+  value       = module.ai.text_embedding_3_large_deployment_name
 }
 
-output "storage_account_identity_principal_id" {
-  description = "Principal ID of the storage account managed identity"
-  value       = azurerm_storage_account.main.identity[0].principal_id
-}
-
+# AI Services
 output "ai_service_endpoint" {
   description = "AI Services endpoint"
-  value       = azurerm_ai_services.service.endpoint
+  value       = module.ai.ai_service_endpoint
 }
 
 output "ai_service_key" {
-    description = "AI Services API key"
-    value       = azurerm_ai_services.service.primary_access_key
-    sensitive   = true
+  description = "AI Services API key"
+  value       = module.ai.ai_service_key
+  sensitive   = true
 }
 
+# Container Registry
 output "acr_name" {
-  value = azurerm_container_registry.acr.name
+  description = "Name of the Azure Container Registry"
+  value       = module.acr.name
 }
 
 output "acr_repository_api" {
-  value = var.acr_repository_api
+  description = "ACR repository name for API"
+  value       = var.acr_repository_api
 }
 
 output "acr_repository_web" {
-  value = var.acr_repository_web
+  description = "ACR repository name for web"
+  value       = var.acr_repository_web
 }
 
+# App Services
 output "app_api_url" {
-  value = azurerm_linux_web_app.api.default_hostname
+  description = "URL of the API web app"
+  value       = module.app_service.api_app_default_hostname
 }
 
 output "app_web_url" {
-  value = azurerm_linux_web_app.web.default_hostname
+  description = "URL of the web app"
+  value       = module.app_service.web_app_default_hostname
 }
 
+# Azure Entra ID
 output "azure_tenant_id" {
-  value = var.azure_tenant_id
+  description = "Azure Tenant ID"
+  value       = var.azure_tenant_id
 }
 
 output "azure_app_client_id" {
-  value = var.azure_app_client_id
+  description = "Azure App Client ID"
+  value       = var.azure_app_client_id
 }

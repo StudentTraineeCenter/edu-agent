@@ -1,3 +1,4 @@
+# Azure Authentication
 variable "azure_subscription_id" {
   description = "Azure Subscription ID"
   type        = string
@@ -13,6 +14,7 @@ variable "azure_app_client_id" {
   type        = string
 }
 
+# Infrastructure Configuration
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
@@ -23,6 +25,12 @@ variable "location" {
   description = "Azure region for resources"
   type        = string
   default     = "Sweden Central"
+}
+
+variable "region_code" {
+  description = "Short region code for CAF naming (e.g., swc for Sweden Central)"
+  type        = string
+  default     = "swc"
 }
 
 variable "project_name" {
@@ -37,35 +45,47 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "workload" {
+  description = "Workload name for CAF naming (optional)"
+  type        = string
+  default     = ""
+}
+
+# Container Registry Configuration
 variable "acr_repository_api" {
-  type    = string
-  default = "edu-agent-api"
+  description = "ACR repository name for API"
+  type        = string
+  default     = "edu-agent-api"
 }
 
 variable "acr_tag_api" {
-  type    = string
-  default = "latest"
+  description = "ACR tag for API"
+  type        = string
+  default     = "latest"
 }
 
 variable "acr_repository_web" {
-  type    = string
-  default = "edu-agent-web"
+  description = "ACR repository name for web"
+  type        = string
+  default     = "edu-agent-web"
 }
 
 variable "acr_tag_web" {
-  type    = string
-  default = "latest"
+  description = "ACR tag for web"
+  type        = string
+  default     = "latest"
 }
 
-# Database variables (DISABLED - PostgreSQL disabled)
+# Database Configuration (DISABLED)
+# Uncomment these when enabling the database module
 # variable "database_admin_username" {
 #   description = "Username for the database admin"
 #   type        = string
 #   default     = "postgres"
 # }
-
+#
 # variable "database_admin_password" {
 #   description = "Password for the database admin"
 #   type        = string
-#   default     = "postgres"
+#   sensitive   = true
 # }
