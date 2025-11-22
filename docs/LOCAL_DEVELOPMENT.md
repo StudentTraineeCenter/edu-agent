@@ -1,0 +1,413 @@
+# Local Development Guide
+
+This guide covers how to set up and run EduAgent locally for development.
+
+## Table of Contents
+
+1. [Prerequisites](#prerequisites)
+2. [Quick Start](#quick-start)
+3. [Detailed Setup](#detailed-setup)
+4. [Project Structure](#project-structure)
+5. [Development Workflow](#development-workflow)
+6. [Troubleshooting](#troubleshooting)
+7. [Environment Variables Reference](#environment-variables-reference)
+
+## Prerequisites
+
+- Python 3.11+ (for server)
+- Node.js 18+ and pnpm (for web frontend)
+- Docker and Docker Compose (for PostgreSQL database)
+- Azure credentials (for Azure services):
+  - Azure OpenAI endpoint and API key
+  - Azure Storage connection string
+  - Azure Content Understanding endpoint and key
+  - Azure Entra ID tenant ID and client ID
+
+## Quick Start
+
+```bash
+# 1. Start database
+docker-compose up -d db
+
+# 2. Set up database schema
+cd server
+pip install -r requirements.txt
+alembic upgrade head
+
+# 3. Configure environment variables (see Detailed Setup)
+# Create .env files with your Azure credentials
+
+# 4. Start API server
+cd server
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 5. Start web frontend (in a new terminal)
+cd web
+pnpm install
+pnpm dev
+```
+
+The application will be available at:
+
+- API: `http://localhost:8000`
+- Web: `http://localhost:3000`
+
+## Detailed Setup
+
+### Step 1: Start PostgreSQL Database
+
+The application uses PostgreSQL with pgvector extension. Start it using Docker Compose:
+
+```bash
+# Create .env file in project root if it doesn't exist
+cat > .env << EOF
+POSTGRES_DB=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+EOF
+
+# Start database
+docker-compose up -d db
+```
+
+Verify the database is running:
+
+```bash
+docker-compose ps
+```
+
+You should see the `db` container running on port 5432.
+
+### Step 2: Set Up Database Schema
+
+Run database migrations to create the schema:
+
+```bash
+cd server
+
+# Install Python dependencies (if not already installed)
+pip install -r requirements.txt
+
+# Run Alembic migrations
+alembic upgrade head
+```
+
+This creates all necessary tables including:
+
+- Users
+- Projects
+- Documents and Document Segments
+- Chats
+- Quizzes and Quiz Questions
+- Flashcard Groups and Flashcards
+- Study Attempts
+- User Usage
+
+### Step 3: Configure Server Environment
+
+Create a `.env` file in the `server/` directory or set environment variables:
+
+```bash
+# Database
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/postgres
+
+# Azure OpenAI (required)
+AZURE_OPENAI_ENDPOINT=https://your-openai-endpoint.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_DEFAULT_MODEL=gpt-4o
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
+AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-06-01
+
+# Azure Storage (required)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+AZURE_STORAGE_CONTAINER_NAME=documents
+
+# Azure Content Understanding (required)
+AZURE_CU_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
+AZURE_CU_KEY=your-cu-key
+AZURE_CU_ANALYZER_ID=prebuilt-documentAnalyzer
+
+# Azure Entra ID (required)
+AZURE_ENTRA_TENANT_ID=your-tenant-id
+AZURE_ENTRA_CLIENT_ID=your-client-id
+
+# Usage Limits (optional, defaults shown)
+MAX_CHAT_MESSAGES_PER_DAY=50
+MAX_FLASHCARD_GENERATIONS_PER_DAY=10
+MAX_QUIZ_GENERATIONS_PER_DAY=10
+MAX_DOCUMENT_UPLOADS_PER_DAY=5
+```
+
+**Note:** The server uses `python-dotenv` to load environment variables from `.env` files automatically.
+
+### Step 4: Start the API Server
+
+```bash
+cd server
+
+# Install dependencies (if not already installed)
+pip install -r requirements.txt
+
+# Start the development server with auto-reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at `http://localhost:8000`
+
+**API Endpoints:**
+
+- OpenAPI schema: `http://localhost:8000/openapi.json`
+- Health check: `http://localhost:8000/health` (if implemented)
+
+The `--reload` flag enables automatic reloading when code changes are detected.
+
+### Step 5: Set Up Web Frontend
+
+```bash
+cd web
+
+# Install dependencies
+pnpm install
+
+# Create .env file or set environment variables
+cat > .env << EOF
+VITE_SERVER_URL=http://localhost:8000
+VITE_AZURE_ENTRA_TENANT_ID=your-tenant-id
+VITE_AZURE_ENTRA_CLIENT_ID=your-client-id
+EOF
+
+# Start development server
+pnpm dev
+```
+
+The web application will be available at `http://localhost:3000`
+
+The development server includes:
+
+- Hot Module Replacement (HMR) for instant updates
+- Fast refresh for React components
+- Source maps for debugging
+
+### Step 6: Generate TypeScript Types (Optional)
+
+To generate TypeScript types from the OpenAPI schema:
+
+```bash
+cd web
+
+# Make sure API server is running on localhost:8000
+pnpm gen:types
+```
+
+This generates types from `http://localhost:8000/openapi.json` to `src/integrations/api/types.ts`
+
+**Note:** Run this whenever the API schema changes to keep types in sync.
+
+## Project Structure
+
+```
+edu-agent/
+├── infra/              # Terraform infrastructure code
+│   ├── main.tf        # Main Terraform configuration
+│   ├── variables.tf  # Variable definitions
+│   ├── outputs.tf    # Output values
+│   └── modules/      # Terraform modules
+├── server/            # Python FastAPI backend
+│   ├── main.py       # Application entry point
+│   ├── api/          # API routes and endpoints
+│   │   ├── v1/       # API version 1
+│   │   └── endpoints/ # Individual endpoint modules
+│   ├── core/          # Core services and business logic
+│   │   ├── agents/    # AI agent implementations
+│   │   └── services/ # Business logic services
+│   ├── db/            # Database models and migrations
+│   │   ├── models.py  # SQLAlchemy models
+│   │   └── alembic/   # Database migrations
+│   ├── schemas/       # Pydantic schemas
+│   └── requirements.txt
+├── web/               # React frontend
+│   ├── src/           # Source code
+│   │   ├── components/ # React components
+│   │   ├── features/   # Feature modules
+│   │   ├── hooks/      # React hooks
+│   │   └── integrations/ # API integrations
+│   ├── package.json  # Dependencies
+│   └── vite.config.ts
+├── docker-compose.yaml # Local database setup
+└── docs/              # Documentation
+```
+
+## Development Workflow
+
+### Making Changes
+
+1. **Backend Changes:**
+
+   - Edit Python files in `server/`
+   - The server will auto-reload on save (if using `--reload`)
+   - Run migrations if database schema changes: `alembic revision --autogenerate -m "description"`
+
+2. **Frontend Changes:**
+
+   - Edit TypeScript/React files in `web/src/`
+   - Changes are hot-reloaded automatically
+   - Regenerate types if API changes: `pnpm gen:types`
+
+3. **Database Changes:**
+   - Modify models in `server/db/models.py`
+   - Generate migration: `alembic revision --autogenerate -m "description"`
+   - Apply migration: `alembic upgrade head`
+
+### Running Tests
+
+```bash
+# Backend tests (if available)
+cd server
+pytest
+
+# Frontend tests
+cd web
+pnpm test
+```
+
+### Code Formatting
+
+```bash
+# Backend (using ruff)
+cd server
+ruff format .
+ruff check .
+
+# Frontend
+cd web
+pnpm format
+pnpm lint
+```
+
+## Troubleshooting
+
+### Database Issues
+
+**Database connection failed**
+
+- Verify Docker container is running: `docker-compose ps`
+- Check database credentials in `.env`
+- Verify port 5432 is not in use by another service
+- Check database logs: `docker-compose logs db`
+
+**Migration errors**
+
+- Ensure database is running
+- Check migration files are up to date: `alembic current`
+- Try downgrading and upgrading: `alembic downgrade -1 && alembic upgrade head`
+
+### API Server Issues
+
+**API server won't start**
+
+- Check all required environment variables are set
+- Verify Python version: `python --version` (should be 3.11+)
+- Check dependencies: `pip install -r requirements.txt`
+- Check for port conflicts: `lsof -i :8000`
+
+**Import errors**
+
+- Ensure virtual environment is activated
+- Reinstall dependencies: `pip install -r requirements.txt --force-reinstall`
+- Check Python path: `which python`
+
+**Azure service errors**
+
+- Verify Azure credentials are correct
+- Check network connectivity
+- Verify service endpoints are correct
+- Ensure you have proper Azure permissions
+
+### Web Frontend Issues
+
+**Web frontend won't start**
+
+- Verify Node.js version: `node --version` (should be 18+)
+- Install dependencies: `pnpm install`
+- Check environment variables in `.env`
+- Check for port conflicts: `lsof -i :3000`
+
+**API connection errors**
+
+- Verify API server is running on `http://localhost:8000`
+- Check `VITE_SERVER_URL` in `.env` matches API server URL
+- Check browser console for CORS errors
+- Verify API server CORS configuration
+
+**Type errors**
+
+- Regenerate types: `pnpm gen:types`
+- Ensure API server is running when generating types
+- Check TypeScript version compatibility
+
+### Docker Issues
+
+**Docker container won't start**
+
+- Check Docker is running: `docker ps`
+- Check container logs: `docker-compose logs db`
+- Verify docker-compose.yaml syntax
+- Try rebuilding: `docker-compose up -d --build db`
+
+**Port already in use**
+
+- Find process using port: `lsof -i :5432` (or `:8000`, `:3000`)
+- Stop conflicting service or change port in configuration
+
+## Environment Variables Reference
+
+### Server (API) Environment Variables
+
+| Variable                            | Description                     | Required | Default                   |
+| ----------------------------------- | ------------------------------- | -------- | ------------------------- |
+| `DATABASE_URL`                      | PostgreSQL connection string    | Yes      | -                         |
+| `AZURE_OPENAI_ENDPOINT`             | Azure OpenAI endpoint URL       | Yes      | -                         |
+| `AZURE_OPENAI_API_KEY`              | Azure OpenAI API key            | Yes      | -                         |
+| `AZURE_OPENAI_DEFAULT_MODEL`        | Default OpenAI model            | No       | gpt-4o                    |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT`      | Chat model deployment name      | Yes      | -                         |
+| `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Embedding model deployment      | Yes      | -                         |
+| `AZURE_OPENAI_API_VERSION`          | OpenAI API version              | No       | 2024-06-01                |
+| `AZURE_STORAGE_CONNECTION_STRING`   | Azure Storage connection string | Yes      | -                         |
+| `AZURE_STORAGE_CONTAINER_NAME`      | Blob container name             | Yes      | -                         |
+| `AZURE_CU_ENDPOINT`                 | Content Understanding endpoint  | Yes      | -                         |
+| `AZURE_CU_KEY`                      | Content Understanding API key   | Yes      | -                         |
+| `AZURE_CU_ANALYZER_ID`              | Content Understanding analyzer  | No       | prebuilt-documentAnalyzer |
+| `AZURE_ENTRA_TENANT_ID`             | Azure AD tenant ID              | Yes      | -                         |
+| `AZURE_ENTRA_CLIENT_ID`             | Azure AD client ID              | Yes      | -                         |
+| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit        | No       | 50                        |
+| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit           | No       | 10                        |
+| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit                | No       | 10                        |
+| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit     | No       | 5                         |
+
+### Web Frontend Environment Variables
+
+| Variable                     | Description        | Required |
+| ---------------------------- | ------------------ | -------- |
+| `VITE_SERVER_URL`            | API server URL     | Yes      |
+| `VITE_AZURE_ENTRA_TENANT_ID` | Azure AD tenant ID | Yes      |
+| `VITE_AZURE_ENTRA_CLIENT_ID` | Azure AD client ID | Yes      |
+
+**Note:** All `VITE_*` variables are exposed to the browser. Do not include sensitive information.
+
+## Additional Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [React Documentation](https://react.dev/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Alembic Documentation](https://alembic.sqlalchemy.org/)
+- [Vite Documentation](https://vitejs.dev/)
+
+## Support
+
+For issues or questions:
+
+- Check application logs
+- Review error messages in browser console (for frontend)
+- Check server logs (for backend)
+- Contact: richard.amare@studentstc.cz
