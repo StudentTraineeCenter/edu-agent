@@ -14,10 +14,16 @@ resource "azurerm_ai_foundry" "hub" {
   tags = var.tags
 }
 
-# Data source to get cognitive account details (AI Foundry hub is a cognitive account)
-data "azurerm_cognitive_account" "hub" {
-  name                = azurerm_ai_foundry.hub.name
+# Create a separate cognitive account for OpenAI deployments
+# AI Foundry hubs are ML workspaces, not cognitive accounts, so we need a separate account
+resource "azurerm_cognitive_account" "openai" {
+  name                = "${var.ai_foundry_hub_name}-openai"
+  location            = var.location
   resource_group_name = var.resource_group_name
+  kind                = "OpenAI"
+  sku_name            = "S0"
+
+  tags = var.tags
 }
 
 # AI Foundry Project
@@ -33,10 +39,10 @@ resource "azurerm_ai_foundry_project" "project" {
   tags = var.tags
 }
 
-# AI Foundry Model Deployments (attached to hub)
+# AI Foundry Model Deployments (attached to cognitive account)
 resource "azurerm_cognitive_deployment" "gpt4o" {
   name                 = var.gpt4o_deployment_name
-  cognitive_account_id = data.azurerm_cognitive_account.hub.id
+  cognitive_account_id = azurerm_cognitive_account.openai.id
 
   model {
     format  = "OpenAI"
@@ -52,7 +58,7 @@ resource "azurerm_cognitive_deployment" "gpt4o" {
 
 resource "azurerm_cognitive_deployment" "text_embedding_3_large" {
   name                 = var.text_embedding_deployment_name
-  cognitive_account_id = data.azurerm_cognitive_account.hub.id
+  cognitive_account_id = azurerm_cognitive_account.openai.id
 
   model {
     format  = "OpenAI"

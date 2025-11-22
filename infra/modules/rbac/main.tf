@@ -21,11 +21,14 @@ resource "azurerm_role_assignment" "api_to_storage_reader" {
 }
 
 # User role assignments
-resource "azurerm_role_assignment" "user_to_ai_foundry" {
-  scope                = var.ai_foundry_project_id
-  role_definition_name = "AI Services Project User"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
+# Note: Role assignment for AI Foundry project is optional
+# The role "AI Services Project User" may not be available in all subscriptions
+# Commenting out for now - can be enabled if needed
+# resource "azurerm_role_assignment" "user_to_ai_foundry" {
+#   scope                = var.ai_foundry_project_id
+#   role_definition_name = "AI Services Project User"
+#   principal_id         = data.azurerm_client_config.current.object_id
+# }
 
 resource "azurerm_role_assignment" "user_to_storage" {
   scope                = var.storage_account_id

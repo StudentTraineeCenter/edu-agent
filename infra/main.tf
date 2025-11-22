@@ -83,7 +83,7 @@ module "acr" {
   tags              = local.common_tags
 }
 
-# Key Vault Module
+# Key Vault Module (created first, AI-dependent secrets added after AI module)
 module "key_vault" {
   source = "./modules/key-vault"
 
@@ -91,6 +91,13 @@ module "key_vault" {
   resource_group_name = module.resource_group.name
   location          = module.resource_group.location
   tags              = local.common_tags
+
+  # Secrets that don't depend on AI module
+  database_url                      = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres"
+  azure_storage_connection_string   = module.storage.primary_connection_string
+  azure_storage_container_name      = module.storage.container_name
+  azure_entra_tenant_id             = var.azure_tenant_id
+  azure_entra_client_id             = data.azurerm_client_config.current.client_id
 }
 
 # Database Module (DISABLED)
@@ -108,7 +115,7 @@ module "key_vault" {
 #   tags                = local.common_tags
 # }
 
-# AI Module
+# AI Module (created after Key Vault)
 module "ai" {
   source = "./modules/ai"
 
@@ -120,6 +127,95 @@ module "ai" {
   storage_account_id  = module.storage.storage_account_id
   key_vault_id        = module.key_vault.id
   tags                = local.common_tags
+}
+
+# Update Key Vault secrets with AI module outputs
+resource "azurerm_key_vault_secret" "azure_openai_api_key" {
+  name         = "azure-openai-api-key"
+  value        = module.ai.ai_foundry_api_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_endpoint" {
+  name         = "azure-openai-endpoint"
+  value        = module.ai.ai_foundry_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_default_model" {
+  name         = "azure-openai-default-model"
+  value        = module.ai.gpt4o_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_embedding_deployment" {
+  name         = "azure-openai-embedding-deployment"
+  value        = module.ai.text_embedding_3_large_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_chat_deployment" {
+  name         = "azure-openai-chat-deployment"
+  value        = module.ai.gpt4o_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_api_version" {
+  name         = "azure-openai-api-version"
+  value        = "2024-06-01"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_document_intelligence_endpoint" {
+  name         = "azure-document-intelligence-endpoint"
+  value        = module.ai.ai_service_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_document_intelligence_key" {
+  name         = "azure-document-intelligence-key"
+  value        = module.ai.ai_service_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_endpoint" {
+  name         = "azure-cu-endpoint"
+  value        = module.ai.ai_service_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_key" {
+  name         = "azure-cu-key"
+  value        = module.ai.ai_service_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_analyzer_id" {
+  name         = "azure-cu-analyzer-id"
+  value        = "prebuilt-documentAnalyzer"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.key_vault]
 }
 
 # App Service Module
@@ -138,7 +234,10 @@ module "app_service" {
   acr_tag_web       = var.acr_tag_web
 
   api_app_settings = {
-    # PostgreSQL
+    # Key Vault configuration - app will fetch secrets from here
+    "AZURE_KEY_VAULT_URI" = module.key_vault.uri
+
+    # PostgreSQL (keep for backward compatibility, but app will use Key Vault)
     "POSTGRES_DB"       = "postgres"
     "POSTGRES_USER"     = "postgres"
     "POSTGRES_PASSWORD" = "postgres"
@@ -146,7 +245,7 @@ module "app_service" {
     "POSTGRES_PORT"     = "5432"
     "DATABASE_URL"      = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres"
 
-    # Azure AI Foundry
+    # Azure AI Foundry (keep for backward compatibility, but app will use Key Vault)
     "AZURE_OPENAI_ENDPOINT"             = module.ai.ai_foundry_endpoint
     "AZURE_OPENAI_API_KEY"              = module.ai.ai_foundry_api_key
     "AZURE_OPENAI_DEFAULT_MODEL"        = module.ai.gpt4o_deployment_name
@@ -154,17 +253,17 @@ module "app_service" {
     "AZURE_OPENAI_CHAT_DEPLOYMENT"      = module.ai.gpt4o_deployment_name
     "AZURE_OPENAI_API_VERSION"          = "2024-06-01"
 
-    # Azure Storage
+    # Azure Storage (keep for backward compatibility, but app will use Key Vault)
     "AZURE_STORAGE_CONNECTION_STRING" = module.storage.primary_connection_string
     "AZURE_STORAGE_CONTAINER_NAME"    = module.storage.container_name
     "AZURE_STORAGE_ACCOUNT_KEY"       = module.storage.primary_access_key
 
-    # Azure Content Understanding (AI Services)
+    # Azure Content Understanding (keep for backward compatibility, but app will use Key Vault)
     "AZURE_CU_KEY"         = module.ai.ai_service_key
     "AZURE_CU_ENDPOINT"    = module.ai.ai_service_endpoint
     "AZURE_CU_ANALYZER_ID" = "prebuilt-documentAnalyzer"
 
-    # Azure Entra ID
+    # Azure Entra ID (keep for backward compatibility, but app will use Key Vault)
     "AZURE_ENTRA_TENANT_ID" = var.azure_tenant_id
     "AZURE_ENTRA_CLIENT_ID" = data.azurerm_client_config.current.client_id
 
@@ -187,6 +286,20 @@ module "app_service" {
   }
 
   tags = local.common_tags
+}
+
+# Key Vault access policy for API app (created after app_service)
+resource "azurerm_key_vault_access_policy" "api_app" {
+  key_vault_id = module.key_vault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = module.app_service.api_app_identity_principal_id
+
+  secret_permissions = [
+    "Get",
+    "List",
+  ]
+
+  depends_on = [module.app_service, module.key_vault]
 }
 
 # RBAC Module
