@@ -36,6 +36,8 @@ export function NavMain({ items }: { items: NavItem[] }) {
         {items.map((item) => {
           const active = item.isActive ?? location.pathname === item.url
           if (item.items?.length) {
+            const isExternal =
+              item.url.startsWith('http://') || item.url.startsWith('https://')
             return (
               <Collapsible
                 key={item.title}
@@ -46,11 +48,23 @@ export function NavMain({ items }: { items: NavItem[] }) {
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
                     <SidebarMenuButton asChild tooltip={item.title}>
-                      <Link to={item.url}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </Link>
+                      {isExternal ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </a>
+                      ) : (
+                        <Link to={item.url}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </Link>
+                      )}
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -70,13 +84,26 @@ export function NavMain({ items }: { items: NavItem[] }) {
               </Collapsible>
             )
           } else {
+            const isExternal =
+              item.url.startsWith('http://') || item.url.startsWith('https://')
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
-                  <Link to={item.url}>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                  </Link>
+                  {isExternal ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </a>
+                  ) : (
+                    <Link to={item.url}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </Link>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )
