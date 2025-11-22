@@ -19,7 +19,7 @@ resource "azurerm_key_vault" "main" {
   tags = var.tags
 }
 
-# Note: API app access policy is created in main.tf after app_service is created
+# Note: Server app access policy is created in main.tf after app_service is created
 
 # Access policy for current user (for Terraform to write secrets)
 resource "azurerm_key_vault_access_policy" "current_user" {

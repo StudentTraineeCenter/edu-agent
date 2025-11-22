@@ -8,8 +8,8 @@ resource "azurerm_service_plan" "web" {
   tags = var.tags
 }
 
-resource "azurerm_linux_web_app" "api" {
-  name                = var.api_app_name
+resource "azurerm_linux_web_app" "server" {
+  name                = var.server_app_name
   location            = var.location
   resource_group_name = var.resource_group_name
   service_plan_id     = azurerm_service_plan.web.id
@@ -17,13 +17,13 @@ resource "azurerm_linux_web_app" "api" {
 
   site_config {
     application_stack {
-      docker_image_name   = "${var.acr_repository_api}:${var.acr_tag_api}"
+      docker_image_name   = "${var.acr_repository_server}:${var.acr_tag_server}"
       docker_registry_url = "https://${var.acr_login_server}"
     }
 
     container_registry_use_managed_identity = true
     always_on                               = true
-    health_check_path                       = var.api_health_check_path
+    health_check_path                       = var.server_health_check_path
     health_check_eviction_time_in_min       = var.health_check_eviction_time_in_min
     ftps_state                              = "Disabled"
     minimum_tls_version                     = "1.2"
@@ -34,7 +34,7 @@ resource "azurerm_linux_web_app" "api" {
     type = "SystemAssigned"
   }
 
-  app_settings = var.api_app_settings
+  app_settings = var.server_app_settings
 
   tags = var.tags
 }

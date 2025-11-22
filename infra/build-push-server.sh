@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and push API Docker image to Azure Container Registry
+# Build and push server Docker image to Azure Container Registry
 # Usage: ./build-push-server.sh [TAG] [DOCKERFILE_PATH] [CONTEXT_DIR]
 
 ACR_NAME="$(terraform output -raw acr_name)"
-REPO_NAME="$(terraform output -raw acr_repository_api)"
+REPO_NAME="$(terraform output -raw acr_repository_server)"
 TAG="${1:-latest}"
 DOCKERFILE_PATH="${2:-../server/Dockerfile}"
 CONTEXT_DIR="${3:-../server}"

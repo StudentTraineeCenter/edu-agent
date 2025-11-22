@@ -3,8 +3,8 @@ variable "acr_id" {
   type        = string
 }
 
-variable "api_app_identity_principal_id" {
-  description = "Principal ID of the API app managed identity"
+variable "server_app_identity_principal_id" {
+  description = "Principal ID of the server app managed identity"
   type        = string
 }
 

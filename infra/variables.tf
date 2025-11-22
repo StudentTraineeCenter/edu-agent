@@ -52,14 +52,14 @@ variable "workload" {
 }
 
 # Container Registry Configuration
-variable "acr_repository_api" {
-  description = "ACR repository name for API"
+variable "acr_repository_server" {
+  description = "ACR repository name for server"
   type        = string
-  default     = "edu-agent-api"
+  default     = "edu-agent-server"
 }
 
-variable "acr_tag_api" {
-  description = "ACR tag for API"
+variable "acr_tag_server" {
+  description = "ACR tag for server"
   type        = string
   default     = "latest"
 }

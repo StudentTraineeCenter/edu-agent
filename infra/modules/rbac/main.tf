@@ -1,10 +1,10 @@
 data "azurerm_client_config" "current" {}
 
 # ACR Pull role assignments
-resource "azurerm_role_assignment" "acr_pull_api" {
+resource "azurerm_role_assignment" "acr_pull_server" {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
-  principal_id         = var.api_app_identity_principal_id
+  principal_id         = var.server_app_identity_principal_id
 }
 
 resource "azurerm_role_assignment" "acr_pull_web" {
@@ -13,11 +13,11 @@ resource "azurerm_role_assignment" "acr_pull_web" {
   principal_id         = var.web_app_identity_principal_id
 }
 
-# Storage role assignment for API app
-resource "azurerm_role_assignment" "api_to_storage_reader" {
+# Storage role assignment for server app
+resource "azurerm_role_assignment" "server_to_storage_reader" {
   scope                = var.storage_account_id
   role_definition_name = "Storage Blob Data Reader"
-  principal_id         = var.api_app_identity_principal_id
+  principal_id         = var.server_app_identity_principal_id
 }
 
 # User role assignments
