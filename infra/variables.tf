@@ -76,6 +76,31 @@ variable "acr_tag_web" {
   default     = "latest"
 }
 
+# Terraform Backend Configuration (optional, for remote state)
+variable "backend_storage_account" {
+  description = "Storage account name for Terraform backend (leave empty to use local state)"
+  type        = string
+  default     = ""
+}
+
+variable "backend_resource_group" {
+  description = "Resource group name for Terraform backend storage account"
+  type        = string
+  default     = ""
+}
+
+variable "backend_container" {
+  description = "Container name for Terraform backend state"
+  type        = string
+  default     = "tfstate"
+}
+
+variable "backend_key" {
+  description = "Key name for Terraform backend state file"
+  type        = string
+  default     = "terraform.tfstate"
+}
+
 # Database Configuration (DISABLED)
 # Uncomment these when enabling the database module
 # variable "database_admin_username" {

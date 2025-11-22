@@ -1,0 +1,250 @@
+name: Terraform Deploy to Azure
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+    paths:
+      - "infra/**"
+      - "server/**"
+      - "web/**"
+      - ".github/workflows/terraform-deploy.yml"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      action:
+        description: "Terraform action"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+jobs:
+  terraform:
+    name: Terraform ${{ github.event_name == 'pull_request' && 'Plan' || 'Deploy' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/master' && 'prod' || 'dev') }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infra
+        env:
+          # Backend config - can be repository or environment secrets
+          # Repository secrets: shared across environments
+          # Environment secrets: per-environment values (e.g., different state keys)
+          TF_BACKEND_STORAGE_ACCOUNT: ${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}
+          TF_BACKEND_RESOURCE_GROUP: ${{ secrets.TF_BACKEND_RESOURCE_GROUP }}
+          TF_BACKEND_CONTAINER: ${{ secrets.TF_BACKEND_CONTAINER }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY || 'terraform.tfstate' }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=$TF_BACKEND_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TF_BACKEND_CONTAINER" \
+            -backend-config="key=$TF_BACKEND_KEY" \
+            -backend-config="resource_group_name=$TF_BACKEND_RESOURCE_GROUP"
+
+      - name: Terraform Format Check
+        working-directory: infra
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: infra
+        env:
+          TF_VAR_azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_azure_app_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          terraform plan -out=tfplan -no-color
+          terraform show -no-color tfplan > plan.txt
+        continue-on-error: true
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📖
+            \`\`\`
+            ${require('fs').readFileSync('infra/plan.txt', 'utf8')}
+            \`\`\`
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      - name: Terraform Apply
+        if: |
+          (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        working-directory: infra
+        env:
+          TF_VAR_azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_azure_app_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+        run: terraform apply -auto-approve tfplan
+
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: terraform
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+    environment: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/master' && 'prod' || 'dev') }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+          terraform_wrapper: false
+
+      - name: Terraform Init (for outputs)
+        working-directory: infra
+        env:
+          TF_BACKEND_STORAGE_ACCOUNT: ${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}
+          TF_BACKEND_RESOURCE_GROUP: ${{ secrets.TF_BACKEND_RESOURCE_GROUP }}
+          TF_BACKEND_CONTAINER: ${{ secrets.TF_BACKEND_CONTAINER }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY || 'terraform.tfstate' }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=$TF_BACKEND_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TF_BACKEND_CONTAINER" \
+            -backend-config="key=$TF_BACKEND_KEY" \
+            -backend-config="resource_group_name=$TF_BACKEND_RESOURCE_GROUP"
+
+      - name: Get Terraform Outputs
+        id: terraform-outputs
+        working-directory: infra
+        env:
+          TF_VAR_azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          TF_VAR_azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_azure_app_client_id: ${{ secrets.AZURE_CLIENT_ID }}
+        run: |
+          ACR_NAME=$(terraform output -raw acr_name)
+          REPO_SERVER=$(terraform output -raw acr_repository_server)
+          REPO_WEB=$(terraform output -raw acr_repository_web)
+          SERVER_URL=$(terraform output -raw app_server_url)
+          TENANT_ID=$(terraform output -raw azure_tenant_id)
+          CLIENT_ID=$(terraform output -raw azure_app_client_id)
+
+          echo "acr_name=$ACR_NAME" >> $GITHUB_OUTPUT
+          echo "repo_server=$REPO_SERVER" >> $GITHUB_OUTPUT
+          echo "repo_web=$REPO_WEB" >> $GITHUB_OUTPUT
+          echo "server_url=$SERVER_URL" >> $GITHUB_OUTPUT
+          echo "tenant_id=$TENANT_ID" >> $GITHUB_OUTPUT
+          echo "client_id=$CLIENT_ID" >> $GITHUB_OUTPUT
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ steps.terraform-outputs.outputs.acr_name }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Server Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_server }}:latest
+            ${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_server }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_server }}:buildcache
+          cache-to: type=registry,ref=${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_server }}:buildcache,mode=max
+
+      - name: Build and Push Web Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          file: ./web/Dockerfile
+          push: true
+          platforms: linux/amd64
+          build-args: |
+            VITE_SERVER_URL=https://${{ steps.terraform-outputs.outputs.server_url }}
+            VITE_AZURE_ENTRA_TENANT_ID=${{ steps.terraform-outputs.outputs.tenant_id }}
+            VITE_AZURE_ENTRA_CLIENT_ID=${{ steps.terraform-outputs.outputs.client_id }}
+          tags: |
+            ${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_web }}:latest
+            ${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_web }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_web }}:buildcache
+          cache-to: type=registry,ref=${{ steps.terraform-outputs.outputs.acr_name }}.azurecr.io/${{ steps.terraform-outputs.outputs.repo_web }}:buildcache,mode=max
+
+      - name: Restart App Services
+        run: |
+          # Get app service names from terraform
+          SERVER_APP=$(terraform -chdir=infra output -raw server_app_name 2>/dev/null || echo "")
+          WEB_APP=$(terraform -chdir=infra output -raw web_app_name 2>/dev/null || echo "")
+          RG=$(terraform -chdir=infra output -raw resource_group_name)
+
+          if [ -n "$SERVER_APP" ]; then
+            az webapp restart --name "$SERVER_APP" --resource-group "$RG"
+          fi
+          if [ -n "$WEB_APP" ]; then
+            az webapp restart --name "$WEB_APP" --resource-group "$RG"
+          fi

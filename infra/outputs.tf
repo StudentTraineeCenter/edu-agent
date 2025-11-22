@@ -93,6 +93,16 @@ output "app_web_url" {
   value       = module.app_service.web_app_default_hostname
 }
 
+output "server_app_name" {
+  description = "Name of the server app service"
+  value       = module.app_service.server_app_name
+}
+
+output "web_app_name" {
+  description = "Name of the web app service"
+  value       = module.app_service.web_app_name
+}
+
 # Azure Entra ID
 output "azure_tenant_id" {
   description = "Azure Tenant ID"
