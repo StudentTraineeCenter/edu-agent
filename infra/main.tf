@@ -36,7 +36,7 @@ locals {
   app_service_plan_name = substr("asp-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 40)
 
   # App Services: app-{org}-{env}-{region}-{workload}-{instance} (max 60 chars)
-  api_app_name = substr("app-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-api-${local.instance}", 0, 60)
+  server_app_name = substr("app-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-server-${local.instance}", 0, 60)
   web_app_name = substr("app-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-web-${local.instance}", 0, 60)
 
   # Database: sql-{org}-{env}-{region}-{workload}-{instance} (max 63 chars)
@@ -83,7 +83,7 @@ module "acr" {
   tags              = local.common_tags
 }
 
-# Key Vault Module
+# Key Vault Module (created first, AI-dependent secrets added after AI module)
 module "key_vault" {
   source = "./modules/key-vault"
 
@@ -91,6 +91,13 @@ module "key_vault" {
   resource_group_name = module.resource_group.name
   location          = module.resource_group.location
   tags              = local.common_tags
+
+  # Secrets that don't depend on AI module
+  database_url                      = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres"
+  azure_storage_connection_string   = module.storage.primary_connection_string
+  azure_storage_container_name      = module.storage.container_name
+  azure_entra_tenant_id             = var.azure_tenant_id
+  azure_entra_client_id             = data.azurerm_client_config.current.client_id
 }
 
 # Database Module (DISABLED)
@@ -108,7 +115,7 @@ module "key_vault" {
 #   tags                = local.common_tags
 # }
 
-# AI Module
+# AI Module (created after Key Vault)
 module "ai" {
   source = "./modules/ai"
 
@@ -122,6 +129,95 @@ module "ai" {
   tags                = local.common_tags
 }
 
+# Update Key Vault secrets with AI module outputs
+resource "azurerm_key_vault_secret" "azure_openai_api_key" {
+  name         = "azure-openai-api-key"
+  value        = module.ai.ai_foundry_api_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_endpoint" {
+  name         = "azure-openai-endpoint"
+  value        = module.ai.ai_foundry_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_default_model" {
+  name         = "azure-openai-default-model"
+  value        = module.ai.gpt4o_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_embedding_deployment" {
+  name         = "azure-openai-embedding-deployment"
+  value        = module.ai.text_embedding_3_large_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_chat_deployment" {
+  name         = "azure-openai-chat-deployment"
+  value        = module.ai.gpt4o_deployment_name
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_openai_api_version" {
+  name         = "azure-openai-api-version"
+  value        = "2024-06-01"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_document_intelligence_endpoint" {
+  name         = "azure-document-intelligence-endpoint"
+  value        = module.ai.ai_service_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_document_intelligence_key" {
+  name         = "azure-document-intelligence-key"
+  value        = module.ai.ai_service_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_endpoint" {
+  name         = "azure-cu-endpoint"
+  value        = module.ai.ai_service_endpoint
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_key" {
+  name         = "azure-cu-key"
+  value        = module.ai.ai_service_key
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.ai, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "azure_cu_analyzer_id" {
+  name         = "azure-cu-analyzer-id"
+  value        = "prebuilt-documentAnalyzer"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.key_vault]
+}
+
 # App Service Module
 module "app_service" {
   source = "./modules/app-service"
@@ -129,16 +225,19 @@ module "app_service" {
   service_plan_name = local.app_service_plan_name
   location          = module.resource_group.location
   resource_group_name = module.resource_group.name
-  api_app_name      = local.api_app_name
+  server_app_name      = local.server_app_name
   web_app_name      = local.web_app_name
   acr_login_server  = module.acr.login_server
-  acr_repository_api = var.acr_repository_api
-  acr_tag_api       = var.acr_tag_api
+  acr_repository_server = var.acr_repository_server
+  acr_tag_server       = var.acr_tag_server
   acr_repository_web = var.acr_repository_web
   acr_tag_web       = var.acr_tag_web
 
-  api_app_settings = {
-    # PostgreSQL
+  server_app_settings = {
+    # Key Vault configuration - app will fetch secrets from here
+    "AZURE_KEY_VAULT_URI" = module.key_vault.uri
+
+    # PostgreSQL (keep for backward compatibility, but app will use Key Vault)
     "POSTGRES_DB"       = "postgres"
     "POSTGRES_USER"     = "postgres"
     "POSTGRES_PASSWORD" = "postgres"
@@ -146,7 +245,7 @@ module "app_service" {
     "POSTGRES_PORT"     = "5432"
     "DATABASE_URL"      = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/postgres"
 
-    # Azure AI Foundry
+    # Azure AI Foundry (keep for backward compatibility, but app will use Key Vault)
     "AZURE_OPENAI_ENDPOINT"             = module.ai.ai_foundry_endpoint
     "AZURE_OPENAI_API_KEY"              = module.ai.ai_foundry_api_key
     "AZURE_OPENAI_DEFAULT_MODEL"        = module.ai.gpt4o_deployment_name
@@ -154,17 +253,17 @@ module "app_service" {
     "AZURE_OPENAI_CHAT_DEPLOYMENT"      = module.ai.gpt4o_deployment_name
     "AZURE_OPENAI_API_VERSION"          = "2024-06-01"
 
-    # Azure Storage
+    # Azure Storage (keep for backward compatibility, but app will use Key Vault)
     "AZURE_STORAGE_CONNECTION_STRING" = module.storage.primary_connection_string
     "AZURE_STORAGE_CONTAINER_NAME"    = module.storage.container_name
     "AZURE_STORAGE_ACCOUNT_KEY"       = module.storage.primary_access_key
 
-    # Azure Content Understanding (AI Services)
+    # Azure Content Understanding (keep for backward compatibility, but app will use Key Vault)
     "AZURE_CU_KEY"         = module.ai.ai_service_key
     "AZURE_CU_ENDPOINT"    = module.ai.ai_service_endpoint
     "AZURE_CU_ANALYZER_ID" = "prebuilt-documentAnalyzer"
 
-    # Azure Entra ID
+    # Azure Entra ID (keep for backward compatibility, but app will use Key Vault)
     "AZURE_ENTRA_TENANT_ID" = var.azure_tenant_id
     "AZURE_ENTRA_CLIENT_ID" = data.azurerm_client_config.current.client_id
 
@@ -183,10 +282,24 @@ module "app_service" {
     "VITE_AZURE_ENTRA_CLIENT_ID" = var.azure_app_client_id
 
     # URLs — constructed from name pattern (will match actual hostname)
-    "VITE_SERVER_URL" = "https://${local.api_app_name}.azurewebsites.net"
+    "VITE_SERVER_URL" = "https://${local.server_app_name}.azurewebsites.net"
   }
 
   tags = local.common_tags
+}
+
+# Key Vault access policy for server app (created after app_service)
+resource "azurerm_key_vault_access_policy" "server_app" {
+  key_vault_id = module.key_vault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = module.app_service.server_app_identity_principal_id
+
+  secret_permissions = [
+    "Get",
+    "List",
+  ]
+
+  depends_on = [module.app_service, module.key_vault]
 }
 
 # RBAC Module
@@ -194,7 +307,7 @@ module "rbac" {
   source = "./modules/rbac"
 
   acr_id                        = module.acr.id
-  api_app_identity_principal_id = module.app_service.api_app_identity_principal_id
+  server_app_identity_principal_id = module.app_service.server_app_identity_principal_id
   web_app_identity_principal_id = module.app_service.web_app_identity_principal_id
   storage_account_id            = module.storage.storage_account_id
   ai_foundry_project_id         = module.ai.ai_foundry_project_id

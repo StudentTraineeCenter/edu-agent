@@ -43,6 +43,11 @@ def terraform_to_env(terraform_output: dict) -> str:
     lines.append(f"AZURE_ENTRA_CLIENT_ID={terraform_output['azure_app_client_id']['value']}")
     lines.append("")
     
+    # Azure Key Vault
+    lines.append("# Azure Key Vault")
+    lines.append(f"AZURE_KEY_VAULT_URI={terraform_output['azure_key_vault_uri']['value']}")
+    lines.append("")
+    
     # Azure Content Understanding
     lines.append("# Azure Content Understanding")
     lines.append(f"AZURE_CU_ENDPOINT={terraform_output['ai_service_endpoint']['value']}")

@@ -1,11 +1,11 @@
 output "ai_foundry_endpoint" {
-  description = "Azure AI Foundry hub endpoint"
-  value       = data.azurerm_cognitive_account.hub.endpoint
+  description = "Azure AI Foundry OpenAI endpoint"
+  value       = azurerm_cognitive_account.openai.endpoint
 }
 
 output "ai_foundry_api_key" {
-  description = "Azure AI Foundry API key (from hub)"
-  value       = data.azurerm_cognitive_account.hub.primary_access_key
+  description = "Azure AI Foundry OpenAI API key"
+  value       = azurerm_cognitive_account.openai.primary_access_key
   sensitive   = true
 }
 
