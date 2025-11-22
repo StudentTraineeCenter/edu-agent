@@ -16,7 +16,7 @@ import { usageAtom } from './usage'
 
 type ChatsAction = Data.TaggedEnum<{
   Upsert: { readonly chat: ChatDto }
-  Archive: { readonly chatId: string }
+  Delete: { readonly chatId: string }
 }>
 const ChatsAction = Data.taggedEnum<ChatsAction>()
 
@@ -85,7 +85,7 @@ export const chatsAtom = Atom.family((projectId: string) =>
               return result.value.map((c) => (c.id === chat.id ? chat : c))
             return Arr.prepend(result.value, chat)
           },
-          Archive: ({ chatId }) => {
+          Delete: ({ chatId }) => {
             return result.value.filter((c) => c.id !== chatId)
           },
         })
@@ -428,15 +428,15 @@ export const updateMessageToolsAtom = runtime.fn(
   }),
 )
 
-export const archiveChatAtom = runtime.fn(
+export const deleteChatAtom = runtime.fn(
   Effect.fn(function* (input: { chatId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.archiveChatV1ChatsChatIdArchivePost(input.chatId)
+    yield* client.deleteChatV1ChatsChatIdDeletePost(input.chatId)
 
     registry.set(
       chatsAtom(input.projectId),
-      ChatsAction.Archive({ chatId: input.chatId }),
+      ChatsAction.Delete({ chatId: input.chatId }),
     )
   }),
 )

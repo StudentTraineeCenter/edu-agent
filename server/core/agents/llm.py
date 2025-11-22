@@ -1,18 +1,32 @@
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+
 from core.config import app_config
-from langchain_openai import AzureChatOpenAI
+
+COGNITIVE_SERVICES_SCOPE = "https://cognitiveservices.azure.com/.default"
+API_VERSION = "2024-12-01-preview"
 
 
-def make_llm_streaming(temperature=0.0):
+def _get_token_provider():
     cred = DefaultAzureCredential()
-    tok = get_bearer_token_provider(
-        cred, "https://cognitiveservices.azure.com/.default"
-    )
+    return get_bearer_token_provider(cred, COGNITIVE_SERVICES_SCOPE)
+
+
+def make_llm_streaming(temperature: float = 0.25):
     return AzureChatOpenAI(
         azure_deployment=app_config.AZURE_OPENAI_CHAT_DEPLOYMENT,
         azure_endpoint=app_config.AZURE_OPENAI_ENDPOINT,
-        api_version="2024-12-01-preview",
-        azure_ad_token_provider=tok,
+        api_version=API_VERSION,
+        azure_ad_token_provider=_get_token_provider(),
         temperature=temperature,
         streaming=True,
+    )
+
+
+def make_embeddings():
+    return AzureOpenAIEmbeddings(
+        azure_deployment=app_config.AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
+        azure_endpoint=app_config.AZURE_OPENAI_ENDPOINT,
+        api_version=API_VERSION,
+        azure_ad_token_provider=_get_token_provider(),
     )

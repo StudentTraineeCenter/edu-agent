@@ -24,8 +24,7 @@ def get_usage(
     """Get current usage statistics for the authenticated user."""
     logger.info("getting usage statistics for user_id=%s", current_user.id)
 
-    usage_dict = usage_service.get_usage(current_user.id)
-    usage_dto = UsageDto(**usage_dict)
+    usage_stats = usage_service.get_usage(current_user.id)
+    usage_dto = UsageDto(**usage_stats.model_dump())
 
     return UsageResponse(usage=usage_dto)
-

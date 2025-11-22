@@ -27,4 +27,3 @@ class UsageResponse(BaseModel):
     """Response model for usage statistics."""
 
     usage: UsageDto = Field(description="User usage statistics")
-

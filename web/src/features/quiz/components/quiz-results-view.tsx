@@ -23,7 +23,7 @@ import {
   quizDetailStateAtom,
   quizStatsAtom,
   resetQuizAtom,
-  submitPendingMistakesAtom,
+  submitPendingAttemptsAtom,
 } from '@/data-acess/quiz-detail-state'
 import { quizQuestionsAtom } from '@/data-acess/quiz'
 
@@ -227,16 +227,16 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
   const resetQuiz = useAtomSet(resetQuizAtom)
-  const submitPendingMistakes = useAtomSet(submitPendingMistakesAtom, {
+  const submitPendingAttempts = useAtomSet(submitPendingAttemptsAtom, {
     mode: 'promise',
   })
 
-  const hasPendingMistakes =
+  const hasPendingAttempts =
     Option.isSome(stateResult) &&
-    Object.keys(stateResult.value.pendingMistakes).length > 0
+    Object.keys(stateResult.value.pendingAttempts).length > 0
 
   const handleSubmit = async () => {
-    await submitPendingMistakes({ quizId, projectId })
+    await submitPendingAttempts({ quizId, projectId })
     navigate({
       to: '/p/$projectId',
       params: { projectId },
@@ -256,7 +256,7 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   return (
     <div className="flex flex-col gap-3">
-      {hasPendingMistakes && (
+      {hasPendingAttempts && (
         <Button
           onClick={handleSubmit}
           variant="default"
@@ -264,8 +264,8 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
           size="lg"
         >
           <Upload className="h-4 w-4" />
-          Submit Mistakes (
-          {Object.keys(stateResult.value.pendingMistakes).length})
+          Submit Attempts (
+          {Object.keys(stateResult.value.pendingAttempts).length})
         </Button>
       )}
 

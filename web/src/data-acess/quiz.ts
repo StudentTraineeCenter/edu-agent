@@ -29,7 +29,7 @@ export const quizQuestionsAtom = Atom.family((quizId: string) =>
       const client = yield* makeApiClient
       const resp =
         yield* client.listQuizQuestionsV1QuizzesQuizIdQuestionsGet(quizId)
-      return resp.quiz_questions
+      return resp.data
     }),
   ).pipe(Atom.keepAlive),
 )

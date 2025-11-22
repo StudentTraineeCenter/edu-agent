@@ -9,4 +9,3 @@ class DocumentStatus(str, Enum):
     PROCESSED = "processed"
     INDEXED = "indexed"
     FAILED = "failed"
-

@@ -126,7 +126,7 @@ export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
       const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
       if (!Result.isSuccess(flashcardsResult))
         return { correct: [], incorrect: [] }
-      const { flashcards } = flashcardsResult.value
+      const flashcards = flashcardsResult.value.data
 
       const correct = flashcards.filter((f) =>
         attempts.some((a) => a.item_id === f.id && a.was_correct),
@@ -266,7 +266,7 @@ export const goToNextCardAtom = runtime.fn(
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const { flashcards } = flashcardsResult.value
+    const flashcards = flashcardsResult.value.data
     const isLastCard = currentCardIndex === flashcards.length - 1
 
     if (isLastCard) {
@@ -338,7 +338,7 @@ export const gotItRightAtom = runtime.fn(
     if (!Result.isSuccess(flashcardsResult)) return
 
     const { currentCardIndex, markedCardIds } = currentState
-    const { flashcards } = flashcardsResult.value
+    const flashcards = flashcardsResult.value.data
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
@@ -406,7 +406,7 @@ export const gotItWrongAtom = runtime.fn(
       flashcardsAtom(input.flashcardGroupId),
     )
     if (!Result.isSuccess(flashcardsResult)) return
-    const { flashcards } = flashcardsResult.value
+    const flashcards = flashcardsResult.value.data
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return

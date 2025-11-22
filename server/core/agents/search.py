@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List
 
-from core.services.document_types import SearchResultItem
 from pydantic import BaseModel, Field
+
+from schemas.documents import SearchResultItem
 
 
 class SearchResult(BaseModel):
@@ -31,32 +31,25 @@ class SearchResult(BaseModel):
 
 
 class SearchInterface(ABC):
-    """Abstract interface for document search functionality"""
+    """Abstract interface for document search functionality."""
 
     @abstractmethod
     async def search_documents(
         self, query: str, project_id: str, top_k: int = 5
-    ) -> List[SearchResult]:
-        """Search for documents in a project"""
+    ) -> list[SearchResult]:
+        """Search for documents in a project."""
         pass
 
 
 class DocumentSearchAdapter(SearchInterface):
-    """Adapter that wraps DocumentService to implement SearchInterface with validated types."""
+    """Adapter that wraps DocumentService to implement SearchInterface."""
 
     def __init__(self, document_service):
         self.document_service = document_service
 
     async def search_documents(
         self, query: str, project_id: str, top_k: int = 5
-    ) -> List[SearchResult]:
-        """Search documents using the document service with validated types."""
+    ) -> list[SearchResult]:
+        """Search documents using the document service."""
         results = await self.document_service.search_documents(query, project_id, top_k)
-
-        # Convert SearchResultItems to SearchResults
-        search_results = []
-        for result in results:
-            search_result = SearchResult.from_search_result_item(result)
-            search_results.append(search_result)
-
-        return search_results
+        return [SearchResult.from_search_result_item(result) for result in results]

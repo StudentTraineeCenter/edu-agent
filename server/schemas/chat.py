@@ -19,6 +19,8 @@ class ChatUpdateRequest(BaseModel):
 class SourceDto(BaseModel):
     """Response model for source document data."""
 
+    model_config = {"from_attributes": True}
+
     id: str = Field(description="Unique ID of the source segment")
     citation_index: int = Field(description="Citation number for [n] references")
     content: str = Field(description="Content of the source segment")
@@ -33,6 +35,8 @@ class SourceDto(BaseModel):
 class ToolCallDto(BaseModel):
     """Response model for tool call data."""
 
+    model_config = {"from_attributes": True}
+
     id: str = Field(description="Unique ID of the tool call")
     type: str = Field(description="Tool type identifier")
     name: str = Field(description="Name of the tool being called")
@@ -42,12 +46,16 @@ class ToolCallDto(BaseModel):
     input: Optional[Dict[str, Any]] = Field(
         None, description="Input parameters for the tool"
     )
-    output: Optional[Dict[str, Any]] = Field(None, description="Output result from the tool")
+    output: Optional[Dict[str, Any] | str] = Field(
+        None, description="Output result from the tool"
+    )
     error_text: Optional[str] = Field(None, description="Error message if failed")
 
 
 class ChatMessageDto(BaseModel):
     """Response model for chat message data."""
+
+    model_config = {"from_attributes": True}
 
     id: str = Field(description="Unique ID of the message")
     role: str = Field(description="Role of the message sender")
@@ -63,6 +71,8 @@ class ChatMessageDto(BaseModel):
 
 class LastChatMessageDto(BaseModel):
     """Response model for last chat message data."""
+
+    model_config = {"from_attributes": True}
 
     id: str = Field(description="Unique ID of the message")
     role: str = Field(description="Role of the message sender")
@@ -94,7 +104,6 @@ class ChatListResponse(BaseModel):
     """Response model for listing chats."""
 
     data: List[ChatDto] = Field(description="List of chats")
-    total_count: int = Field(description="Total number of chats")
 
 
 class ChatCompletionRequest(BaseModel):
@@ -103,18 +112,10 @@ class ChatCompletionRequest(BaseModel):
     message: str = Field(description="User message to process")
 
 
-class ChatCompletionResponse(BaseModel):
-    """Response model for chat completion with RAG."""
-
-    response: str = Field(description="AI assistant response")
-    sources: List[SourceDto] = Field(
-        description="Source documents used for the response"
-    )
-    chat_id: str = Field(description="ID of the chat")
-
-
 class StreamingChatMessage(BaseModel):
     """Response model for streaming chat message chunks."""
+
+    model_config = {"from_attributes": True}
 
     id: str = Field(description="Unique ID of the message")
     chunk: str = Field(description="Text chunk of the response")

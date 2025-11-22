@@ -1,283 +1,139 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, Optional
+import json
 
-from core.agents.llm import make_llm_streaming
-from core.agents.search import SearchInterface
+from langchain.tools import tool
+from langgraph.prebuilt import ToolRuntime
+
+from core.agents.context import CustomAgentContext
+from core.agents.utils import build_enhanced_prompt, increment_usage
 from core.services.quizzes import QuizService
-from core.services.usage import UsageService
-from langchain.agents import AgentExecutor, create_openai_tools_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, Field
+from schemas.quizzes import QuizDto, QuizQuestionDto
 
 
-class CreateQuizInput(BaseModel):
-    project_id: str
-    count: int = Field(20, ge=1, le=100)
-    user_prompt: Optional[str] = None
+@tool(
+    "quiz_create",
+    description="Create quiz from project documents. Use count 10-30, include user_prompt for topic filtering.",
+)
+async def create_quiz(
+    count: int,
+    user_prompt: str,
+    runtime: ToolRuntime[CustomAgentContext],
+) -> str:
+    ctx = runtime.context
+    increment_usage(ctx.usage, ctx.user_id, "quiz_generation")
 
-
-class CreateQuizScopedInput(CreateQuizInput):
-    document_ids: Optional[List[str]] = Field(default=None)
-    query: Optional[str] = None
-
-
-class CreateQuizOutput(BaseModel):
-    message: str
-    name: str
-    description: str
-    questions: List[Dict[str, Any]]
-
-
-class ListQuizzesInput(BaseModel):
-    project_id: str
-
-
-class ListQuizzesOutput(BaseModel):
-    quizzes: List[Dict[str, Any]]
-
-
-class GetQuizQuestionsInput(BaseModel):
-    quiz_id: str
-
-
-class GetQuizQuestionsOutput(BaseModel):
-    questions: List[Dict[str, Any]]
-
-
-class SubmitQuizAnswersInput(BaseModel):
-    quiz_id: str
-    answers: Dict[str, str] = Field(
-        ..., description="Map question_id -> selected option letter (a/b/c/d)"
+    svc = QuizService(search_interface=ctx.search)
+    quiz_id = await svc.create_quiz_with_questions(
+        project_id=ctx.project_id,
+        count=count,
+        user_prompt=user_prompt,
     )
 
+    quiz = svc.get_quiz(quiz_id)
+    questions = svc.get_quiz_questions(quiz_id)
 
-class DeleteQuizInput(BaseModel):
-    quiz_id: str
+    quiz_dto = QuizDto.model_validate(quiz)
+    questions_dto = [QuizQuestionDto.model_validate(q) for q in questions]
 
+    result = {
+        **quiz_dto.model_dump(),
+        "questions": [q.model_dump() for q in questions_dto],
+    }
 
-def build_quiz_tools(
-    search_interface: SearchInterface,
-    user_id: Optional[str] = None,
-    usage_service: Optional[UsageService] = None,
-):
-    svc = QuizService(search_interface=search_interface)
-
-    async def _create_quiz(
-        project_id: str, count: int = 20, user_prompt: Optional[str] = None
-    ) -> CreateQuizOutput:
-        # Increment usage if user_id and usage_service are provided
-        if user_id and usage_service:
-            try:
-                usage_service.check_and_increment(user_id, "quiz_generation")
-            except Exception as e:
-                # Log error but don't fail the operation
-                from core.logger import get_logger
-                logger = get_logger(__name__)
-                logger.warning("failed to increment usage: %s", e)
-
-        quiz_id = await svc.create_quiz_with_questions(
-            project_id=project_id,
-            count=count,
-            user_prompt=user_prompt,
-        )
-        quiz = await asyncio.to_thread(lambda: svc.get_quiz(quiz_id))
-        qs = await asyncio.to_thread(lambda: svc.get_quiz_questions(quiz_id))
-        return CreateQuizOutput(
-            message=f"✅ Quiz created successfully! I've generated {len(qs)} questions for you. You can now start taking the quiz.",
-            name=quiz.name,
-            description=quiz.description or "",
-            questions=[
-                {
-                    "question_text": q.question_text,
-                    "option_a": q.option_a,
-                    "option_b": q.option_b,
-                    "option_c": q.option_c,
-                    "option_d": q.option_d,
-                    "correct_option": q.correct_option,
-                    "difficulty_level": q.difficulty_level,
-                    "explanation": q.explanation,
-                }
-                for q in qs
-            ],
-        )
-
-    async def _create_quiz_scoped(
-        project_id: str,
-        count: int = 20,
-        user_prompt: Optional[str] = None,
-        document_ids: Optional[List[str]] = None,
-        query: Optional[str] = None,
-    ) -> CreateQuizOutput:
-        # Increment usage if user_id and usage_service are provided
-        if user_id and usage_service:
-            try:
-                usage_service.check_and_increment(user_id, "quiz_generation")
-            except Exception as e:
-                # Log error but don't fail the operation
-                from core.logger import get_logger
-                logger = get_logger(__name__)
-                logger.warning("failed to increment usage: %s", e)
-
-        # For now, the service doesn't support document scoping, so we'll use the general method
-        # TODO: Implement document scoping in the service layer
-        enhanced_prompt = user_prompt or ""
-        if query:
-            enhanced_prompt += f" Focus on: {query}"
-        if document_ids:
-            enhanced_prompt += (
-                f" Based on specific documents: {', '.join(document_ids)}"
-            )
-
-        quiz_id = await svc.create_quiz_with_questions(
-            project_id=project_id,
-            count=count,
-            user_prompt=enhanced_prompt,
-        )
-        quiz = await asyncio.to_thread(lambda: svc.get_quiz(quiz_id))
-        qs = await asyncio.to_thread(lambda: svc.get_quiz_questions(quiz_id))
-        return CreateQuizOutput(
-            message=f"✅ Quiz created successfully! I've generated {len(qs)} questions for you. You can now start taking the quiz.",
-            name=quiz.name,
-            description=quiz.description or "",
-            questions=[
-                {
-                    "question_text": q.question_text,
-                    "option_a": q.option_a,
-                    "option_b": q.option_b,
-                    "option_c": q.option_c,
-                    "option_d": q.option_d,
-                    "correct_option": q.correct_option,
-                    "difficulty_level": q.difficulty_level,
-                    "explanation": q.explanation,
-                }
-                for q in qs
-            ],
-        )
-
-    async def _list_quizzes(project_id: str) -> ListQuizzesOutput:
-        quizzes = await asyncio.to_thread(lambda: svc.get_quizzes(project_id))
-        return {
-            "quizzes": [
-                {
-                    "id": q.id,
-                    "name": q.name,
-                    "description": q.description,
-                    "created_at": q.created_at.isoformat(),
-                }
-                for q in quizzes
-            ]
-        }
-
-    async def _get_questions(quiz_id: str) -> GetQuizQuestionsOutput:
-        qs = await asyncio.to_thread(lambda: svc.get_quiz_questions(quiz_id))
-        return {
-            "questions": [
-                {
-                    "id": x.id,
-                    "question_text": x.question_text,
-                    "option_a": x.option_a,
-                    "option_b": x.option_b,
-                    "option_c": x.option_c,
-                    "option_d": x.option_d,
-                    "correct_option": x.correct_option,
-                    "difficulty_level": x.difficulty_level,
-                }
-                for x in qs
-            ]
-        }
-
-    async def _submit_answers(quiz_id: str, answers: Dict[str, str]) -> Dict[str, Any]:
-        result = await svc.submit_quiz_answers(quiz_id, answers)
-        return result
-
-    async def _delete_quiz(quiz_id: str) -> Dict[str, bool]:
-        ok = await asyncio.to_thread(lambda: svc.delete_quiz(quiz_id))
-        return {"deleted": bool(ok)}
-
-    return [
-        StructuredTool.from_function(
-            name="quiz_create",
-            description="Create a new quiz grounded in project documents",
-            coroutine=_create_quiz,
-            args_schema=CreateQuizInput,
-            return_direct=False,
-        ),
-        StructuredTool.from_function(
-            name="quiz_create_scoped",
-            description=(
-                "Create a quiz but restrict to selected documents and/or a focus query. "
-                "Use when the user says 'from this and this' or specifies doc IDs/titles."
-            ),
-            coroutine=_create_quiz_scoped,
-            args_schema=CreateQuizScopedInput,
-            return_direct=False,
-        ),
-        StructuredTool.from_function(
-            name="quiz_list",
-            description="List quizzes for a project",
-            coroutine=lambda **kw: _list_quizzes(**kw),
-            args_schema=ListQuizzesInput,
-            return_direct=False,
-        ),
-        StructuredTool.from_function(
-            name="quiz_get_questions",
-            description="Get all questions in a quiz",
-            coroutine=lambda **kw: _get_questions(**kw),
-            args_schema=GetQuizQuestionsInput,
-            return_direct=False,
-        ),
-        StructuredTool.from_function(
-            name="quiz_submit_answers",
-            description="Submit answers for a quiz and get results",
-            coroutine=lambda **kw: _submit_answers(**kw),
-            args_schema=SubmitQuizAnswersInput,
-            return_direct=False,
-        ),
-        StructuredTool.from_function(
-            name="quiz_delete",
-            description="Delete a quiz",
-            coroutine=lambda **kw: _delete_quiz(**kw),
-            args_schema=DeleteQuizInput,
-            return_direct=False,
-        ),
-    ]
+    return json.dumps(result, ensure_ascii=False, default=str)
 
 
-def build_quiz_agent(
-    project_id: str,
-    language_code: str,
-    search_interface: SearchInterface,
-) -> AgentExecutor:
-    tools = build_quiz_tools(search_interface)
+@tool(
+    "quiz_create_scoped",
+    description="Create quiz from specific documents. Use when user references specific docs or IDs.",
+)
+async def create_quiz_scoped(
+    count: int,
+    user_prompt: str,
+    document_ids: list[str],
+    query: str,
+    runtime: ToolRuntime[CustomAgentContext],
+) -> str:
+    ctx = runtime.context
+    increment_usage(ctx.usage, ctx.user_id, "quiz_generation")
 
-    system = (
-        f"You are a quiz authoring assistant. Always respond in {language_code}.\n"
-        f"Prefer creating quizzes grounded in the project's documents.\n"
-        f"When asked to create a quiz, CALL `quiz_create` with a sensible count (10-40).\n"
-        f"\n"
-        f"IMPORTANT: After the tool returns, extract ONLY the 'message' field from the tool output and return it to the user.\n"
-        f"DO NOT return the full JSON, the questions array, or any other fields.\n"
-        f"DO NOT use backticks, code blocks, or any markdown formatting.\n"
-        f"Just return the message field value as plain text.\n"
-        f"\n"
-        f"Example:\n"
-        f"Tool returns: {{'message': 'Quiz created!', 'questions': [...]}}\n"
-        f"You respond: Quiz created!\n"
+    svc = QuizService(search_interface=ctx.search)
+    enhanced_prompt = build_enhanced_prompt(user_prompt, query, document_ids)
+
+    quiz_id = await svc.create_quiz_with_questions(
+        project_id=ctx.project_id,
+        count=count,
+        user_prompt=enhanced_prompt,
     )
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system),
-            MessagesPlaceholder("chat_history"),
-            ("human", "{input}"),
-            MessagesPlaceholder("agent_scratchpad"),
-        ]
-    )
+    quiz = svc.get_quiz(quiz_id)
+    questions = svc.get_quiz_questions(quiz_id)
 
-    agent = create_openai_tools_agent(make_llm_streaming(), tools, prompt)
-    return AgentExecutor(
-        agent=agent, tools=tools, verbose=False, handle_parsing_errors=True
-    )
+    quiz_dto = QuizDto.model_validate(quiz)
+    questions_dto = [QuizQuestionDto.model_validate(q) for q in questions]
+
+    result = {
+        **quiz_dto.model_dump(),
+        "questions": [q.model_dump() for q in questions_dto],
+    }
+
+    return json.dumps(result, ensure_ascii=False, default=str)
+
+
+@tool("quiz_list", description="List quizzes for a project")
+async def list_quizzes(runtime: ToolRuntime[CustomAgentContext]) -> str:
+    ctx = runtime.context
+    svc = QuizService(search_interface=ctx.search)
+    quizzes = await asyncio.to_thread(svc.get_quizzes, ctx.project_id)
+
+    quizzes_dto = [QuizDto.model_validate(q) for q in quizzes]
+    result = {
+        "data": [q.model_dump() for q in quizzes_dto],
+        "count": len(quizzes_dto),
+    }
+    return json.dumps(result, ensure_ascii=False, default=str)
+
+
+@tool("quiz_get_questions", description="Get all questions in a quiz")
+async def get_questions(
+    quiz_id: str,
+    runtime: ToolRuntime[CustomAgentContext],
+) -> str:
+    ctx = runtime.context
+    svc = QuizService(search_interface=ctx.search)
+    qs = await asyncio.to_thread(svc.get_quiz_questions, quiz_id)
+
+    questions_dto = [QuizQuestionDto.model_validate(q) for q in qs]
+    result = {
+        "data": [q.model_dump() for q in questions_dto],
+        "count": len(questions_dto),
+    }
+    return json.dumps(result, ensure_ascii=False, default=str)
+
+
+@tool("quiz_delete", description="Delete a quiz")
+async def delete_quiz(
+    quiz_id: str,
+    runtime: ToolRuntime[CustomAgentContext],
+) -> str:
+    ctx = runtime.context
+    svc = QuizService(search_interface=ctx.search)
+    ok = await asyncio.to_thread(svc.delete_quiz, quiz_id)
+
+    result = {
+        "success": ok,
+        "quiz_id": quiz_id,
+        "message": "Kvíz byl úspěšně smazán." if ok else "Kvíz se nepodařilo smazat.",
+    }
+    return json.dumps(result, ensure_ascii=False)
+
+
+tools = [
+    create_quiz,
+    # create_quiz_scoped,
+    list_quizzes,
+    get_questions,
+    delete_quiz,
+]

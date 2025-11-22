@@ -1,64 +1,18 @@
-from api.dependencies import get_quiz_service, get_usage_service, get_user
+from api.dependencies import get_quiz_service
 from core.logger import get_logger
 from core.services.quizzes import QuizService
-from core.services.usage import UsageService
-from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from schemas.quizzes import (
-    CreateQuizRequest,
     QuizDto,
     QuizListResponse,
     QuizQuestionDto,
     QuizQuestionListResponse,
     QuizResponse,
-    UpdateQuizRequest,
 )
 
 logger = get_logger(__name__)
 
 router = APIRouter()
-
-
-@router.post(
-    path="",
-    response_model=QuizResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a quiz",
-    description="Create a new quiz for a project, optionally with generated questions",
-)
-async def create_quiz(
-    project_id: str,
-    request: CreateQuizRequest,
-    quiz_service: QuizService = Depends(get_quiz_service),
-    current_user: User = Depends(get_user),
-    usage_service: UsageService = Depends(get_usage_service),
-):
-    """Create a new quiz, optionally with generated questions."""
-    try:
-        # Check usage limit before processing
-        usage_service.check_and_increment(current_user.id, "quiz_generation")
-        
-        logger.info("creating quiz for project_id=%s", project_id)
-
-        quiz = await quiz_service.create_quiz_with_questions(
-            project_id=project_id,
-            count=request.question_count,
-            user_prompt=request.user_prompt,
-        )
-
-        return QuizResponse(
-            quiz=QuizDto(**quiz.__dict__), message="Quiz created successfully"
-        )
-
-    except ValueError as e:
-        logger.error("validation error creating quiz: %s", e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error("error creating quiz: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create quiz",
-        )
 
 
 @router.get(
@@ -79,7 +33,7 @@ async def list_quizzes(
         quizzes = quiz_service.get_quizzes(project_id)
 
         return QuizListResponse(
-            data=[QuizDto(**quiz.__dict__) for quiz in quizzes], total=len(quizzes)
+            data=[QuizDto(**quiz.__dict__) for quiz in quizzes],
         )
 
     except Exception as e:
@@ -121,45 +75,6 @@ async def get_quiz(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get quiz",
-        )
-
-
-@router.put(
-    path="/{quiz_id}",
-    response_model=QuizResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Update quiz",
-    description="Update a quiz",
-)
-async def update_quiz(
-    quiz_id: str = Path(..., description="Quiz ID"),
-    request: UpdateQuizRequest = None,
-    quiz_service: QuizService = Depends(get_quiz_service),
-):
-    """Update a quiz."""
-    try:
-        logger.info("updating quiz_id=%s", quiz_id)
-
-        updated_quiz = quiz_service.update_quiz(
-            quiz_id=quiz_id,
-            name=request.name if request else None,
-            description=request.description if request else None,
-        )
-
-        if not updated_quiz:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found"
-            )
-
-        return QuizResponse(
-            quiz=QuizDto(**updated_quiz.__dict__), message="Quiz updated successfully"
-        )
-
-    except Exception as e:
-        logger.error("error updating quiz: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update quiz",
         )
 
 
@@ -210,10 +125,7 @@ async def list_quiz_questions(
         questions = quiz_service.get_quiz_questions(quiz_id)
 
         return QuizQuestionListResponse(
-            quiz_questions=[
-                QuizQuestionDto(**question.__dict__) for question in questions
-            ],
-            total=len(questions),
+            data=[QuizQuestionDto(**question.__dict__) for question in questions],
         )
 
     except Exception as e:

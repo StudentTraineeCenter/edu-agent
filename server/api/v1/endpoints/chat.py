@@ -24,17 +24,18 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+
 def _message_to_dto(message: dict) -> ChatMessageDto:
     message_data = {
-        "role": message['role'],
-        "content": message['content'],
-        "id": message['id'],
-        "created_at": message['created_at'],
+        "role": message["role"],
+        "content": message["content"],
+        "id": message["id"],
+        "created_at": message["created_at"],
     }
-    if message['role'] == "assistant" and message['sources']:
-        message_data["sources"] = [SourceDto(**source) for source in message['sources']]
-    if message['role'] == "assistant" and message['tools']:
-        message_data["tools"] = [ToolCallDto(**tool) for tool in message['tools']]
+    if message["role"] == "assistant" and message["sources"]:
+        message_data["sources"] = [SourceDto(**source) for source in message["sources"]]
+    if message["role"] == "assistant" and message["tools"]:
+        message_data["tools"] = [ToolCallDto(**tool) for tool in message["tools"]]
 
     return ChatMessageDto(**message_data)
 
@@ -118,7 +119,6 @@ def list_chats(
 
     return ChatListResponse(
         data=formatted_chats,
-        total_count=len(result),
     )
 
 
@@ -194,48 +194,20 @@ def update_chat(
 
 
 @router.post(
-    "/{chat_id}/archive",
+    "/{chat_id}/delete",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Archive a chat by id",
-    description="Archive a chat by id",
+    summary="Delete a chat by id",
+    description="Delete a chat by id",
 )
-def archive_chat(
+def delete_chat(
     chat_id: str,
     chat_service: ChatService = Depends(get_chat_service),
     current_user: User = Depends(get_user),
 ):
-    """Archive a project by id"""
-    logger.info("archiving chat_id=%s", chat_id)
-    chat_service.archive_chat(chat_id, current_user.id)
+    """Delete a chat by id"""
+    logger.info("deleting chat_id=%s", chat_id)
+    chat_service.delete_chat(chat_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.get(
-    "/{chat_id}/messages",
-    response_model=List[ChatMessageDto],
-    status_code=status.HTTP_200_OK,
-    summary="List messages in a chat",
-    description="List all messages in a chat with sources",
-)
-def list_chat_messages(
-    chat_id: str,
-    chat_service: ChatService = Depends(get_chat_service),
-    current_user: User = Depends(get_user),
-):
-    """List all messages in a chat"""
-    logger.info("listing messages for chat_id=%s", chat_id)
-
-    chat = chat_service.get_chat(chat_id, current_user.id)
-    if not chat:
-        logger.error("chat_id=%s not found", chat_id)
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat not found",
-        )
-
-    messages = [_message_to_dto(msg) for msg in chat.messages]
-
-    return messages
 
 
 @router.post(
@@ -267,23 +239,26 @@ async def send_streaming_message(
             ):
                 # Format sources if present
                 sources_list = None
-                if chunk_data.get("sources"):
+                if chunk_data.sources:
                     sources_list = [
-                        SourceDto(**source) for source in chunk_data["sources"]
+                        SourceDto(**source.model_dump())
+                        for source in chunk_data.sources
                     ]
 
                 # Format tools if present
                 tools_list = None
-                if chunk_data.get("tools"):
-                    tools_list = [ToolCallDto(**tool) for tool in chunk_data["tools"]]
+                if chunk_data.tools:
+                    tools_list = [
+                        ToolCallDto(**tool.model_dump()) for tool in chunk_data.tools
+                    ]
 
                 # Create the streaming message object
                 streaming_msg = StreamingChatMessage(
-                    chunk=chunk_data.get("chunk", ""),
-                    done=chunk_data.get("done", False),
+                    chunk=chunk_data.chunk or "",
+                    done=chunk_data.done,
                     sources=sources_list,
                     tools=tools_list,
-                    id=chunk_data.get("id", ""),
+                    id=chunk_data.id or "",
                 )
 
                 message_json = streaming_msg.model_dump_json()

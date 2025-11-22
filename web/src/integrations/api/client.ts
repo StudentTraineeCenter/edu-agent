@@ -47,10 +47,6 @@ export class ProjectListResponse extends S.Class<ProjectListResponse>(
    * List of projects
    */
   data: S.Array(ProjectDto),
-  /**
-   * Total number of projects
-   */
-  total_count: S.Int,
 }) {}
 
 /**
@@ -88,26 +84,6 @@ export class HTTPValidationError extends S.Class<HTTPValidationError>(
   'HTTPValidationError',
 )({
   detail: S.optionalWith(S.Array(ValidationError), { nullable: true }),
-}) {}
-
-/**
- * Request model for updating a project.
- */
-export class ProjectUpdateRequest extends S.Class<ProjectUpdateRequest>(
-  'ProjectUpdateRequest',
-)({
-  /**
-   * Name of the project
-   */
-  name: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * Description of the project
-   */
-  description: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * Language code (e.g., 'en', 'es', 'fr')
-   */
-  language_code: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
 export class ListChatsV1ChatsGetParams extends S.Struct({
@@ -187,9 +163,10 @@ export class ToolCallDto extends S.Class<ToolCallDto>('ToolCallDto')({
   /**
    * Output result from the tool
    */
-  output: S.optionalWith(S.Record({ key: S.String, value: S.Unknown }), {
-    nullable: true,
-  }),
+  output: S.optionalWith(
+    S.Union(S.Record({ key: S.String, value: S.Unknown }), S.String),
+    { nullable: true },
+  ),
   /**
    * Error message if failed
    */
@@ -298,10 +275,6 @@ export class ChatListResponse extends S.Class<ChatListResponse>(
    * List of chats
    */
   data: S.Array(ChatDto),
-  /**
-   * Total number of chats
-   */
-  total_count: S.Int,
 }) {}
 
 /**
@@ -327,10 +300,6 @@ export class ChatUpdateRequest extends S.Class<ChatUpdateRequest>(
    */
   title: S.optionalWith(S.String, { nullable: true }),
 }) {}
-
-export class ListChatMessagesV1ChatsChatIdMessagesGet200 extends S.Array(
-  ChatMessageDto,
-) {}
 
 /**
  * Request model for chat completion with RAG.
@@ -410,61 +379,10 @@ export class DocumentDto extends S.Class<DocumentDto>('DocumentDto')({
 export class DocumentListResponse extends S.Class<DocumentListResponse>(
   'DocumentListResponse',
 )({
+  /**
+   * List of documents
+   */
   data: S.Array(DocumentDto),
-  total_count: S.Int.pipe(S.greaterThanOrEqualTo(0)),
-}) {}
-
-export class DocumentSearchRequest extends S.Class<DocumentSearchRequest>(
-  'DocumentSearchRequest',
-)({
-  /**
-   * Search query
-   */
-  query: S.String.pipe(S.minLength(1)),
-  /**
-   * Project ID to search within
-   */
-  project_id: S.String,
-  /**
-   * Number of results to return
-   */
-  top_k: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(50)),
-    { nullable: true, default: () => 5 as const },
-  ),
-}) {}
-
-export class SearchResultDto extends S.Class<SearchResultDto>(
-  'SearchResultDto',
-)({
-  /**
-   * Citation number
-   */
-  citation_index: S.Int.pipe(S.greaterThanOrEqualTo(1)),
-  /**
-   * Document ID
-   */
-  document_id: S.String,
-  /**
-   * Document title
-   */
-  title: S.String,
-  /**
-   * Relevant content excerpt
-   */
-  content: S.String,
-  /**
-   * Relevance score
-   */
-  score: S.Number.pipe(S.greaterThanOrEqualTo(0), S.lessThanOrEqualTo(1)),
-}) {}
-
-export class DocumentSearchResponse extends S.Class<DocumentSearchResponse>(
-  'DocumentSearchResponse',
-)({
-  results: S.Array(SearchResultDto),
-  total_count: S.Int.pipe(S.greaterThanOrEqualTo(0)),
-  query: S.String,
 }) {}
 
 export class PreviewDocumentV1DocumentsDocumentIdPreviewGet200 extends S.Struct(
@@ -495,33 +413,10 @@ export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
 export class FlashcardGroupListResponse extends S.Class<FlashcardGroupListResponse>(
   'FlashcardGroupListResponse',
 )({
+  /**
+   * List of flashcard groups
+   */
   data: S.Array(FlashcardGroupDto),
-  total: S.Int,
-}) {}
-
-export class CreateFlashcardGroupV1FlashcardsPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a flashcard group.
- */
-export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupRequest>(
-  'CreateFlashcardGroupRequest',
-)({
-  /**
-   * Number of flashcards to generate
-   */
-  flashcard_count: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Custom prompt to enhance generation
-   */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -532,26 +427,6 @@ export class FlashcardGroupResponse extends S.Class<FlashcardGroupResponse>(
 )({
   flashcard_group: FlashcardGroupDto,
   message: S.String,
-}) {}
-
-/**
- * Request model for updating a flashcard group.
- */
-export class UpdateFlashcardGroupRequest extends S.Class<UpdateFlashcardGroupRequest>(
-  'UpdateFlashcardGroupRequest',
-)({
-  /**
-   * Name of the flashcard group
-   */
-  name: S.optionalWith(S.String.pipe(S.minLength(1), S.maxLength(255)), {
-    nullable: true,
-  }),
-  /**
-   * Description of the flashcard group
-   */
-  description: S.optionalWith(S.String.pipe(S.maxLength(1000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -573,8 +448,10 @@ export class FlashcardDto extends S.Class<FlashcardDto>('FlashcardDto')({
 export class FlashcardListResponse extends S.Class<FlashcardListResponse>(
   'FlashcardListResponse',
 )({
-  flashcards: S.Array(FlashcardDto),
-  total: S.Int,
+  /**
+   * List of flashcards
+   */
+  data: S.Array(FlashcardDto),
 }) {}
 
 export class ListQuizzesV1QuizzesGetParams extends S.Struct({
@@ -599,33 +476,10 @@ export class QuizDto extends S.Class<QuizDto>('QuizDto')({
 export class QuizListResponse extends S.Class<QuizListResponse>(
   'QuizListResponse',
 )({
+  /**
+   * List of quizzes
+   */
   data: S.Array(QuizDto),
-  total: S.Int,
-}) {}
-
-export class CreateQuizV1QuizzesPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a quiz.
- */
-export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
-  'CreateQuizRequest',
-)({
-  /**
-   * Number of quiz questions to generate
-   */
-  question_count: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Custom prompt to enhance generation
-   */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -634,26 +488,6 @@ export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
 export class QuizResponse extends S.Class<QuizResponse>('QuizResponse')({
   quiz: QuizDto,
   message: S.String,
-}) {}
-
-/**
- * Request model for updating a quiz.
- */
-export class UpdateQuizRequest extends S.Class<UpdateQuizRequest>(
-  'UpdateQuizRequest',
-)({
-  /**
-   * Name of the quiz
-   */
-  name: S.optionalWith(S.String.pipe(S.minLength(1), S.maxLength(255)), {
-    nullable: true,
-  }),
-  /**
-   * Description of the quiz
-   */
-  description: S.optionalWith(S.String.pipe(S.maxLength(1000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -682,8 +516,10 @@ export class QuizQuestionDto extends S.Class<QuizQuestionDto>(
 export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
   'QuizQuestionListResponse',
 )({
-  quiz_questions: S.Array(QuizQuestionDto),
-  total: S.Int,
+  /**
+   * List of quiz questions
+   */
+  data: S.Array(QuizQuestionDto),
 }) {}
 
 export class ListAttemptsV1AttemptsGetParams extends S.Struct({
@@ -715,8 +551,10 @@ export class AttemptDto extends S.Class<AttemptDto>('AttemptDto')({
 export class AttemptListResponse extends S.Class<AttemptListResponse>(
   'AttemptListResponse',
 )({
-  attempts: S.Array(AttemptDto),
-  total: S.Int,
+  /**
+   * List of attempts
+   */
+  data: S.Array(AttemptDto),
 }) {}
 
 export class CreateAttemptV1AttemptsPostParams extends S.Struct({
@@ -786,9 +624,9 @@ export class CreateAttemptBatchRequest extends S.Class<CreateAttemptBatchRequest
 
 export class UserDto extends S.Class<UserDto>('UserDto')({
   id: S.String,
-  name: S.String,
-  email: S.String,
-  azure_oid: S.String,
+  name: S.optionalWith(S.String, { nullable: true }),
+  email: S.optionalWith(S.String, { nullable: true }),
+  azure_oid: S.optionalWith(S.String, { nullable: true }),
   created_at: S.String,
 }) {}
 
@@ -922,19 +760,8 @@ export const make = (
           }),
         ),
       ),
-    updateProjectV1ProjectsProjectIdPut: (projectId, options) =>
-      HttpClientRequest.put(`/v1/projects/${projectId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ProjectDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    archiveProjectV1ProjectsProjectIdArchivePost: (projectId) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/archive`).pipe(
+    deleteProjectV1ProjectsProjectIdDeletePost: (projectId) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/delete`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
             '422': decodeError('HTTPValidationError', HTTPValidationError),
@@ -988,22 +815,12 @@ export const make = (
           }),
         ),
       ),
-    archiveChatV1ChatsChatIdArchivePost: (chatId) =>
-      HttpClientRequest.post(`/v1/chats/${chatId}/archive`).pipe(
+    deleteChatV1ChatsChatIdDeletePost: (chatId) =>
+      HttpClientRequest.post(`/v1/chats/${chatId}/delete`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listChatMessagesV1ChatsChatIdMessagesGet: (chatId) =>
-      HttpClientRequest.get(`/v1/chats/${chatId}/messages`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ListChatMessagesV1ChatsChatIdMessagesGet200),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
@@ -1068,17 +885,6 @@ export const make = (
           }),
         ),
       ),
-    searchDocumentsV1DocumentsSearchPost: (options) =>
-      HttpClientRequest.post(`/v1/documents/search`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(DocumentSearchResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
     previewDocumentV1DocumentsDocumentIdPreviewGet: (documentId) =>
       HttpClientRequest.get(`/v1/documents/${documentId}/preview`).pipe(
         withResponse(
@@ -1104,33 +910,8 @@ export const make = (
           }),
         ),
       ),
-    createFlashcardGroupV1FlashcardsPost: (options) =>
-      HttpClientRequest.post(`/v1/flashcards`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
     getFlashcardGroupV1FlashcardsGroupIdGet: (groupId) =>
       HttpClientRequest.get(`/v1/flashcards/${groupId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    updateFlashcardGroupV1FlashcardsGroupIdPut: (groupId, options) =>
-      HttpClientRequest.put(`/v1/flashcards/${groupId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(FlashcardGroupResponse),
@@ -1172,33 +953,8 @@ export const make = (
           }),
         ),
       ),
-    createQuizV1QuizzesPost: (options) =>
-      HttpClientRequest.post(`/v1/quizzes`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
     getQuizV1QuizzesQuizIdGet: (quizId) =>
       HttpClientRequest.get(`/v1/quizzes/${quizId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    updateQuizV1QuizzesQuizIdPut: (quizId, options) =>
-      HttpClientRequest.put(`/v1/quizzes/${quizId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(QuizResponse),
@@ -1330,21 +1086,9 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update a project by id
+   * Delete a project by id
    */
-  readonly updateProjectV1ProjectsProjectIdPut: (
-    projectId: string,
-    options: typeof ProjectUpdateRequest.Encoded,
-  ) => Effect.Effect<
-    typeof ProjectDto.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Archive a project by id
-   */
-  readonly archiveProjectV1ProjectsProjectIdArchivePost: (
+  readonly deleteProjectV1ProjectsProjectIdDeletePost: (
     projectId: string,
   ) => Effect.Effect<
     void,
@@ -1398,23 +1142,12 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Archive a chat by id
+   * Delete a chat by id
    */
-  readonly archiveChatV1ChatsChatIdArchivePost: (
+  readonly deleteChatV1ChatsChatIdDeletePost: (
     chatId: string,
   ) => Effect.Effect<
     void,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List all messages in a chat with sources
-   */
-  readonly listChatMessagesV1ChatsChatIdMessagesGet: (
-    chatId: string,
-  ) => Effect.Effect<
-    typeof ListChatMessagesV1ChatsChatIdMessagesGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -1477,17 +1210,6 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Search documents within a project using semantic search
-   */
-  readonly searchDocumentsV1DocumentsSearchPost: (
-    options: typeof DocumentSearchRequest.Encoded,
-  ) => Effect.Effect<
-    typeof DocumentSearchResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
    * Stream document content for preview in browser
    */
   readonly previewDocumentV1DocumentsDocumentIdPreviewGet: (
@@ -1510,34 +1232,10 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new flashcard group for a project, optionally with generated flashcards
-   */
-  readonly createFlashcardGroupV1FlashcardsPost: (options: {
-    readonly params: typeof CreateFlashcardGroupV1FlashcardsPostParams.Encoded
-    readonly payload: typeof CreateFlashcardGroupRequest.Encoded
-  }) => Effect.Effect<
-    typeof FlashcardGroupResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
    * Get a specific flashcard group by ID
    */
   readonly getFlashcardGroupV1FlashcardsGroupIdGet: (
     groupId: string,
-  ) => Effect.Effect<
-    typeof FlashcardGroupResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Update a flashcard group
-   */
-  readonly updateFlashcardGroupV1FlashcardsGroupIdPut: (
-    groupId: string,
-    options: typeof UpdateFlashcardGroupRequest.Encoded,
   ) => Effect.Effect<
     typeof FlashcardGroupResponse.Type,
     | HttpClientError.HttpClientError
@@ -1578,34 +1276,10 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new quiz for a project, optionally with generated questions
-   */
-  readonly createQuizV1QuizzesPost: (options: {
-    readonly params: typeof CreateQuizV1QuizzesPostParams.Encoded
-    readonly payload: typeof CreateQuizRequest.Encoded
-  }) => Effect.Effect<
-    typeof QuizResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
    * Get a specific quiz by ID
    */
   readonly getQuizV1QuizzesQuizIdGet: (
     quizId: string,
-  ) => Effect.Effect<
-    typeof QuizResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Update a quiz
-   */
-  readonly updateQuizV1QuizzesQuizIdPut: (
-    quizId: string,
-    options: typeof UpdateQuizRequest.Encoded,
   ) => Effect.Effect<
     typeof QuizResponse.Type,
     | HttpClientError.HttpClientError

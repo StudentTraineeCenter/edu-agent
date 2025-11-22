@@ -1,11 +1,11 @@
-output "openai_endpoint" {
-  description = "Azure OpenAI endpoint"
-  value       = azurerm_cognitive_account.openai.endpoint
+output "ai_foundry_endpoint" {
+  description = "Azure AI Foundry hub endpoint"
+  value       = data.azurerm_cognitive_account.hub.endpoint
 }
 
-output "openai_api_key" {
-  description = "Azure OpenAI API key"
-  value       = azurerm_cognitive_account.openai.primary_access_key
+output "ai_foundry_api_key" {
+  description = "Azure AI Foundry API key (from hub)"
+  value       = data.azurerm_cognitive_account.hub.primary_access_key
   sensitive   = true
 }
 
@@ -30,8 +30,13 @@ output "ai_service_key" {
   sensitive   = true
 }
 
-output "openai_account_id" {
-  description = "ID of the OpenAI cognitive account"
-  value       = azurerm_cognitive_account.openai.id
+output "ai_foundry_project_id" {
+  description = "ID of the AI Foundry project"
+  value       = azurerm_ai_foundry_project.project.id
+}
+
+output "ai_foundry_hub_id" {
+  description = "ID of the AI Foundry hub"
+  value       = azurerm_ai_foundry.hub.id
 }
 
