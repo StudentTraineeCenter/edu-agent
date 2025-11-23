@@ -72,9 +72,9 @@ output "acr_name" {
   value       = module.acr.name
 }
 
-output "acr_repository_api" {
-  description = "ACR repository name for API"
-  value       = var.acr_repository_api
+output "acr_repository_server" {
+  description = "ACR repository name for server"
+  value       = var.acr_repository_server
 }
 
 output "acr_repository_web" {
@@ -83,9 +83,9 @@ output "acr_repository_web" {
 }
 
 # App Services
-output "app_api_url" {
-  description = "URL of the API web app"
-  value       = module.app_service.api_app_default_hostname
+output "app_server_url" {
+  description = "URL of the server web app"
+  value       = module.app_service.server_app_default_hostname
 }
 
 output "app_web_url" {
@@ -102,4 +102,10 @@ output "azure_tenant_id" {
 output "azure_app_client_id" {
   description = "Azure App Client ID"
   value       = var.azure_app_client_id
+}
+
+# Key Vault
+output "azure_key_vault_uri" {
+  description = "URI of the Azure Key Vault"
+  value       = module.key_vault.uri
 }
