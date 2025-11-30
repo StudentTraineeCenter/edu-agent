@@ -238,7 +238,7 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
   const handleSubmit = async () => {
     await submitPendingAttempts({ quizId, projectId })
     navigate({
-      to: '/p/$projectId',
+      to: '/dashboard/p/$projectId',
       params: { projectId },
     })
   }
@@ -249,7 +249,7 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   const handleClose = () => {
     navigate({
-      to: '/p/$projectId',
+      to: '/dashboard/p/$projectId',
       params: { projectId },
     })
   }

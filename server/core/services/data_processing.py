@@ -14,7 +14,7 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 from pydantic import BaseModel
-from server.core.agents.llm import make_embeddings
+from core.agents.llm import make_embeddings
 from sqlalchemy.orm import Session
 
 from core.config import app_config

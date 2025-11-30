@@ -36,7 +36,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
 
   const handleClose = useCallback(() => {
     navigate({
-      to: '/p/$projectId',
+      to: '/dashboard/p/$projectId',
       params: { projectId },
     })
   }, [navigate, projectId])
