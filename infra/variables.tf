@@ -9,6 +9,11 @@ variable "azure_tenant_id" {
   type        = string
 }
 
+variable "database_url" {
+  description = "Database connection URL"
+  type        = string
+}
+
 variable "azure_app_client_id" {
   description = "Azure App Client ID"
   type        = string

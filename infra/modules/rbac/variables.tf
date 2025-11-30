@@ -18,8 +18,3 @@ variable "storage_account_id" {
   type        = string
 }
 
-variable "ai_foundry_project_id" {
-  description = "ID of the AI Foundry project"
-  type        = string
-}
-

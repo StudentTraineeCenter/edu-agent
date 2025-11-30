@@ -34,7 +34,7 @@ output "storage_account_identity_principal_id" {
 
 # Azure AI Foundry
 output "ai_foundry_endpoint" {
-  description = "Azure AI Foundry project endpoint"
+  description = "Azure AI Foundry endpoint"
   value       = module.ai.ai_foundry_endpoint
 }
 

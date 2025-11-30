@@ -14,6 +14,7 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 from pydantic import BaseModel
+from server.core.agents.llm import make_embeddings
 from sqlalchemy.orm import Session
 
 from core.config import app_config
@@ -38,8 +39,6 @@ class DataProcessingService:
 
     def __init__(self) -> None:
         """Initialize the data processing service."""
-        self.credential = DefaultAzureCredential()
-
         self.blob_service_client = BlobServiceClient.from_connection_string(
             app_config.AZURE_STORAGE_CONNECTION_STRING
         )
@@ -49,16 +48,7 @@ class DataProcessingService:
             subscription_key=app_config.AZURE_CU_KEY,
         )
 
-        self.token_provider = get_bearer_token_provider(
-            self.credential, "https://cognitiveservices.azure.com/.default"
-        )
-
-        self.embeddings = AzureOpenAIEmbeddings(
-            azure_deployment=app_config.AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
-            azure_endpoint=app_config.AZURE_OPENAI_ENDPOINT,
-            api_version="2024-12-01-preview",
-            azure_ad_token_provider=self.token_provider,
-        )
+        self.embeddings = make_embeddings()
 
     def upload_document(
         self, file_content: bytes, filename: str, project_id: str, owner_id: str

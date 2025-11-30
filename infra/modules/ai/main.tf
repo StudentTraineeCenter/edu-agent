@@ -1,36 +1,14 @@
-# AI Foundry Hub
-resource "azurerm_ai_foundry" "hub" {
-  name                = var.ai_foundry_hub_name
-  location            = var.location
-  resource_group_name = var.resource_group_name
-
-  storage_account_id = var.storage_account_id
-  key_vault_id       = var.key_vault_id
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  tags = var.tags
-}
-
-# Create a separate cognitive account for OpenAI deployments
-# AI Foundry hubs are ML workspaces, not cognitive accounts, so we need a separate account
-resource "azurerm_cognitive_account" "openai" {
-  name                = "${var.ai_foundry_hub_name}-openai"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  kind                = "OpenAI"
-  sku_name            = "S0"
-
-  tags = var.tags
-}
-
-# AI Foundry Project
-resource "azurerm_ai_foundry_project" "project" {
-  name               = var.ai_foundry_project_name
-  location           = azurerm_ai_foundry.hub.location
-  ai_services_hub_id = azurerm_ai_foundry.hub.id
+# AI Foundry resource - a cognitive account with kind="AIServices"
+# According to Microsoft docs, AI Foundry is a cognitive account with project_management_enabled=true
+# This account hosts OpenAI-compatible model deployments and projects
+resource "azurerm_cognitive_account" "ai_foundry" {
+  name                      = var.ai_foundry_hub_name
+  location                  = var.location
+  resource_group_name       = var.resource_group_name
+  kind                      = "AIServices"
+  sku_name                  = "S0"
+  custom_subdomain_name     = var.ai_foundry_hub_name
+  project_management_enabled = true
 
   identity {
     type = "SystemAssigned"
@@ -42,7 +20,7 @@ resource "azurerm_ai_foundry_project" "project" {
 # AI Foundry Model Deployments (attached to cognitive account)
 resource "azurerm_cognitive_deployment" "gpt4o" {
   name                 = var.gpt4o_deployment_name
-  cognitive_account_id = azurerm_cognitive_account.openai.id
+  cognitive_account_id = azurerm_cognitive_account.ai_foundry.id
 
   model {
     format  = "OpenAI"
@@ -58,7 +36,7 @@ resource "azurerm_cognitive_deployment" "gpt4o" {
 
 resource "azurerm_cognitive_deployment" "text_embedding_3_large" {
   name                 = var.text_embedding_deployment_name
-  cognitive_account_id = azurerm_cognitive_account.openai.id
+  cognitive_account_id = azurerm_cognitive_account.ai_foundry.id
 
   model {
     format  = "OpenAI"

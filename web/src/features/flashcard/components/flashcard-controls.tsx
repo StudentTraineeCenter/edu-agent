@@ -35,9 +35,9 @@ export const FlashcardControls = ({
       return null
 
     const { currentCardIndex } = stateResult.value
-    const { flashcards } = flashcardsResult.value
+    const { data } = flashcardsResult.value
 
-    return flashcards[currentCardIndex]
+    return data[currentCardIndex]
   }, [flashcardsResult, stateResult])
 
   const isCardMarked = useMemo(() => {

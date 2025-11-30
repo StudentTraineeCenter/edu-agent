@@ -74,11 +74,6 @@ variable "ai_foundry_hub_name" {
   type        = string
 }
 
-variable "ai_foundry_project_name" {
-  description = "Name of the AI Foundry project"
-  type        = string
-}
-
 variable "storage_account_id" {
   description = "ID of the storage account for AI Foundry"
   type        = string

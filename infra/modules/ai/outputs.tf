@@ -1,11 +1,16 @@
 output "ai_foundry_endpoint" {
-  description = "Azure AI Foundry OpenAI endpoint"
-  value       = azurerm_cognitive_account.openai.endpoint
+  description = "Azure AI Foundry cognitive account endpoint for model deployments"
+  value       = azurerm_cognitive_account.ai_foundry.endpoint
+}
+
+output "ai_foundry_subdomain" {
+  description = "Azure AI Foundry cognitive account custom subdomain"
+  value       = azurerm_cognitive_account.ai_foundry.custom_subdomain_name
 }
 
 output "ai_foundry_api_key" {
-  description = "Azure AI Foundry OpenAI API key"
-  value       = azurerm_cognitive_account.openai.primary_access_key
+  description = "Azure AI Foundry cognitive account API key for model deployments"
+  value       = azurerm_cognitive_account.ai_foundry.primary_access_key
   sensitive   = true
 }
 
@@ -30,13 +35,8 @@ output "ai_service_key" {
   sensitive   = true
 }
 
-output "ai_foundry_project_id" {
-  description = "ID of the AI Foundry project"
-  value       = azurerm_ai_foundry_project.project.id
-}
-
 output "ai_foundry_hub_id" {
-  description = "ID of the AI Foundry hub"
-  value       = azurerm_ai_foundry.hub.id
+  description = "ID of the AI Foundry cognitive account (acts as hub)"
+  value       = azurerm_cognitive_account.ai_foundry.id
 }
 

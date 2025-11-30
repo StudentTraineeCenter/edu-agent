@@ -10,7 +10,7 @@ TAG="${1:-latest}"
 DOCKERFILE_PATH="${2:-../web/Dockerfile}"
 CONTEXT_DIR="${3:-../web}"
 
-SERVER_URL="$(terraform output -raw app_api_url)"
+SERVER_URL="$(terraform output -raw app_server_url)"
 TENANT_ID="$(terraform output -raw azure_tenant_id)"
 CLIENT_ID="$(terraform output -raw azure_app_client_id)"
 

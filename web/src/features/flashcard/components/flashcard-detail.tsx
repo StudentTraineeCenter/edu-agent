@@ -66,7 +66,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
       // Get current card from Result
       const currentCard =
         flashcardsResult._tag === 'Success'
-          ? flashcardsResult.value.flashcards?.[currentState.currentCardIndex]
+          ? flashcardsResult.value.data?.[currentState.currentCardIndex]
           : null
 
       if (!currentCard) return

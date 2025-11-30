@@ -21,8 +21,8 @@ export const FlashcardProgress = ({
 
   const totalCount = useMemo(() => {
     if (!Result.isSuccess(flashcardsResult)) return 0
-    const { flashcards } = flashcardsResult.value
-    return flashcards.length
+    const { data } = flashcardsResult.value
+    return data.length
   }, [flashcardsResult])
 
   const progressPercentage = useMemo(() => {

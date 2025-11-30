@@ -15,7 +15,9 @@ export const makeHttpClient = Effect.gen(function* () {
         HttpClientRequest.setHeaders({
           Authorization: `Bearer ${token}`,
         }),
-        HttpClientRequest.prependUrl('http://localhost:8000'),
+        HttpClientRequest.prependUrl(
+          import.meta.env.VITE_SERVER_URL ?? 'http://localhost:8000',
+        ),
       ),
     ),
   )

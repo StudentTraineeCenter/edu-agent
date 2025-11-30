@@ -42,7 +42,7 @@ export const FlashcardContent = ({
       const state = Option.isSome(stateResult) ? stateResult.value : null
       if (!state) return null
 
-      const flashcards = result.flashcards ?? []
+      const flashcards = result.data ?? []
       const currentCard = flashcards[state.currentCardIndex]
 
       if (!currentCard || flashcards.length === 0) {
