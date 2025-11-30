@@ -83,7 +83,7 @@ type ChatDetailPageProps = {
 export const ChatDetailPage = ({ projectId, chatId }: ChatDetailPageProps) => {
   return (
     <div className="flex h-full flex-col max-h-screen">
-      <ChatHeader chatId={chatId} />
+      <ChatHeader chatId={chatId} projectId={projectId} />
 
       <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] overflow-hidden w-full">
         <ChatContent chatId={chatId} projectId={projectId} />

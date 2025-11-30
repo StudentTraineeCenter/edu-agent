@@ -40,12 +40,16 @@ const DocumentContent = ({ documentId }: DocumentContentProps) => {
 
 type DocumentDetailPageProps = {
   documentId: string
+  projectId: string
 }
 
-export const DocumentDetailPage = ({ documentId }: DocumentDetailPageProps) => {
+export const DocumentDetailPage = ({
+  documentId,
+  projectId,
+}: DocumentDetailPageProps) => {
   return (
     <div className="flex h-full flex-col">
-      <DocumentHeader documentId={documentId} />
+      <DocumentHeader documentId={documentId} projectId={projectId} />
       <DocumentContent documentId={documentId} />
     </div>
   )

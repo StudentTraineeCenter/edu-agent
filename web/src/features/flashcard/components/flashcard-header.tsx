@@ -10,6 +10,9 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { flashcardGroupAtom } from '@/data-acess/flashcard'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string
@@ -49,15 +52,29 @@ const FlashcardHeaderContent = ({
 
 type FlashcardHeaderProps = {
   flashcardGroupId: string
+  projectId: string
 }
 
-export const FlashcardHeader = ({ flashcardGroupId }: FlashcardHeaderProps) => {
+export const FlashcardHeader = ({
+  flashcardGroupId,
+  projectId,
+}: FlashcardHeaderProps) => {
   const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
       <div className="flex flex-1 items-center gap-2 px-3">
-        {Result.isSuccess(groupResult) && <SidebarTrigger />}
+        {Result.isSuccess(groupResult) && (
+          <>
+            <SidebarTrigger />
+            <Button variant="ghost" size="icon" className="size-7" asChild>
+              <Link to="/dashboard/p/$projectId" params={{ projectId }}>
+                <ArrowLeft className="size-4" />
+                <span className="sr-only">Back to project</span>
+              </Link>
+            </Button>
+          </>
+        )}
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"

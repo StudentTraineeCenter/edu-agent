@@ -3,5 +3,10 @@ import { FlashcardDetailPage } from '@/features/flashcard/flashcard-detail-page'
 
 export const FlashcardDetailRoute = () => {
   const params = flashcardDetailRoute.useParams()
-  return <FlashcardDetailPage flashcardGroupId={params.flashcardGroupId} />
+  return (
+    <FlashcardDetailPage
+      flashcardGroupId={params.flashcardGroupId}
+      projectId={params.projectId}
+    />
+  )
 }

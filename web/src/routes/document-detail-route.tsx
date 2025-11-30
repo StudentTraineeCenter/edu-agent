@@ -3,5 +3,10 @@ import { DocumentDetailPage } from '@/features/document/document-detail-page'
 
 export const DocumentDetailRoute = () => {
   const params = documentDetailRoute.useParams()
-  return <DocumentDetailPage documentId={params.documentId} />
+  return (
+    <DocumentDetailPage
+      documentId={params.documentId}
+      projectId={params.projectId}
+    />
+  )
 }

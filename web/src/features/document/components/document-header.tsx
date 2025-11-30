@@ -10,6 +10,9 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { documentAtom } from '@/data-acess/document'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 
 const DocumentHeaderContent = ({ documentId }: { documentId: string }) => {
   const documentResult = useAtomValue(documentAtom(documentId))
@@ -32,15 +35,29 @@ const DocumentHeaderContent = ({ documentId }: { documentId: string }) => {
 
 type DocumentHeaderProps = {
   documentId: string
+  projectId: string
 }
 
-export const DocumentHeader = ({ documentId }: DocumentHeaderProps) => {
+export const DocumentHeader = ({
+  documentId,
+  projectId,
+}: DocumentHeaderProps) => {
   const documentResult = useAtomValue(documentAtom(documentId))
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
       <div className="flex flex-1 items-center gap-2 px-3">
-        {Result.isSuccess(documentResult) && <SidebarTrigger />}
+        {Result.isSuccess(documentResult) && (
+          <>
+            <SidebarTrigger />
+            <Button variant="ghost" size="icon" className="size-7" asChild>
+              <Link to="/dashboard/p/$projectId" params={{ projectId }}>
+                <ArrowLeft className="size-4" />
+                <span className="sr-only">Back to project</span>
+              </Link>
+            </Button>
+          </>
+        )}
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
