@@ -290,10 +290,10 @@ class StudyAttempt(Base):
         String, ForeignKey("projects.id"), index=True
     )
 
-    item_type: Mapped[str] = mapped_column(String, index=True)  # "flashcard" or "quiz"
+    item_type: Mapped[str] = mapped_column(String, index=True)  # "flashcard" or "quiz" - type of study resource
     item_id: Mapped[str] = mapped_column(
         String, index=True
-    )  # flashcard_id or quiz_question_id
+    )  # flashcard_id or quiz_question_id - ID of the study resource
     topic: Mapped[str] = mapped_column(Text)  # Extracted from question/flashcard text
     user_answer: Mapped[str] = mapped_column(
         String, nullable=True

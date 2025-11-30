@@ -6,13 +6,13 @@ import { chatsAtom, createChatAtom } from '@/data-acess/chat'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Loader2Icon } from 'lucide-react'
 import { documentsAtom } from '@/data-acess/document'
-import { materialsAtom } from '@/data-acess/materials'
+import { studyResourcesAtom } from '@/data-acess/study-resources'
 import { useUploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
 import { Separator } from '@/components/ui/separator'
 import { ProjectHeader } from './components/project-header'
 import { ChatListItem } from './components/chat-list-item'
 import { DocumentListItem } from './components/document-list-item'
-import { MaterialListItem } from './components/material-list-item'
+import { StudyResourceListItem } from './components/study-resource-list-item'
 import { Result } from '@effect-atom/atom-react'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {
@@ -77,27 +77,30 @@ const DocumentsSection = ({ projectId }: { projectId: string }) => {
     .render()
 }
 
-const MaterialsSection = ({ projectId }: { projectId: string }) => {
-  const materialsResult = useAtomValue(materialsAtom(projectId))
+const StudyResourcesSection = ({ projectId }: { projectId: string }) => {
+  const studyResourcesResult = useAtomValue(studyResourcesAtom(projectId))
 
-  return Result.builder(materialsResult)
+  return Result.builder(studyResourcesResult)
     .onInitialOrWaiting(() => (
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2Icon className="size-4 animate-spin" />
-        <span>Loading materials…</span>
+        <span>Loading study resources…</span>
       </div>
     ))
-    .onSuccess((materials) => (
+    .onSuccess((studyResources) => (
       <>
-        {materials.length === 0 && (
+        {studyResources.length === 0 && (
           <div className="text-center text-muted-foreground py-8">
-            <p>No materials yet.</p>
+            <p>No study resources yet.</p>
           </div>
         )}
 
         <ul className="space-y-2">
-          {materials.map((material) => (
-            <MaterialListItem key={material.data.id} material={material} />
+          {studyResources.map((resource) => (
+            <StudyResourceListItem
+              key={resource.data.id}
+              studyResource={resource}
+            />
           ))}
         </ul>
       </>
@@ -165,15 +168,15 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
 
         <div className="p-4 pt-0 flex flex-col gap-2">
           <div className="flex items-center justify-between px-3">
-            <h3 className="text-xl font-semibold">Materials</h3>
+            <h3 className="text-xl font-semibold">Study Resources</h3>
 
             <Button size="sm" disabled>
               <PlusIcon className="size-4" />
-              <span>New material</span>
+              <span>New study resource</span>
             </Button>
           </div>
 
-          <MaterialsSection projectId={projectId} />
+          <StudyResourcesSection projectId={projectId} />
         </div>
       </div>
     </div>

@@ -42,8 +42,8 @@ async def create_attempt(
         attempt = attempt_service.create_attempt(
             user_id=current_user.id,
             project_id=project_id,
-            item_type=request.item_type,
-            item_id=request.item_id,
+            study_resource_type=request.item_type,
+            study_resource_id=request.item_id,
             topic=request.topic,
             user_answer=request.user_answer,
             correct_answer=request.correct_answer,

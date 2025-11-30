@@ -23,8 +23,8 @@ class AttemptService:
         self,
         user_id: str,
         project_id: str,
-        item_type: str,
-        item_id: str,
+        study_resource_type: str,
+        study_resource_id: str,
         topic: str,
         user_answer: str | None,
         correct_answer: str,
@@ -35,9 +35,9 @@ class AttemptService:
         Args:
             user_id: The user's unique identifier
             project_id: The project ID
-            item_type: Type of item ('flashcard' or 'quiz')
-            item_id: ID of the flashcard or quiz question
-            topic: Topic of the study material
+            study_resource_type: Type of study resource ('flashcard' or 'quiz')
+            study_resource_id: ID of the flashcard or quiz question
+            topic: Topic of the study resource
             user_answer: User's answer (can be None for flashcards)
             correct_answer: The correct answer
             was_correct: Whether the user's answer was correct
@@ -46,19 +46,19 @@ class AttemptService:
             Created StudyAttempt model instance
 
         Raises:
-            ValueError: If the referenced item doesn't exist
+            ValueError: If the referenced study resource doesn't exist
         """
         with self._get_db_session() as db:
             try:
-                # Validate that the referenced item exists
-                if not self._validate_item(db, item_type, item_id):
-                    raise ValueError(f"Item {item_id} of type {item_type} not found")
+                # Validate that the referenced study resource exists
+                if not self._validate_item(db, study_resource_type, study_resource_id):
+                    raise ValueError(f"Study resource {study_resource_id} of type {study_resource_type} not found")
 
                 attempt = StudyAttempt(
                     user_id=user_id,
                     project_id=project_id,
-                    item_type=item_type,
-                    item_id=item_id,
+                    item_type=study_resource_type,
+                    item_id=study_resource_id,
                     topic=topic,
                     user_answer=user_answer,
                     correct_answer=correct_answer,
@@ -70,7 +70,7 @@ class AttemptService:
                 db.refresh(attempt)
 
                 logger.info(
-                    f"created attempt id={attempt.id} for user_id={user_id}, item_type={item_type}, item_id={item_id}"
+                    f"created attempt id={attempt.id} for user_id={user_id}, item_type={study_resource_type}, item_id={study_resource_id}"
                 )
 
                 return attempt
@@ -78,7 +78,7 @@ class AttemptService:
                 raise
             except Exception as e:
                 logger.error(
-                    f"error creating attempt for user_id={user_id}, item_id={item_id}: {e}"
+                    f"error creating attempt for user_id={user_id}, item_id={study_resource_id}: {e}"
                 )
                 raise
 
@@ -106,10 +106,10 @@ class AttemptService:
                     item_type = attempt_data.get("item_type")
                     item_id = attempt_data.get("item_id")
 
-                    # Validate that the referenced item exists
+                    # Validate that the referenced study resource exists
                     if not self._validate_item(db, item_type, item_id):
                         logger.warning(
-                            f"skipping attempt: item {item_id} of type {item_type} not found"
+                            f"skipping attempt: study resource {item_id} of type {item_type} not found"
                         )
                         continue
 
@@ -177,15 +177,15 @@ class AttemptService:
                 raise
 
     def _validate_item(self, db: Session, item_type: str, item_id: str) -> bool:
-        """Validate that the referenced item exists.
+        """Validate that the referenced study resource exists.
 
         Args:
             db: Database session
-            item_type: Type of item ('flashcard' or 'quiz')
-            item_id: ID of the item to validate
+            item_type: Type of study resource ('flashcard' or 'quiz')
+            item_id: ID of the study resource to validate
 
         Returns:
-            True if item exists, False otherwise
+            True if study resource exists, False otherwise
         """
         try:
             if item_type == "flashcard":
@@ -200,7 +200,7 @@ class AttemptService:
                 return False
         except Exception as e:
             logger.error(
-                f"error validating item item_id={item_id}, item_type={item_type}: {e}"
+                f"error validating study resource item_id={item_id}, item_type={item_type}: {e}"
             )
             return False
 

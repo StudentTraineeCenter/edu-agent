@@ -17,10 +17,10 @@ import {
 import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteFlashcardGroupAtom } from '@/data-acess/flashcard'
 import { deleteQuizAtom } from '@/data-acess/quiz'
-import { Material } from '@/data-acess/materials'
+import { StudyResource } from '@/data-acess/study-resources'
 
 type Props = {
-  material: Material
+  studyResource: StudyResource
 }
 
 const renderContent = ({
@@ -49,13 +49,13 @@ const renderContent = ({
   )
 }
 
-export const MaterialListItem = ({ material }: Props) => {
+export const StudyResourceListItem = ({ studyResource }: Props) => {
   const deleteFlashcardGroup = useAtomSet(deleteFlashcardGroupAtom, {
     mode: 'promise',
   })
   const deleteQuiz = useAtomSet(deleteQuizAtom, { mode: 'promise' })
 
-  return Material.$match(material, {
+  return StudyResource.$match(studyResource, {
     FlashcardGroup: ({ data: flashcardGroup }) => {
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
