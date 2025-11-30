@@ -5,6 +5,7 @@ import { makeApiClient } from '@/integrations/api/http'
 import {
   ProjectDto,
   type ProjectCreateRequest,
+  type ProjectUpdateRequest,
 } from '@/integrations/api/client'
 import { runtime } from '@/data-acess/runtime'
 
@@ -63,13 +64,27 @@ export const projectsAtom = Object.assign(
 )
 
 export const upsertProjectAtom = runtime.fn(
-  Effect.fn(function* (input: typeof ProjectCreateRequest.Encoded) {
+  Effect.fn(function* (
+    input: typeof ProjectCreateRequest.Encoded & { id?: string },
+  ) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const res = yield* client.createProjectV1ProjectsPost(input)
+    const { id, ...data } = input
+
+    const res = id
+      ? yield* client.updateProjectV1ProjectsProjectIdPut(
+          id,
+          data as typeof ProjectUpdateRequest.Encoded,
+        )
+      : yield* client.createProjectV1ProjectsPost(
+          data as typeof ProjectCreateRequest.Encoded,
+        )
 
     registry.set(projectsAtom, ProjectsAction.Upsert({ project: res }))
     registry.refresh(projectsRemoteAtom)
+    if (id) {
+      registry.refresh(projectAtom(id))
+    }
   }),
 )
 

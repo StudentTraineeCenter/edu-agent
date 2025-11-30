@@ -103,18 +103,21 @@ export function UpsertProjectDialog() {
   }
 
   const onSubmit = async (data: UpsertProjectSchema) => {
-    await upsertProject(data)
+    await upsertProject({ ...data, id: project?.id })
     handleClose()
   }
+
+  const isEditMode = !!project
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Project' : 'Create Project'}</DialogTitle>
           <DialogDescription>
-            Create a new project to organize your learning materials and
-            conversations.
+            {isEditMode
+              ? 'Update your project details.'
+              : 'Create a new project to organize your learning materials and conversations.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -179,7 +182,13 @@ export function UpsertProjectDialog() {
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Creating...' : 'Create Project'}
+                {isLoading
+                  ? isEditMode
+                    ? 'Updating...'
+                    : 'Creating...'
+                  : isEditMode
+                    ? 'Update Project'
+                    : 'Create Project'}
               </Button>
             </DialogFooter>
           </form>

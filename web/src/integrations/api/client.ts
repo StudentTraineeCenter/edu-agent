@@ -86,6 +86,26 @@ export class HTTPValidationError extends S.Class<HTTPValidationError>(
   detail: S.optionalWith(S.Array(ValidationError), { nullable: true }),
 }) {}
 
+/**
+ * Request model for updating a project.
+ */
+export class ProjectUpdateRequest extends S.Class<ProjectUpdateRequest>(
+  'ProjectUpdateRequest',
+)({
+  /**
+   * Name of the project
+   */
+  name: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Description of the project
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Language code (e.g., 'en', 'es', 'fr')
+   */
+  language_code: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
 export class ListChatsV1ChatsGetParams extends S.Struct({
   project_id: S.String,
 }) {}
@@ -397,6 +417,10 @@ export class DocumentPreviewResponse extends S.Class<DocumentPreviewResponse>(
    */
   content_type: S.String,
 }) {}
+
+export class StreamDocumentV1DocumentsDocumentIdStreamGet200 extends S.Struct(
+  {},
+) {}
 
 export class ListFlashcardGroupsV1FlashcardsGetParams extends S.Struct({
   project_id: S.String,
@@ -769,6 +793,17 @@ export const make = (
           }),
         ),
       ),
+    updateProjectV1ProjectsProjectIdPut: (projectId, options) =>
+      HttpClientRequest.put(`/v1/projects/${projectId}`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ProjectDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     deleteProjectV1ProjectsProjectIdDeletePost: (projectId) =>
       HttpClientRequest.post(`/v1/projects/${projectId}/delete`).pipe(
         withResponse(
@@ -899,6 +934,18 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(DocumentPreviewResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    streamDocumentV1DocumentsDocumentIdStreamGet: (documentId) =>
+      HttpClientRequest.get(`/v1/documents/${documentId}/stream`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              StreamDocumentV1DocumentsDocumentIdStreamGet200,
+            ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1093,6 +1140,18 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Update a project
+   */
+  readonly updateProjectV1ProjectsProjectIdPut: (
+    projectId: string,
+    options: typeof ProjectUpdateRequest.Encoded,
+  ) => Effect.Effect<
+    typeof ProjectDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * Delete a project by id
    */
   readonly deleteProjectV1ProjectsProjectIdDeletePost: (
@@ -1217,12 +1276,23 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a SAS URL for direct blob access to preview the document
+   * Get a URL for previewing the document (streamed through backend with inline disposition)
    */
   readonly previewDocumentV1DocumentsDocumentIdPreviewGet: (
     documentId: string,
   ) => Effect.Effect<
     typeof DocumentPreviewResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Stream document content with Content-Disposition: inline for browser preview
+   */
+  readonly streamDocumentV1DocumentsDocumentIdStreamGet: (
+    documentId: string,
+  ) => Effect.Effect<
+    typeof StreamDocumentV1DocumentsDocumentIdStreamGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

@@ -7,6 +7,7 @@ from schemas.projects import (
     ProjectCreateRequest,
     ProjectDto,
     ProjectListResponse,
+    ProjectUpdateRequest,
 )
 
 logger = get_logger(__name__)
@@ -89,6 +90,33 @@ def get_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found",
         )
+
+    return ProjectDto.model_validate(result)
+
+
+@router.put(
+    path="/{project_id}",
+    response_model=ProjectDto,
+    status_code=status.HTTP_200_OK,
+    summary="Update a project",
+    description="Update a project",
+)
+def update_project(
+    project_id: str,
+    body: ProjectUpdateRequest,
+    project_service: ProjectService = Depends(get_project_service),
+    current_user: User = Depends(get_user),
+):
+    """Update a project"""
+    logger.info(f"Updating project: {project_id}")
+
+    result = project_service.update_project(
+        project_id,
+        current_user.id,
+        body.name,
+        body.description,
+        body.language_code,
+    )
 
     return ProjectDto.model_validate(result)
 

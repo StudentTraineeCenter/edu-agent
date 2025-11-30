@@ -11,9 +11,10 @@ import { projectAtom, deleteProjectAtom } from '@/data-acess/project'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { TrashIcon } from 'lucide-react'
+import { TrashIcon, PencilIcon } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
+import { useCreateProjectDialog } from './upsert-project-dialog'
 
 const ProjectHeaderContent = ({ projectId }: { projectId: string }) => {
   const projectResult = useAtomValue(projectAtom(projectId))
@@ -43,6 +44,13 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
   const deleteProject = useAtomSet(deleteProjectAtom, { mode: 'promise' })
   const navigate = useNavigate()
   const confirmationDialog = useConfirmationDialog()
+  const openEditDialog = useCreateProjectDialog((state) => state.open)
+
+  const handleEdit = () => {
+    if (Result.isSuccess(projectResult)) {
+      openEditDialog(projectResult.value)
+    }
+  }
 
   const handleDelete = async () => {
     const confirmed = await confirmationDialog.open({
@@ -72,6 +80,14 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
       </div>
       {Result.isSuccess(projectResult) && (
         <div className="flex items-center gap-2 px-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={handleEdit}
+          >
+            <PencilIcon className="size-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
