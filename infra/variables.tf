@@ -1,96 +1,90 @@
-# Azure Authentication
+# ============================================================================
+# Azure Authentication & Identity
+# ============================================================================
 variable "azure_subscription_id" {
   description = "Azure Subscription ID"
   type        = string
 }
 
 variable "azure_tenant_id" {
-  description = "Azure Tenant ID"
-  type        = string
-}
-
-variable "database_url" {
-  description = "Database connection URL"
+  description = "Azure Entra ID (formerly Azure AD) Tenant ID"
   type        = string
 }
 
 variable "azure_app_client_id" {
-  description = "Azure App Client ID"
+  description = "Azure Entra ID Application (Client) ID for authentication"
   type        = string
 }
 
+# ============================================================================
 # Infrastructure Configuration
-variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
-  default     = "rg-edu-agent"
-}
-
+# ============================================================================
 variable "location" {
-  description = "Azure region for resources"
+  description = "Azure region for resources (e.g., 'Sweden Central')"
   type        = string
   default     = "Sweden Central"
 }
 
 variable "region_code" {
-  description = "Short region code for CAF naming (e.g., swc for Sweden Central)"
+  description = "Short region code for CAF naming convention (e.g., 'swc' for Sweden Central)"
   type        = string
   default     = "swc"
 }
 
 variable "project_name" {
-  description = "Name of the project"
+  description = "Project name used in CAF naming convention"
   type        = string
   default     = "edu-agent"
 }
 
 variable "environment" {
-  description = "Environment (dev, staging, prod)"
+  description = "Environment name (dev, staging, prod). Used in CAF naming convention."
   type        = string
   default     = "dev"
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "Environment must be one of: dev, staging, prod."
+  }
 }
 
 variable "workload" {
-  description = "Workload name for CAF naming (optional)"
+  description = "Optional workload name for CAF naming convention (e.g., 'api', 'web')"
   type        = string
   default     = ""
 }
 
+# ============================================================================
+# Application Configuration
+# ============================================================================
+variable "database_url" {
+  description = "Database connection URL (stored in Key Vault)"
+  type        = string
+  sensitive   = true
+}
+
+# ============================================================================
 # Container Registry Configuration
+# ============================================================================
 variable "acr_repository_server" {
-  description = "ACR repository name for server"
+  description = "Azure Container Registry repository name for server application"
   type        = string
   default     = "edu-agent-server"
 }
 
 variable "acr_tag_server" {
-  description = "ACR tag for server"
+  description = "Container image tag for server application"
   type        = string
   default     = "latest"
 }
 
 variable "acr_repository_web" {
-  description = "ACR repository name for web"
+  description = "Azure Container Registry repository name for web application"
   type        = string
   default     = "edu-agent-web"
 }
 
 variable "acr_tag_web" {
-  description = "ACR tag for web"
+  description = "Container image tag for web application"
   type        = string
   default     = "latest"
 }
-
-# Database Configuration (DISABLED)
-# Uncomment these when enabling the database module
-# variable "database_admin_username" {
-#   description = "Username for the database admin"
-#   type        = string
-#   default     = "postgres"
-# }
-#
-# variable "database_admin_password" {
-#   description = "Password for the database admin"
-#   type        = string
-#   sensitive   = true
-# }

@@ -47,55 +47,8 @@ variable "azure_storage_container_name" {
   default     = null
 }
 
-variable "azure_openai_api_key" {
-  description = "Azure OpenAI API key"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "azure_openai_endpoint" {
-  description = "Azure OpenAI endpoint"
-  type        = string
-  default     = null
-}
-
-variable "azure_openai_default_model" {
-  description = "Azure OpenAI default model"
-  type        = string
-  default     = null
-}
-
-variable "azure_openai_embedding_deployment" {
-  description = "Azure OpenAI embedding deployment name"
-  type        = string
-  default     = null
-}
-
-variable "azure_openai_chat_deployment" {
-  description = "Azure OpenAI chat deployment name"
-  type        = string
-  default     = null
-}
-
-variable "azure_openai_api_version" {
-  description = "Azure OpenAI API version"
-  type        = string
-  default     = null
-}
-
-variable "azure_document_intelligence_endpoint" {
-  description = "Azure Document Intelligence endpoint"
-  type        = string
-  default     = null
-}
-
-variable "azure_document_intelligence_key" {
-  description = "Azure Document Intelligence key"
-  type        = string
-  default     = null
-  sensitive   = true
-}
+# Note: AI-related secret variables removed - these secrets are created in main.tf
+# after the AI module is created to avoid circular dependencies
 
 variable "azure_entra_tenant_id" {
   description = "Azure Entra ID tenant ID"
@@ -109,22 +62,4 @@ variable "azure_entra_client_id" {
   default     = null
 }
 
-variable "azure_cu_endpoint" {
-  description = "Azure Content Understanding endpoint"
-  type        = string
-  default     = null
-}
-
-variable "azure_cu_key" {
-  description = "Azure Content Understanding key"
-  type        = string
-  default     = null
-  sensitive   = true
-}
-
-variable "azure_cu_analyzer_id" {
-  description = "Azure Content Understanding analyzer ID"
-  type        = string
-  default     = null
-}
 
