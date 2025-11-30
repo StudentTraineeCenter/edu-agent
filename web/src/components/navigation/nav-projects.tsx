@@ -12,6 +12,7 @@ import {
 import { currentProjectIdAtom, projectsAtom } from '@/data-acess/project'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
+import { useCreateProjectDialog } from '@/features/project/components/upsert-project-dialog'
 import {
   Collapsible,
   CollapsibleContent,
@@ -83,12 +84,13 @@ export function NavProjects() {
   const projectsResult = useAtomValue(projectsAtom)
 
   const currentProjectId = useAtomValue(currentProjectIdAtom)
+  const openCreateProjectDialog = useCreateProjectDialog((state) => state.open)
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
-        <SidebarMenuButton tooltip="New project">
+        <SidebarMenuButton tooltip="New project" onClick={() => openCreateProjectDialog()}>
           <PlusIcon className="size-4 opacity-70" />
           <span>New project</span>
         </SidebarMenuButton>

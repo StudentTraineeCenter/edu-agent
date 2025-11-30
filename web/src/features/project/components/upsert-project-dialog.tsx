@@ -23,6 +23,7 @@ import { useAtom } from '@effect-atom/atom-react'
 import { upsertProjectAtom } from '@/data-acess/project'
 import * as S from 'effect/Schema'
 import { ProjectDto } from '@/integrations/api/client'
+import { useEffect } from 'react'
 import {
   Select,
   SelectContent,
@@ -80,11 +81,21 @@ export function UpsertProjectDialog() {
   const form = useForm<UpsertProjectSchema>({
     resolver: effectTsResolver(schema),
     defaultValues: {
-      name: project?.name ?? '',
-      description: project?.description ?? '',
-      language_code: project?.language_code ?? 'cs',
+      name: '',
+      description: '',
+      language_code: 'cs',
     },
   })
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset({
+        name: project?.name ?? '',
+        description: project?.description ?? '',
+        language_code: project?.language_code ?? 'cs',
+      })
+    }
+  }, [isOpen, project, form])
 
   const handleClose = () => {
     close()
@@ -92,12 +103,12 @@ export function UpsertProjectDialog() {
   }
 
   const onSubmit = async (data: UpsertProjectSchema) => {
-    if (project) await upsertProject(data)
+    await upsertProject(data)
     handleClose()
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
