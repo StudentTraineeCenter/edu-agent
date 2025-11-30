@@ -12,6 +12,7 @@ import { TrashIcon, MoreVerticalIcon } from 'lucide-react'
 import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteChatAtom } from '@/data-acess/chat'
 import type { ChatDto } from '@/integrations/api/client'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 type Props = {
   chat: ChatDto
@@ -24,14 +25,26 @@ export const ChatListItem = ({ chat }: Props) => {
   }, [chat.last_message])
 
   const deleteChat = useAtomSet(deleteChatAtom, { mode: 'promise' })
+  const confirmationDialog = useConfirmationDialog()
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    await deleteChat({
-      chatId: chat.id,
-      projectId: chat.project_id,
+
+    const confirmed = await confirmationDialog.open({
+      title: 'Delete Chat',
+      description: `Are you sure you want to delete "${chat.title ?? 'Untitled chat'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'destructive',
     })
+
+    if (confirmed) {
+      await deleteChat({
+        chatId: chat.id,
+        projectId: chat.project_id,
+      })
+    }
   }
 
   return (

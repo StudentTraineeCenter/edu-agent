@@ -8,7 +8,6 @@ import { PlusIcon, Loader2Icon } from 'lucide-react'
 import { documentsAtom } from '@/data-acess/document'
 import { studyResourcesAtom } from '@/data-acess/study-resources'
 import { useUploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
-import { Separator } from '@/components/ui/separator'
 import { ProjectHeader } from './components/project-header'
 import { ChatListItem } from './components/chat-list-item'
 import { DocumentListItem } from './components/document-list-item'
@@ -133,50 +132,46 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
   }
 
   return (
-    <div className="flex flex-1 flex-col p-4">
-      <div className="max-w-5xl mx-auto w-full flex flex-col rounded-lg">
-        {/* Chats list */}
-        <div className="p-4 pt-0 flex flex-col gap-2">
-          <div className="flex items-center justify-between px-3">
-            <h3 className="text-xl font-semibold">Chats</h3>
-
-            <Button onClick={handleCreateChat} size="sm">
-              <PlusIcon className="size-4" />
-              <span>New chat</span>
-            </Button>
-          </div>
-
+    <div className="flex flex-1 p-4 gap-4 overflow-hidden min-h-0">
+      <div className="flex flex-col w-1/2 border rounded-lg p-4 min-h-0">
+        <div className="flex items-center justify-between shrink-0 mb-2">
+          <h3 className="text-lg font-semibold">Chats</h3>
+          <Button onClick={handleCreateChat} size="sm">
+            <PlusIcon className="size-4" />
+            <span>New chat</span>
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
           <ChatsSection projectId={projectId} />
         </div>
+      </div>
 
-        <Separator className="mb-6 mx-auto" />
+      <div className="flex flex-col w-1/2 gap-4 min-h-0">
+        {/* Study Resources */}
+        <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
+          <div className="flex items-center justify-between shrink-0 mb-2">
+            <h3 className="text-lg font-semibold">Study Resources</h3>
+            <Button size="sm" disabled>
+              <PlusIcon className="size-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <StudyResourcesSection projectId={projectId} />
+          </div>
+        </div>
 
-        <div className="p-4 pt-0 flex flex-col gap-2">
-          <div className="flex items-center justify-between px-3">
-            <h3 className="text-xl font-semibold">Documents</h3>
-
+        {/* Documents */}
+        <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
+          <div className="flex items-center justify-between shrink-0 mb-2">
+            <h3 className="text-lg font-semibold">Documents</h3>
             <Button onClick={handleCreateDocument} size="sm">
               <PlusIcon className="size-4" />
               <span>New doc</span>
             </Button>
           </div>
-
-          <DocumentsSection projectId={projectId} />
-        </div>
-
-        <Separator className="mb-6 mx-auto" />
-
-        <div className="p-4 pt-0 flex flex-col gap-2">
-          <div className="flex items-center justify-between px-3">
-            <h3 className="text-xl font-semibold">Study Resources</h3>
-
-            <Button size="sm" disabled>
-              <PlusIcon className="size-4" />
-              <span>New study resource</span>
-            </Button>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <DocumentsSection projectId={projectId} />
           </div>
-
-          <StudyResourcesSection projectId={projectId} />
         </div>
       </div>
     </div>

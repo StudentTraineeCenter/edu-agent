@@ -18,6 +18,7 @@ import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteFlashcardGroupAtom } from '@/data-acess/flashcard'
 import { deleteQuizAtom } from '@/data-acess/quiz'
 import { StudyResource } from '@/data-acess/study-resources'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 type Props = {
   studyResource: StudyResource
@@ -54,16 +55,28 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
     mode: 'promise',
   })
   const deleteQuiz = useAtomSet(deleteQuizAtom, { mode: 'promise' })
+  const confirmationDialog = useConfirmationDialog()
 
   return StudyResource.$match(studyResource, {
     FlashcardGroup: ({ data: flashcardGroup }) => {
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        await deleteFlashcardGroup({
-          flashcardGroupId: flashcardGroup.id,
-          projectId: flashcardGroup.project_id ?? '',
+
+        const confirmed = await confirmationDialog.open({
+          title: 'Delete Flashcard Group',
+          description: `Are you sure you want to delete "${flashcardGroup.name}"? This action cannot be undone.`,
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+          variant: 'destructive',
         })
+
+        if (confirmed) {
+          await deleteFlashcardGroup({
+            flashcardGroupId: flashcardGroup.id,
+            projectId: flashcardGroup.project_id ?? '',
+          })
+        }
       }
 
       return (
@@ -109,10 +122,21 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
-        await deleteQuiz({
-          quizId: quiz.id,
-          projectId: quiz.project_id ?? '',
+
+        const confirmed = await confirmationDialog.open({
+          title: 'Delete Quiz',
+          description: `Are you sure you want to delete "${quiz.name}"? This action cannot be undone.`,
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+          variant: 'destructive',
         })
+
+        if (confirmed) {
+          await deleteQuiz({
+            quizId: quiz.id,
+            projectId: quiz.project_id ?? '',
+          })
+        }
       }
 
       return (

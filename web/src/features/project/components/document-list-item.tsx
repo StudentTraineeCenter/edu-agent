@@ -22,6 +22,7 @@ import { deleteDocumentAtom } from '@/data-acess/document'
 import { DocumentStatus } from '@/integrations/api/client'
 import { cn } from '@/lib/utils'
 import type { DocumentDto } from '@/integrations/api/client'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 type Props = {
   document: DocumentDto
@@ -69,14 +70,26 @@ export const DocumentListItem = ({ document }: Props) => {
   const StatusIcon = statusInfo.icon
 
   const deleteDocument = useAtomSet(deleteDocumentAtom, { mode: 'promise' })
+  const confirmationDialog = useConfirmationDialog()
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    await deleteDocument({
-      documentId: document.id,
-      projectId: document.project_id ?? '',
+
+    const confirmed = await confirmationDialog.open({
+      title: 'Delete Document',
+      description: `Are you sure you want to delete "${document.file_name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'destructive',
     })
+
+    if (confirmed) {
+      await deleteDocument({
+        documentId: document.id,
+        projectId: document.project_id ?? '',
+      })
+    }
   }
 
   return (

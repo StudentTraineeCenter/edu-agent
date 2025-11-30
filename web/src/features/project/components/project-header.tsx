@@ -6,10 +6,14 @@ import {
   BreadcrumbItem,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue } from '@effect-atom/atom-react'
-import { projectAtom } from '@/data-acess/project'
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
+import { projectAtom, deleteProjectAtom } from '@/data-acess/project'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { TrashIcon } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 const ProjectHeaderContent = ({ projectId }: { projectId: string }) => {
   const projectResult = useAtomValue(projectAtom(projectId))
@@ -36,6 +40,25 @@ type ProjectHeaderProps = {
 
 export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
   const projectResult = useAtomValue(projectAtom(projectId))
+  const deleteProject = useAtomSet(deleteProjectAtom, { mode: 'promise' })
+  const navigate = useNavigate()
+  const confirmationDialog = useConfirmationDialog()
+
+  const handleDelete = async () => {
+    const confirmed = await confirmationDialog.open({
+      title: 'Delete Project',
+      description:
+        'Are you sure you want to delete this project? This action cannot be undone and will delete all associated chats, documents, and study resources.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'destructive',
+    })
+
+    if (confirmed) {
+      await deleteProject(projectId)
+      navigate({ to: '/' })
+    }
+  }
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -47,6 +70,18 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
         />
         <ProjectHeaderContent projectId={projectId} />
       </div>
+      {Result.isSuccess(projectResult) && (
+        <div className="flex items-center gap-2 px-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={handleDelete}
+          >
+            <TrashIcon className="size-4" />
+          </Button>
+        </div>
+      )}
     </header>
   )
 }
