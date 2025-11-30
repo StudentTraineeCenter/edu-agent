@@ -7,6 +7,7 @@ import {
   ListChecksIcon,
   MoreVerticalIcon,
   TrashIcon,
+  NetworkIcon,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -237,6 +238,28 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        </li>
+      )
+    },
+    MindMap: ({ data: mindMap }) => {
+      return (
+        <li className="rounded-md p-3 hover:bg-muted/50 group">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/p/$projectId/m/$mindMapId"
+              params={{
+                projectId: mindMap.project_id ?? '',
+                mindMapId: mindMap.id,
+              }}
+              className="flex-1"
+            >
+              {renderContent({
+                name: mindMap.title,
+                created_at: mindMap.generated_at,
+                icon: NetworkIcon,
+              })}
+            </Link>
           </div>
         </li>
       )

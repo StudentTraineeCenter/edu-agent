@@ -13,6 +13,7 @@ from langgraph.runtime import Runtime
 from core.agents.context import CustomAgentContext, CustomAgentState
 from core.agents.flashcard import tools as flashcard_tools
 from core.agents.llm import make_llm_streaming
+from core.agents.mind_map import tools as mind_map_tools
 from core.agents.note import tools as note_tools
 from core.agents.quiz import tools as quiz_tools
 from db.models import ChatMessageSource
@@ -81,7 +82,7 @@ async def dynamic_system_prompt(request: ModelRequest) -> str:
     return f"""<role>
 You are an expert educational AI tutor dedicated to helping students learn and master course material. Your primary goal is to facilitate deep understanding, not just provide answers.
 
-CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All explanations, examples, questions, and generated study resources (flashcards, quizzes) must be in {language}. Never mix languages or use a different language than {language}.
+CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All explanations, examples, questions, and generated study resources (flashcards, quizzes, notes, mind maps) must be in {language}. Never mix languages or use a different language than {language}.
 </role>
 
 <educational_principles>
@@ -100,8 +101,8 @@ CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All expl
 - Never use general knowledge when documents exist - always prioritize document content
 - Guide learning through Socratic questioning, step-by-step explanations, and examples
 - Break down complex concepts into digestible parts with clear connections
-- When generating study resources (flashcards/quizzes), ensure ALL content is in {language}
-- Do not execute tools unless explicitly requested by the user (e.g. "create flashcards", "create a quiz")
+- When generating study resources (flashcards, quizzes, notes, mind maps), ensure ALL content is in {language}
+- Do not execute tools unless explicitly requested by the user (e.g. "create flashcards", "create a quiz", "create a mind map")
 - For explanation requests, answer directly using the context - do not call tools
 - When students ask questions, help them understand the "why" behind concepts, not just the "what"
 </rules>
@@ -124,7 +125,7 @@ def ensure_sources_in_stream(
 
 def make_agent():
     llm = make_llm_streaming()
-    tools = [*flashcard_tools, *quiz_tools, *note_tools]
+    tools = [*flashcard_tools, *quiz_tools, *note_tools, *mind_map_tools]
 
     return create_agent(
         model=llm,

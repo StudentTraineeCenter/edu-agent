@@ -12,7 +12,10 @@ import { ProjectHeader } from './components/project-header'
 import { ChatListItem } from './components/chat-list-item'
 import { DocumentListItem } from './components/document-list-item'
 import { StudyResourceListItem } from './components/study-resource-list-item'
-import { GenerationDialog, useGenerationDialog } from './components/generation-dialog'
+import {
+  GenerationDialog,
+  useGenerationDialog,
+} from './components/generation-dialog'
 import { Result } from '@effect-atom/atom-react'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {

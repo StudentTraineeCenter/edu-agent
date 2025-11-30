@@ -855,6 +855,44 @@ export class StudyPlanDto extends S.Class<StudyPlanDto>('StudyPlanDto')({
   updated_at: S.String,
 }) {}
 
+/**
+ * Mind map data transfer object.
+ */
+export class MindMapDto extends S.Class<MindMapDto>('MindMapDto')({
+  id: S.String,
+  user_id: S.String,
+  project_id: S.String,
+  title: S.String,
+  description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Structured mind map data (nodes, edges)
+   */
+  map_data: S.Record({ key: S.String, value: S.Unknown }),
+  generated_at: S.String,
+  updated_at: S.String,
+}) {}
+
+/**
+ * Response model for listing mind maps.
+ */
+export class MindMapListResponse extends S.Class<MindMapListResponse>(
+  'MindMapListResponse',
+)({
+  data: S.Array(MindMapDto),
+}) {}
+
+/**
+ * Request model for creating a mind map.
+ */
+export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
+  'CreateMindMapRequest',
+)({
+  /**
+   * Optional user instructions (topic or focus area)
+   */
+  user_prompt: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
 
 export const make = (
@@ -1348,6 +1386,37 @@ export const make = (
           }),
         ),
       ),
+    listMindMapsV1ProjectsProjectIdMindMapsGet: (projectId) =>
+      HttpClientRequest.get(`/v1/projects/${projectId}/mind-maps`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(MindMapListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateMindMapV1ProjectsProjectIdMindMapsPost: (projectId, options) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/mind-maps`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(MindMapDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getMindMapV1MindMapsMindMapIdGet: (mindMapId) =>
+      HttpClientRequest.get(`/v1/mind-maps/${mindMapId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(MindMapDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     healthCheckHealthGet: () =>
       HttpClientRequest.get(`/health`).pipe(
         withResponse(
@@ -1785,6 +1854,40 @@ export interface Client {
     projectId: string,
   ) => Effect.Effect<
     typeof StudyPlanDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all mind maps for a project
+   */
+  readonly listMindMapsV1ProjectsProjectIdMindMapsGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof MindMapListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate a new mind map from project documents
+   */
+  readonly generateMindMapV1ProjectsProjectIdMindMapsPost: (
+    projectId: string,
+    options: typeof CreateMindMapRequest.Encoded,
+  ) => Effect.Effect<
+    typeof MindMapDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a specific mind map by ID
+   */
+  readonly getMindMapV1MindMapsMindMapIdGet: (
+    mindMapId: string,
+  ) => Effect.Effect<
+    typeof MindMapDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

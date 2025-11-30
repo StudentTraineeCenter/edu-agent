@@ -20,6 +20,7 @@ import type { DocumentDto } from '@/integrations/api/client'
 import { createNoteAtom } from '@/data-acess/note'
 import { createQuizAtom } from '@/data-acess/quiz'
 import { createFlashcardGroupAtom } from '@/data-acess/flashcard'
+import { generateMindMapAtom } from '@/data-acess/mind-map'
 
 type GenerationDialogStore = {
   isOpen: boolean
@@ -35,7 +36,7 @@ export const useGenerationDialog = create<GenerationDialogStore>((set) => ({
   close: () => set({ isOpen: false, projectId: null }),
 }))
 
-type GenerationType = 'quiz' | 'flashcard' | 'note'
+type GenerationType = 'quiz' | 'flashcard' | 'note' | 'mindmap'
 
 export function GenerationDialog() {
   const { isOpen, projectId, close } = useGenerationDialog()
@@ -52,6 +53,7 @@ export function GenerationDialog() {
   const createFlashcardGroup = useAtomSet(createFlashcardGroupAtom, {
     mode: 'promise',
   })
+  const generateMindMap = useAtomSet(generateMindMapAtom, { mode: 'promise' })
 
   const handleToggleDocument = (documentId: string) => {
     setSelectedDocumentIds((prev) => {
@@ -103,6 +105,12 @@ export function GenerationDialog() {
             userPrompt: prompt.trim() || undefined,
           })
           break
+        case 'mindmap':
+          await generateMindMap({
+            projectId,
+            userPrompt: prompt.trim() || undefined,
+          })
+          break
       }
 
       // Close dialog and reset state
@@ -143,13 +151,12 @@ export function GenerationDialog() {
         <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
           <div className="space-y-2 shrink-0">
             <Label>Resource Type</Label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
                 variant={selectedType === 'note' ? 'default' : 'outline'}
                 onClick={() => setSelectedType('note')}
                 disabled={isGenerating}
-                className="flex-1"
               >
                 Note
               </Button>
@@ -158,7 +165,6 @@ export function GenerationDialog() {
                 variant={selectedType === 'quiz' ? 'default' : 'outline'}
                 onClick={() => setSelectedType('quiz')}
                 disabled={isGenerating}
-                className="flex-1"
               >
                 Quiz
               </Button>
@@ -167,9 +173,16 @@ export function GenerationDialog() {
                 variant={selectedType === 'flashcard' ? 'default' : 'outline'}
                 onClick={() => setSelectedType('flashcard')}
                 disabled={isGenerating}
-                className="flex-1"
               >
                 Flashcards
+              </Button>
+              <Button
+                type="button"
+                variant={selectedType === 'mindmap' ? 'default' : 'outline'}
+                onClick={() => setSelectedType('mindmap')}
+                disabled={isGenerating}
+              >
+                Mind Map
               </Button>
             </div>
           </div>
@@ -283,11 +296,21 @@ export function GenerationDialog() {
                   ? 'Note'
                   : selectedType === 'quiz'
                     ? 'Quiz'
-                    : 'Flashcards'}
+                    : selectedType === 'flashcard'
+                      ? 'Flashcards'
+                      : 'Mind Map'}
                 ...
               </>
             ) : (
-              `Generate ${selectedType === 'note' ? 'Note' : selectedType === 'quiz' ? 'Quiz' : 'Flashcards'}`
+              `Generate ${
+                selectedType === 'note'
+                  ? 'Note'
+                  : selectedType === 'quiz'
+                    ? 'Quiz'
+                    : selectedType === 'flashcard'
+                      ? 'Flashcards'
+                      : 'Mind Map'
+              }`
             )}
           </Button>
         </DialogFooter>

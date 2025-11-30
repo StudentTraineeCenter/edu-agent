@@ -5,6 +5,7 @@ from core.services.chat import ChatService
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
 from core.services.flashcards import FlashcardService
+from core.services.mind_maps import MindMapService
 from core.services.notes import NoteService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
@@ -30,6 +31,7 @@ chat_service = ChatService(
 flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
 note_service = NoteService(search_interface=search_interface)
+mind_map_service = MindMapService(search_interface=search_interface)
 attempt_service = AttemptService()
 study_plan_service = StudyPlanService(attempt_service=attempt_service)
 
@@ -77,3 +79,7 @@ def get_usage_service():
 
 def get_study_plan_service():
     return study_plan_service
+
+
+def get_mind_map_service():
+    return mind_map_service

@@ -363,6 +363,34 @@ class StudyPlan(Base):
     project = relationship("Project")
 
 
+class MindMap(Base):
+    __tablename__ = "mind_maps"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id"), index=True
+    )
+
+    # Map content
+    title: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    map_data: Mapped[dict] = mapped_column(JSON)  # Structured mind map data (nodes, edges)
+
+    # Timestamps
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
+    project = relationship("Project")
+
+
 class UserUsage(Base):
     __tablename__ = "user_usage"
     id: Mapped[str] = mapped_column(
