@@ -7,6 +7,7 @@ import { ChatDetailRoute } from './chat-detail-route'
 import { DocumentDetailRoute } from './document-detail-route'
 import { QuizDetailRoute } from './quiz-detail-route'
 import { FlashcardDetailRoute } from './flashcard-detail-route'
+import { SettingsPage } from '@/features/settings/settings-page'
 import { z } from 'zod'
 
 const requireAuth = () => {
@@ -80,11 +81,19 @@ export const quizDetailRoute = createRoute({
   component: QuizDetailRoute,
 })
 
+export const settingsRoute = createRoute({
+  path: '/settings',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
+  component: SettingsPage,
+})
+
 export const routeTree = rootRoute.addChildren([
   projectDetailRoute,
   chatDetailRoute,
   documentDetailRoute,
   flashcardDetailRoute,
   quizDetailRoute,
+  settingsRoute,
   indexRoute,
 ])
