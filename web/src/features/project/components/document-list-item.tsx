@@ -25,7 +25,7 @@ import {
 import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteDocumentAtom } from '@/data-acess/document'
 import { DocumentStatus } from '@/integrations/api/client'
-import { cn } from '@/lib/utils'
+import { cn, truncate } from '@/lib/utils'
 import type { DocumentDto } from '@/integrations/api/client'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
@@ -113,7 +113,7 @@ export const DocumentListItem = ({ document }: Props) => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="truncate flex-1 min-w-0">
-                  {document.file_name}
+                  {truncate(document.file_name, 30)}
                 </span>
               </TooltipTrigger>
               <TooltipContent>

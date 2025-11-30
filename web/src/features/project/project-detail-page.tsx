@@ -12,6 +12,7 @@ import { ProjectHeader } from './components/project-header'
 import { ChatListItem } from './components/chat-list-item'
 import { DocumentListItem } from './components/document-list-item'
 import { StudyResourceListItem } from './components/study-resource-list-item'
+import { GenerationDialog, useGenerationDialog } from './components/generation-dialog'
 import { Result } from '@effect-atom/atom-react'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {
@@ -118,6 +119,7 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
     mode: 'promise',
   })
   const openUploadDialog = useUploadDocumentDialog((state) => state.open)
+  const openGenerationDialog = useGenerationDialog((state) => state.open)
 
   const handleCreateChat = async () => {
     const chat = await createChat({ project_id: projectId })
@@ -129,6 +131,10 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
 
   const handleCreateDocument = () => {
     openUploadDialog(projectId)
+  }
+
+  const handleGenerateResource = () => {
+    openGenerationDialog(projectId)
   }
 
   return (
@@ -151,8 +157,9 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
         <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
           <div className="flex items-center justify-between shrink-0 mb-2">
             <h3 className="text-lg font-semibold">Study Resources</h3>
-            <Button size="sm" disabled>
+            <Button size="sm" onClick={handleGenerateResource}>
               <PlusIcon className="size-4" />
+              <span>Generate</span>
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
@@ -196,6 +203,8 @@ export const ProjectDetailPage = ({ projectId }: ProjectDetailPageProps) => {
       <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] w-full">
         <ProjectContent projectId={projectId} />
       </div>
+
+      <GenerationDialog />
     </div>
   )
 }
