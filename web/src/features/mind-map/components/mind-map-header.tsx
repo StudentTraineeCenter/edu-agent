@@ -7,15 +7,11 @@ import {
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import {
-  mindMapsAtom,
-  generateMindMapAtom,
-  mindMapAtom,
-} from '@/data-acess/mind-map'
+import { generateMindMapAtom, mindMapAtom } from '@/data-acess/mind-map'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, RefreshCwIcon, Loader2Icon, PlusIcon } from 'lucide-react'
+import { ArrowLeft, Loader2Icon, PlusIcon } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useState } from 'react'
@@ -28,17 +24,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-const MindMapHeaderContent = ({
-  projectId,
-  mindMapId,
-}: {
-  projectId: string
-  mindMapId: string
-}) => {
+const MindMapHeaderContent = ({ mindMapId }: { mindMapId: string }) => {
   const mindMapsResult = useAtomValue(mindMapAtom(mindMapId))
 
   return Result.builder(mindMapsResult)
@@ -129,7 +118,7 @@ export const MindMapHeader = ({ projectId, mindMapId }: MindMapHeaderProps) => {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <MindMapHeaderContent projectId={projectId} mindMapId={mindMapId} />
+        <MindMapHeaderContent mindMapId={mindMapId} />
       </div>
       <div className="flex items-center gap-2 px-3">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
