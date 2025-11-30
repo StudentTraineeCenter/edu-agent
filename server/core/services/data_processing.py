@@ -131,20 +131,20 @@ class DataProcessingService:
                 analyzed_content = analyzed_result.content
                 analyzed_summary = analyzed_result.summary
 
-                # Step 2: Store processed text (run in thread pool to avoid blocking)
-                processed_blob_name = await asyncio.to_thread(
-                    self._store_processed_text,
+                # Step 2: Move blob from input to output and create contents.txt (run in thread pool to avoid blocking)
+                await asyncio.to_thread(
+                    self._move_blob_to_output,
                     content=analyzed_content,
                     project_id=project_id,
                     document_id=document_id,
+                    db=db,
                 )
-                logger.info(f"stored processed text blob_name={processed_blob_name}")
+                logger.info(f"moved blob to output and created contents.txt for document_id={document_id}")
 
                 # Step 3: Update document status to processed
                 self._update_document_processed_status(
                     db=db,
                     document_id=document_id,
-                    processed_blob_name=processed_blob_name,
                     summary=analyzed_summary,
                 )
                 logger.info(
@@ -246,13 +246,19 @@ class DataProcessingService:
         Returns:
             Blob name where the document was uploaded
         """
-        raw_blob_name = f"raw-documents/{project_id}/{document_id}_{filename}"
+        # Extract file extension
+        file_extension = self._get_file_type(filename)
+        if file_extension != "unknown":
+            blob_name = f"{project_id}/{document_id}.{file_extension}"
+        else:
+            blob_name = f"{project_id}/{document_id}"
+        
         blob_client = self.blob_service_client.get_blob_client(
-            container=app_config.AZURE_STORAGE_CONTAINER_NAME, blob=raw_blob_name
+            container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME, blob=blob_name
         )
         blob_client.upload_blob(data=file_content, overwrite=True)
-        logger.info(f"document uploaded to blob storage blob_name={raw_blob_name}")
-        return raw_blob_name
+        logger.info(f"document uploaded to blob storage blob_name={blob_name}")
+        return blob_name
 
     def _analyze_document(self, file_content: bytes) -> DocumentAnalysisResult:
         """Analyze document using Azure Content Understanding.
@@ -278,26 +284,64 @@ class DataProcessingService:
             summary=summary,
         )
 
-    def _store_processed_text(
-        self, content: str, project_id: str, document_id: str
-    ) -> str:
-        """Store processed text in blob storage.
+    def _move_blob_to_output(
+        self, content: str, project_id: str, document_id: str, db: Session
+    ) -> None:
+        """Move original blob from input to output and create processed contents file.
+
+        Creates contents.txt file but does not use it for blob operations.
 
         Args:
             content: The processed content
             project_id: The project ID
             document_id: The document ID
-
-        Returns:
-            Blob name where the processed text was stored
+            db: Database session
         """
-        processed_blob_name = f"processed-documents/{project_id}/{document_id}.txt"
-        blob_client = self.blob_service_client.get_blob_client(
-            container=app_config.AZURE_STORAGE_CONTAINER_NAME,
-            blob=processed_blob_name,
+        # Get document to access file_type
+        document = db.query(Document).filter(Document.id == document_id).first()
+        if not document:
+            raise ValueError(f"Document {document_id} not found")
+        
+        # Construct blob paths from project_id and document_id
+        file_extension = document.file_type if document.file_type != "unknown" else ""
+        if file_extension:
+            original_blob_name = f"{project_id}/{document_id}.{file_extension}"
+        else:
+            original_blob_name = f"{project_id}/{document_id}"
+        
+        contents_blob_name = f"{project_id}/{document_id}.contents.txt"
+        
+        # Step 1: Copy original blob from input to output container (preserve original file)
+        input_blob_client = self.blob_service_client.get_blob_client(
+            container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME,
+            blob=original_blob_name,
         )
-        blob_client.upload_blob(content.encode("utf-8"), overwrite=True)
-        return processed_blob_name
+        output_blob_client = self.blob_service_client.get_blob_client(
+            container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
+            blob=original_blob_name,
+        )
+        
+        # Download from input and upload to output to copy the blob
+        blob_data = input_blob_client.download_blob().readall()
+        output_blob_client.upload_blob(blob_data, overwrite=True)
+        logger.info(f"copied original blob to output blob_name={original_blob_name}")
+        
+        # Step 2: Create contents.txt file with processed content
+        contents_blob_client = self.blob_service_client.get_blob_client(
+            container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
+            blob=contents_blob_name,
+        )
+        contents_blob_client.upload_blob(content.encode("utf-8"), overwrite=True)
+        logger.info(f"created contents.txt file blob_name={contents_blob_name} (not used for operations)")
+        
+        # Step 3: Delete the original blob from input container
+        try:
+            input_blob_client.delete_blob()
+            logger.info(f"deleted original blob from input blob_name={original_blob_name}")
+        except Exception as e:
+            logger.warning(f"error deleting blob from input (may already be deleted): {e}")
+        
+        db.commit()
 
     async def _create_segments_and_embeddings(
         self, db: Session, document_id: str, content: str
@@ -442,33 +486,33 @@ class DataProcessingService:
     def _update_document_blob_reference(
         db: Session, document_id: str, raw_blob_name: str
     ) -> None:
-        """Update document with blob storage reference.
+        """Update document status to processing.
 
         Args:
             db: Database session
             document_id: The document ID
-            raw_blob_name: The blob name in storage
+            raw_blob_name: The blob name in storage (kept for backwards compatibility, not used for blob operations)
         """
         document = db.query(Document).filter(Document.id == document_id).first()
         if document:
+            # Store blob name for reference but don't use it for blob operations
+            # Blob paths are constructed from project_id and document_id
             document.original_blob_name = raw_blob_name
             document.status = DocumentStatus.PROCESSING
 
     @staticmethod
     def _update_document_processed_status(
-        db: Session, document_id: str, processed_blob_name: str, summary: str
+        db: Session, document_id: str, summary: str
     ) -> None:
         """Update document status to processed.
 
         Args:
             db: Database session
             document_id: The document ID
-            processed_blob_name: The processed blob name
             summary: Document summary
         """
         document = db.query(Document).filter(Document.id == document_id).first()
         if document:
-            document.processed_text_blob_name = processed_blob_name
             document.status = DocumentStatus.PROCESSED
             document.processed_at = datetime.now()
             document.summary = summary

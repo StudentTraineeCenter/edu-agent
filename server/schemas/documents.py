@@ -31,6 +31,11 @@ class DocumentUploadResponse(BaseModel):
     document_ids: List[str] = Field(..., description="IDs of the uploaded documents")
 
 
+class DocumentPreviewResponse(BaseModel):
+    preview_url: str = Field(..., description="SAS URL for direct blob access")
+    content_type: str = Field(..., description="Content type of the document")
+
+
 class DocumentSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query")
     project_id: str = Field(..., description="Project ID to search within")

@@ -24,9 +24,14 @@ output "azure_storage_connection_string_secret_uri" {
   value       = try(azurerm_key_vault_secret.azure_storage_connection_string[0].id, null)
 }
 
-output "azure_storage_container_name_secret_uri" {
-  description = "URI of the azure-storage-container-name secret"
-  value       = try(azurerm_key_vault_secret.azure_storage_container_name[0].id, null)
+output "azure_storage_input_container_name_secret_uri" {
+  description = "URI of the azure-storage-input-container-name secret"
+  value       = try(azurerm_key_vault_secret.azure_storage_input_container_name[0].id, null)
+}
+
+output "azure_storage_output_container_name_secret_uri" {
+  description = "URI of the azure-storage-output-container-name secret"
+  value       = try(azurerm_key_vault_secret.azure_storage_output_container_name[0].id, null)
 }
 
 output "azure_entra_tenant_id_secret_uri" {

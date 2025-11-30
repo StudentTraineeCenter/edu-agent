@@ -11,12 +11,8 @@ resource "azurerm_role_assignment" "server_app_key_vault_secrets_user" {
   principal_id         = var.server_app_identity_principal_id
 }
 
-# Current user: Key Vault Secrets Officer (full secret management for Terraform)
-resource "azurerm_role_assignment" "current_user_key_vault_secrets_officer" {
-  scope                = var.key_vault_id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
+# Note: Key Vault Secrets Officer role for Terraform is assigned in main.tf
+# to ensure it's created before Key Vault secrets are managed
 
 # ============================================================================
 # Azure Container Registry RBAC Assignments

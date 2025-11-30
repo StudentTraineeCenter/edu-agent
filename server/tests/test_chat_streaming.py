@@ -34,7 +34,8 @@ def print_config_summary():
     logger.info(
         f"Azure OpenAI Chat Deployment: {app_config.AZURE_OPENAI_CHAT_DEPLOYMENT}"
     )
-    logger.info(f"Azure Storage Container: {app_config.AZURE_STORAGE_CONTAINER_NAME}")
+    logger.info(f"Azure Storage Input Container: {app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME}")
+    logger.info(f"Azure Storage Output Container: {app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME}")
     logger.info("=" * 60)
 
 

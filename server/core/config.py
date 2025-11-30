@@ -90,10 +90,18 @@ class AppConfig:
         "AZURE_STORAGE_CONNECTION_STRING",
     )
 
-    AZURE_STORAGE_CONTAINER_NAME: str = _get_config_value(
+    AZURE_STORAGE_INPUT_CONTAINER_NAME: str = _get_config_value(
         _KEY_VAULT_URI,
-        "azure-storage-container-name",
-        "AZURE_STORAGE_CONTAINER_NAME",
+        "azure-storage-input-container-name",
+        "AZURE_STORAGE_INPUT_CONTAINER_NAME",
+        "input",
+    )
+
+    AZURE_STORAGE_OUTPUT_CONTAINER_NAME: str = _get_config_value(
+        _KEY_VAULT_URI,
+        "azure-storage-output-container-name",
+        "AZURE_STORAGE_OUTPUT_CONTAINER_NAME",
+        "output",
     )
 
     # OPENAI

@@ -25,8 +25,13 @@ output "identity_principal_id" {
   value       = azurerm_storage_account.main.identity[0].principal_id
 }
 
-output "container_name" {
-  description = "Name of the storage container"
-  value       = azurerm_storage_container.documents.name
+output "input_container_name" {
+  description = "Name of the input storage container"
+  value       = azurerm_storage_container.input.name
+}
+
+output "output_container_name" {
+  description = "Name of the output storage container"
+  value       = azurerm_storage_container.output.name
 }
 

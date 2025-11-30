@@ -41,8 +41,14 @@ variable "azure_storage_connection_string" {
   sensitive   = true
 }
 
-variable "azure_storage_container_name" {
-  description = "Azure Storage container name"
+variable "azure_storage_input_container_name" {
+  description = "Azure Storage input container name"
+  type        = string
+  default     = null
+}
+
+variable "azure_storage_output_container_name" {
+  description = "Azure Storage output container name"
   type        = string
   default     = null
 }

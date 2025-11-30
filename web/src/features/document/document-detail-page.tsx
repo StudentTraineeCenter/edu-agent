@@ -26,18 +26,11 @@ const DocumentContent = ({ documentId }: DocumentContentProps) => {
             </div>
           ))
           .onSuccess((preview) => (
-            <object
-              data={preview}
-              type="application/pdf"
-              className="w-full h-full"
-            >
-              <p>
-                Your browser doesn't support PDF viewing.
-                <a href={preview} target="_blank" rel="noopener noreferrer">
-                  Click here to download the PDF
-                </a>
-              </p>
-            </object>
+            <iframe
+              src={preview.preview_url}
+              className="w-full h-full border-0"
+              title="Document preview"
+            />
           ))
           .render()}
       </div>

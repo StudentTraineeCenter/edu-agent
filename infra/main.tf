@@ -89,8 +89,24 @@ module "acr" {
   tags                = local.common_tags
 }
 
+# ============================================================================
+# Grant Current User Full Access to Resource Group
+# This ensures the user running Terraform has permissions to manage all resources
+# ============================================================================
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_role_assignment" "current_user_resource_group_contributor" {
+  scope                = module.resource_group.id
+  role_definition_name = "Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
+  
+  depends_on = [module.resource_group]
+}
+
+# ============================================================================
 # Key Vault Module
 # Note: AI-related secrets are created separately in main.tf after AI module is created
+# ============================================================================
 module "key_vault" {
   source = "./modules/key-vault"
 
@@ -100,11 +116,26 @@ module "key_vault" {
   tags                = local.common_tags
 
   # Basic infrastructure secrets (non-AI)
-  database_url                    = var.database_url
-  azure_storage_connection_string = module.storage.primary_connection_string
-  azure_storage_container_name    = module.storage.container_name
-  azure_entra_tenant_id           = var.azure_tenant_id
-  azure_entra_client_id           = var.azure_app_client_id
+  database_url                         = var.database_url
+  azure_storage_connection_string      = module.storage.primary_connection_string
+  azure_storage_input_container_name   = module.storage.input_container_name
+  azure_storage_output_container_name = module.storage.output_container_name
+  azure_entra_tenant_id                = var.azure_tenant_id
+  azure_entra_client_id                = var.azure_app_client_id
+  
+  depends_on = [azurerm_role_assignment.current_user_resource_group_contributor]
+}
+
+# ============================================================================
+# Key Vault RBAC - Grant Terraform service principal access immediately
+# This ensures RBAC is set up before any secret operations
+# ============================================================================
+resource "azurerm_role_assignment" "terraform_key_vault_secrets_officer" {
+  scope                = module.key_vault.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+  
+  depends_on = [module.key_vault]
 }
 
 # ============================================================================
@@ -283,8 +314,4 @@ module "rbac" {
   ]
 }
 
-# ============================================================================
-# Data Sources
-# ============================================================================
-data "azurerm_client_config" "current" {}
 

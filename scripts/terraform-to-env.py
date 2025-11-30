@@ -18,7 +18,8 @@ def terraform_to_env(terraform_output: dict) -> str:
     # Azure Storage
     lines.append("# Azure Storage")
     lines.append(f"AZURE_STORAGE_CONNECTION_STRING={terraform_output['storage_connection_string']['value']}")
-    lines.append(f"AZURE_STORAGE_CONTAINER_NAME={terraform_output['documents_container_name']['value']}")
+    lines.append(f"AZURE_STORAGE_INPUT_CONTAINER_NAME={terraform_output['input_container_name']['value']}")
+    lines.append(f"AZURE_STORAGE_OUTPUT_CONTAINER_NAME={terraform_output['output_container_name']['value']}")
     lines.append("")
     
     # Azure AI Foundry

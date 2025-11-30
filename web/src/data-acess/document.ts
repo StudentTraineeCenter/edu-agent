@@ -1,6 +1,7 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
+import { makeApiClient } from '@/integrations/api/http'
 import { Data, Effect } from 'effect'
+import { getAccessTokenEffect } from '@/lib/msal-service'
 import { runtime } from './runtime'
 import { usageAtom } from './usage'
 
@@ -63,16 +64,45 @@ export const documentAtom = Atom.family((documentId: string) =>
 
 export const documentPreviewAtom = Atom.family((documentId: string) =>
   Atom.make(
-    Effect.fn(function* (get: Atom.FnContext) {
-      const httpClient = yield* makeHttpClient
-      const resp = yield* httpClient.get(`/v1/documents/${documentId}/preview`)
-      const buffer = yield* resp.arrayBuffer
-      const blob = new Blob([buffer], { type: 'application/pdf' })
-      const objectUrl = URL.createObjectURL(blob)
-      get.addFinalizer(() => {
-        URL.revokeObjectURL(objectUrl)
-      })
-      return objectUrl
+    Effect.fn(function* () {
+      const client = yield* makeApiClient
+      const preview =
+        yield* client.previewDocumentV1DocumentsDocumentIdPreviewGet(documentId)
+
+      // Construct full URL for streaming endpoint
+      const serverUrl =
+        import.meta.env.VITE_SERVER_URL ?? 'http://localhost:8000'
+      const streamUrl = preview.preview_url.startsWith('http')
+        ? preview.preview_url
+        : `${serverUrl}${preview.preview_url}`
+
+      // Fetch the stream with auth and create blob URL
+      const token = yield* getAccessTokenEffect
+      if (!token) {
+        throw new Error('No access token available')
+      }
+
+      const response = yield* Effect.promise(() =>
+        fetch(streamUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      )
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch document stream: ${response.statusText}`,
+        )
+      }
+
+      const blob = yield* Effect.promise(() => response.blob())
+      const blobUrl = URL.createObjectURL(blob)
+
+      return {
+        preview_url: blobUrl,
+        content_type: preview.content_type,
+      }
     }),
   ).pipe(Atom.keepAlive),
 )

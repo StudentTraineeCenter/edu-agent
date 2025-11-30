@@ -385,9 +385,18 @@ export class DocumentListResponse extends S.Class<DocumentListResponse>(
   data: S.Array(DocumentDto),
 }) {}
 
-export class PreviewDocumentV1DocumentsDocumentIdPreviewGet200 extends S.Struct(
-  {},
-) {}
+export class DocumentPreviewResponse extends S.Class<DocumentPreviewResponse>(
+  'DocumentPreviewResponse',
+)({
+  /**
+   * SAS URL for direct blob access
+   */
+  preview_url: S.String,
+  /**
+   * Content type of the document
+   */
+  content_type: S.String,
+}) {}
 
 export class ListFlashcardGroupsV1FlashcardsGetParams extends S.Struct({
   project_id: S.String,
@@ -568,11 +577,11 @@ export class CreateAttemptRequest extends S.Class<CreateAttemptRequest>(
   'CreateAttemptRequest',
 )({
   /**
-   * Type of item: flashcard or quiz
+   * Type of study resource: flashcard or quiz
    */
   item_type: S.String.pipe(S.pattern(new RegExp('^(flashcard|quiz)$'))),
   /**
-   * ID of the flashcard or quiz question
+   * ID of the study resource (flashcard or quiz question)
    */
   item_id: S.String,
   /**
@@ -889,9 +898,7 @@ export const make = (
       HttpClientRequest.get(`/v1/documents/${documentId}/preview`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(
-              PreviewDocumentV1DocumentsDocumentIdPreviewGet200,
-            ),
+            '2xx': decodeSuccess(DocumentPreviewResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1210,12 +1217,12 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Stream document content for preview in browser
+   * Get a SAS URL for direct blob access to preview the document
    */
   readonly previewDocumentV1DocumentsDocumentIdPreviewGet: (
     documentId: string,
   ) => Effect.Effect<
-    typeof PreviewDocumentV1DocumentsDocumentIdPreviewGet200.Type,
+    typeof DocumentPreviewResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

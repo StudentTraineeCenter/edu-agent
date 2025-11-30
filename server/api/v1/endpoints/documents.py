@@ -27,6 +27,7 @@ from fastapi.responses import Response, StreamingResponse
 from schemas.documents import (
     DocumentDto,
     DocumentListResponse,
+    DocumentPreviewResponse,
     DocumentUploadResponse,
 )
 
@@ -214,22 +215,24 @@ def get_document(
 
 @router.get(
     path="/{document_id}/preview",
+    response_model=DocumentPreviewResponse,
     status_code=status.HTTP_200_OK,
-    summary="Preview a document",
-    description="Stream document content for preview in browser",
+    summary="Get document preview URL",
+    description="Get a URL for previewing the document (streamed through backend with inline disposition)",
 )
 def preview_document(
     document_id: str,
     document_service: DocumentService = Depends(get_document_service),
     current_user: User = Depends(get_user),
 ):
-    """Preview a document by streaming its content.
+    """Get a URL for previewing a document.
 
-    Supports URL fragment #page=N to navigate to specific page in PDF viewers.
+    Returns a backend URL that streams the document with Content-Disposition: inline
+    to ensure it displays in the browser instead of downloading.
 
-    Example: /v1/documents/{id}/preview#page=5
+    Example: /v1/documents/{id}/preview
     """
-    logger.info("previewing document_id=%s", document_id)
+    logger.info("getting preview URL for document_id=%s", document_id)
 
     try:
         document = document_service.get_document(document_id, current_user.id)
@@ -239,11 +242,6 @@ def preview_document(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
-
-        # Get blob content as stream
-        blob_stream = document_service.get_document_blob_stream(
-            document_id, current_user.id
-        )
 
         # Map file extensions to content types
         content_type_map = {
@@ -258,26 +256,88 @@ def preview_document(
             document.file_type.lower(), "application/octet-stream"
         )
 
-        # Encode filename for Content-Disposition header (RFC 5987)
-        # This supports Unicode characters
-        encoded_filename = quote(document.file_name)
+        # Return backend streaming URL instead of SAS URL
+        # The frontend will use this URL which sets Content-Disposition: inline
+        preview_url = f"/v1/documents/{document_id}/stream"
 
+        return DocumentPreviewResponse(preview_url=preview_url, content_type=content_type)
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error("error getting preview URL: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error getting preview URL: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get preview URL",
+        )
+
+
+@router.get(
+    path="/{document_id}/stream",
+    summary="Stream document for preview",
+    description="Stream document content with Content-Disposition: inline for browser preview",
+)
+def stream_document(
+    document_id: str,
+    document_service: DocumentService = Depends(get_document_service),
+    current_user: User = Depends(get_user),
+):
+    """Stream document content with proper headers for inline display."""
+    logger.info("streaming document_id=%s", document_id)
+
+    try:
+        document = document_service.get_document(document_id, current_user.id)
+
+        if not document:
+            logger.error("document_id=%s not found", document_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
+
+        # Map file extensions to content types
+        content_type_map = {
+            "pdf": "application/pdf",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "doc": "application/msword",
+            "txt": "text/plain",
+            "rtf": "application/rtf",
+        }
+
+        content_type = content_type_map.get(
+            document.file_type.lower(), "application/octet-stream"
+        )
+
+        # Get blob stream
+        stream = document_service.get_document_blob_stream(document_id, current_user.id)
+
+        # Return streaming response with inline disposition
         return StreamingResponse(
-            blob_stream,
+            stream,
             media_type=content_type,
             headers={
-                "Content-Disposition": f"inline; filename*=UTF-8''{encoded_filename}",
-                "Cache-Control": "no-cache",
+                "Content-Disposition": f'inline; filename="{quote(document.file_name)}"',
             },
         )
 
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.error("error streaming document: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
     except Exception as e:
-        logger.error("error previewing document: %s", e)
+        logger.error("error streaming document: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to preview document",
+            detail="Failed to stream document",
         )
 
 

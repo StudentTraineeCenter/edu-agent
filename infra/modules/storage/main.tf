@@ -13,8 +13,14 @@ resource "azurerm_storage_account" "main" {
   tags = var.tags
 }
 
-resource "azurerm_storage_container" "documents" {
-  name                  = var.container_name
+resource "azurerm_storage_container" "input" {
+  name                  = "input"
+  storage_account_id    = azurerm_storage_account.main.id
+  container_access_type = var.container_access_type
+}
+
+resource "azurerm_storage_container" "output" {
+  name                  = "output"
   storage_account_id    = azurerm_storage_account.main.id
   container_access_type = var.container_access_type
 }

@@ -22,9 +22,14 @@ output "storage_connection_string" {
   sensitive   = true
 }
 
-output "documents_container_name" {
-  description = "Name of the documents container"
-  value       = module.storage.container_name
+output "input_container_name" {
+  description = "Name of the input container"
+  value       = module.storage.input_container_name
+}
+
+output "output_container_name" {
+  description = "Name of the output container"
+  value       = module.storage.output_container_name
 }
 
 output "storage_account_identity_principal_id" {

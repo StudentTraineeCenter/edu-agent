@@ -3,9 +3,11 @@
 from collections import defaultdict
 from contextlib import contextmanager
 from typing import List, Optional, Tuple
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+from datetime import datetime, timedelta
 from langchain_core.documents import Document as LangchainDocument
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
@@ -18,6 +20,7 @@ from schemas.documents import (
     DocumentMetadata,
     SearchResultItem,
 )
+from db.enums import DocumentStatus
 from db.models import ChatMessageSource, Document, Project
 from db.session import SessionLocal
 
@@ -291,6 +294,84 @@ class DocumentService:
                 )
                 raise
 
+    def get_document_blob_sas_url(
+        self, document_id: str, user_id: str, expiry_minutes: int = 60
+    ) -> str:
+        """Get a SAS URL for direct blob access.
+
+        Args:
+            document_id: The document ID
+            user_id: The user's ID
+            expiry_minutes: Minutes until the SAS token expires (default: 60)
+
+        Returns:
+            Full URL with SAS token for direct blob access
+
+        Raises:
+            ValueError: If document not found or has no blob
+        """
+        try:
+            with self._get_db_session() as db:
+                document = (
+                    db.query(Document)
+                    .filter(Document.id == document_id, Document.owner_id == user_id)
+                    .first()
+                )
+
+                if not document:
+                    raise ValueError(f"Document {document_id} not found")
+
+                # Construct blob paths from project_id and document_id
+                file_extension = document.file_type if document.file_type != "unknown" else ""
+                if file_extension:
+                    blob_name = f"{document.project_id}/{document_id}.{file_extension}"
+                else:
+                    blob_name = f"{document.project_id}/{document_id}"
+
+                # Determine container: output if processed, input if not yet processed
+                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
+                    # Processed: original file is in output container
+                    container_name = app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME
+                else:
+                    # Not yet processed: original file is in input container
+                    container_name = app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME
+
+                # Parse connection string to get account name and key
+                conn_str = app_config.AZURE_STORAGE_CONNECTION_STRING
+                account_name = None
+                account_key = None
+                for part in conn_str.split(";"):
+                    if part.startswith("AccountName="):
+                        account_name = part.split("=", 1)[1]
+                    elif part.startswith("AccountKey="):
+                        account_key = part.split("=", 1)[1]
+
+                if not account_name or not account_key:
+                    raise ValueError("Could not parse storage account name/key from connection string")
+
+                # Generate SAS token
+                sas_token = generate_blob_sas(
+                    account_name=account_name,
+                    container_name=container_name,
+                    blob_name=blob_name,
+                    account_key=account_key,
+                    permission=BlobSasPermissions(read=True),
+                    expiry=datetime.now() + timedelta(minutes=expiry_minutes),
+                )
+
+                # Get blob URL
+                blob_client = self.blob_service_client.get_blob_client(
+                    container=container_name,
+                    blob=blob_name,
+                )
+
+                return f"{blob_client.url}?{sas_token}"
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(f"error generating SAS URL for document_id={document_id}: {e}")
+            raise
+
     def get_document_blob_stream(self, document_id: str, user_id: str):
         """Get blob content as a streaming iterator for a document.
 
@@ -311,12 +392,27 @@ class DocumentService:
                     .filter(Document.id == document_id, Document.owner_id == user_id)
                     .first()
                 )
-                if not document or not document.original_blob_name:
-                    raise ValueError(f"Document {document_id} not found or has no blob")
+                if not document:
+                    raise ValueError(f"Document {document_id} not found")
+
+                # Construct blob paths from project_id and document_id
+                file_extension = document.file_type if document.file_type != "unknown" else ""
+                if file_extension:
+                    blob_name = f"{document.project_id}/{document_id}.{file_extension}"
+                else:
+                    blob_name = f"{document.project_id}/{document_id}"
+
+                # Determine container: output if processed, input if not yet processed
+                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
+                    # Processed: original file is in output container
+                    container_name = app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME
+                else:
+                    # Not yet processed: original file is in input container
+                    container_name = app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME
 
                 blob_client = self.blob_service_client.get_blob_client(
-                    container=app_config.AZURE_STORAGE_CONTAINER_NAME,
-                    blob=document.original_blob_name,
+                    container=container_name,
+                    blob=blob_name,
                 )
 
                 # Download blob as a stream
@@ -358,38 +454,57 @@ class DocumentService:
                 if not document:
                     raise ValueError(f"Document {document_id} not found")
 
-                # Delete original blob from Azure Storage if it exists
-                if document.original_blob_name:
+                # Construct blob paths from project_id and document_id
+                file_extension = document.file_type if document.file_type != "unknown" else ""
+                if file_extension:
+                    original_blob_name = f"{document.project_id}/{document_id}.{file_extension}"
+                else:
+                    original_blob_name = f"{document.project_id}/{document_id}"
+
+                # Delete original blob - check both containers (input if not processed, output if processed)
+                # Try input container first (if not yet processed)
+                try:
+                    input_blob_client = self.blob_service_client.get_blob_client(
+                        container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME,
+                        blob=original_blob_name,
+                    )
+                    input_blob_client.delete_blob()
+                    logger.info(
+                        f"deleted original blob from input blob_name={original_blob_name} for document_id={document_id}"
+                    )
+                except Exception as e:
+                    # If not in input, try output container (already processed)
                     try:
-                        blob_client = self.blob_service_client.get_blob_client(
-                            container=app_config.AZURE_STORAGE_CONTAINER_NAME,
-                            blob=document.original_blob_name,
+                        output_blob_client = self.blob_service_client.get_blob_client(
+                            container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
+                            blob=original_blob_name,
                         )
-                        blob_client.delete_blob()
+                        output_blob_client.delete_blob()
                         logger.info(
-                            f"deleted original blob blob_name={document.original_blob_name} for document_id={document_id}"
+                            f"deleted original blob from output blob_name={original_blob_name} for document_id={document_id}"
                         )
-                    except Exception as e:
+                    except Exception as e2:
                         logger.warning(
-                            f"error deleting original blob blob_name={document.original_blob_name} for document_id={document_id}: {e}"
+                            f"error deleting original blob blob_name={original_blob_name} for document_id={document_id}: {e2}"
                         )
 
-                # Delete processed text blob from Azure Storage if it exists
-                if document.processed_text_blob_name:
+                # Delete contents.txt blob from output container if document was processed
+                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
                     try:
-                        processed_blob_client = (
+                        contents_blob_name = f"{document.project_id}/{document_id}.contents.txt"
+                        contents_blob_client = (
                             self.blob_service_client.get_blob_client(
-                                container=app_config.AZURE_STORAGE_CONTAINER_NAME,
-                                blob=document.processed_text_blob_name,
+                                container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
+                                blob=contents_blob_name,
                             )
                         )
-                        processed_blob_client.delete_blob()
+                        contents_blob_client.delete_blob()
                         logger.info(
-                            f"deleted processed text blob blob_name={document.processed_text_blob_name} for document_id={document_id}"
+                            f"deleted contents.txt blob blob_name={contents_blob_name} for document_id={document_id}"
                         )
                     except Exception as e:
                         logger.warning(
-                            f"error deleting processed text blob blob_name={document.processed_text_blob_name} for document_id={document_id}: {e}"
+                            f"error deleting contents.txt blob for document_id={document_id}: {e}"
                         )
 
                 # Delete document from database (cascade will delete segments)
@@ -410,9 +525,32 @@ class DocumentService:
         Returns:
             PGVectorStore instance
         """
+        # Convert psycopg2 URL to asyncpg URL
         async_url = app_config.DATABASE_URL.replace(
             "postgresql+psycopg2://", "postgresql+asyncpg://"
         )
+        
+        # Remove unsupported query parameters - asyncpg handles SSL differently
+        # Parse URL to remove query parameters that asyncpg doesn't support
+        parsed = urlparse(async_url)
+        query_params = parse_qs(parsed.query)
+        
+        # Remove parameters that asyncpg doesn't support
+        # asyncpg will use SSL by default for secure connections
+        query_params.pop('sslmode', None)
+        query_params.pop('channel_binding', None)
+        
+        # Rebuild URL without unsupported parameters
+        new_query = urlencode(query_params, doseq=True)
+        async_url = urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            new_query,
+            parsed.fragment
+        ))
+        
         pg_engine = PGEngine.from_connection_string(url=async_url)
 
         return await PGVectorStore.create(
