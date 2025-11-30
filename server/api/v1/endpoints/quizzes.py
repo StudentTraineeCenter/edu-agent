@@ -1,8 +1,10 @@
-from api.dependencies import get_quiz_service
+from api.dependencies import get_quiz_service, get_user
 from core.logger import get_logger
 from core.services.quizzes import QuizService
+from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from schemas.quizzes import (
+    CreateQuizRequest,
     QuizDto,
     QuizListResponse,
     QuizQuestionDto,
@@ -13,6 +15,56 @@ from schemas.quizzes import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    path="",
+    response_model=QuizResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create quiz",
+    description="Create a new quiz with AI-generated questions",
+)
+async def create_quiz(
+    project_id: str,
+    body: CreateQuizRequest,
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new quiz."""
+    try:
+        logger.info("creating quiz for project_id=%s", project_id)
+
+        quiz_id = await quiz_service.create_quiz_with_questions(
+            project_id=project_id,
+            count=body.question_count,
+            user_prompt=body.user_prompt,
+        )
+
+        quiz = quiz_service.get_quiz(quiz_id)
+
+        if not quiz:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve created quiz",
+            )
+
+        return QuizResponse(
+            quiz=QuizDto(**quiz.__dict__),
+            message="Quiz created successfully",
+        )
+
+    except ValueError as e:
+        logger.error("error creating quiz: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error creating quiz: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create quiz",
+        )
 
 
 @router.get(

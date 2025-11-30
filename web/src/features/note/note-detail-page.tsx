@@ -6,10 +6,7 @@ type NoteDetailPageProps = {
   projectId: string
 }
 
-export const NoteDetailPage = ({
-  noteId,
-  projectId,
-}: NoteDetailPageProps) => {
+export const NoteDetailPage = ({ noteId, projectId }: NoteDetailPageProps) => {
   return (
     <div className="flex h-full flex-col">
       <NoteHeader noteId={noteId} projectId={projectId} />
@@ -22,4 +19,3 @@ export const NoteDetailPage = ({
     </div>
   )
 }
-

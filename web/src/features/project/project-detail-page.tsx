@@ -173,7 +173,7 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
             <h3 className="text-lg font-semibold">Documents</h3>
             <Button onClick={handleCreateDocument} size="sm">
               <PlusIcon className="size-4" />
-              <span>New doc</span>
+              <span>Upload</span>
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">

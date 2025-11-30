@@ -452,6 +452,31 @@ export class FlashcardGroupListResponse extends S.Class<FlashcardGroupListRespon
   data: S.Array(FlashcardGroupDto),
 }) {}
 
+export class CreateFlashcardGroupV1FlashcardsPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating a flashcard group.
+ */
+export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupRequest>(
+  'CreateFlashcardGroupRequest',
+)({
+  /**
+   * Number of flashcards to generate
+   */
+  flashcard_count: S.optionalWith(
+    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
+    { nullable: true, default: () => 30 as const },
+  ),
+  /**
+   * Topic or custom instructions for flashcard generation. If provided, will filter documents by topic relevance.
+   */
+  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
+}) {}
+
 /**
  * Response model for flashcard group operations.
  */
@@ -513,6 +538,31 @@ export class QuizListResponse extends S.Class<QuizListResponse>(
    * List of quizzes
    */
   data: S.Array(QuizDto),
+}) {}
+
+export class CreateQuizV1QuizzesPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating a quiz.
+ */
+export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
+  'CreateQuizRequest',
+)({
+  /**
+   * Number of quiz questions to generate
+   */
+  question_count: S.optionalWith(
+    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
+    { nullable: true, default: () => 30 as const },
+  ),
+  /**
+   * Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.
+   */
+  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
 }) {}
 
 /**
@@ -1043,6 +1093,20 @@ export const make = (
           }),
         ),
       ),
+    createFlashcardGroupV1FlashcardsPost: (options) =>
+      HttpClientRequest.post(`/v1/flashcards`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardGroupResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     getFlashcardGroupV1FlashcardsGroupIdGet: (groupId) =>
       HttpClientRequest.get(`/v1/flashcards/${groupId}`).pipe(
         withResponse(
@@ -1081,6 +1145,20 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(QuizListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createQuizV1QuizzesPost: (options) =>
+      HttpClientRequest.post(`/v1/quizzes`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1446,6 +1524,18 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Create a new flashcard group with AI-generated flashcards
+   */
+  readonly createFlashcardGroupV1FlashcardsPost: (options: {
+    readonly params: typeof CreateFlashcardGroupV1FlashcardsPostParams.Encoded
+    readonly payload: typeof CreateFlashcardGroupRequest.Encoded
+  }) => Effect.Effect<
+    typeof FlashcardGroupResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * Get a specific flashcard group by ID
    */
   readonly getFlashcardGroupV1FlashcardsGroupIdGet: (
@@ -1485,6 +1575,18 @@ export interface Client {
     options: typeof ListQuizzesV1QuizzesGetParams.Encoded,
   ) => Effect.Effect<
     typeof QuizListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new quiz with AI-generated questions
+   */
+  readonly createQuizV1QuizzesPost: (options: {
+    readonly params: typeof CreateQuizV1QuizzesPostParams.Encoded
+    readonly payload: typeof CreateQuizRequest.Encoded
+  }) => Effect.Effect<
+    typeof QuizResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

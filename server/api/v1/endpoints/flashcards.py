@@ -4,6 +4,7 @@ from core.services.flashcards import FlashcardService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from schemas.flashcards import (
+    CreateFlashcardGroupRequest,
     FlashcardDto,
     FlashcardGroupDto,
     FlashcardGroupListResponse,
@@ -14,6 +15,56 @@ from schemas.flashcards import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    path="",
+    response_model=FlashcardGroupResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create flashcard group",
+    description="Create a new flashcard group with AI-generated flashcards",
+)
+async def create_flashcard_group(
+    project_id: str,
+    body: CreateFlashcardGroupRequest,
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new flashcard group."""
+    try:
+        logger.info("creating flashcard group for project_id=%s", project_id)
+
+        group_id = await flashcard_service.create_flashcard_group_with_flashcards(
+            project_id=project_id,
+            count=body.flashcard_count,
+            user_prompt=body.user_prompt,
+        )
+
+        group = flashcard_service.get_flashcard_group(group_id)
+
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve created flashcard group",
+            )
+
+        return FlashcardGroupResponse(
+            flashcard_group=FlashcardGroupDto(**group.__dict__),
+            message="Flashcard group created successfully",
+        )
+
+    except ValueError as e:
+        logger.error("error creating flashcard group: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error creating flashcard group: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create flashcard group",
+        )
 
 
 @router.get(

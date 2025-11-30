@@ -13,10 +13,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Loader2Icon } from 'lucide-react'
-import { useAtomValue } from '@effect-atom/atom-react'
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { indexedDocumentsAtom } from '@/data-acess/document'
 import { Result } from '@effect-atom/atom-react'
 import type { DocumentDto } from '@/integrations/api/client'
+import { createNoteAtom } from '@/data-acess/note'
+import { createQuizAtom } from '@/data-acess/quiz'
+import { createFlashcardGroupAtom } from '@/data-acess/flashcard'
 
 type GenerationDialogStore = {
   isOpen: boolean
@@ -32,7 +35,7 @@ export const useGenerationDialog = create<GenerationDialogStore>((set) => ({
   close: () => set({ isOpen: false, projectId: null }),
 }))
 
-type GenerationType = 'quiz' | 'flashcard'
+type GenerationType = 'quiz' | 'flashcard' | 'note'
 
 export function GenerationDialog() {
   const { isOpen, projectId, close } = useGenerationDialog()
@@ -41,11 +44,14 @@ export function GenerationDialog() {
     new Set(),
   )
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generationType, setGenerationType] = useState<GenerationType | null>(
-    null,
-  )
+  const [selectedType, setSelectedType] = useState<GenerationType>('note')
 
   const documentsResult = useAtomValue(indexedDocumentsAtom(projectId || ''))
+  const createNote = useAtomSet(createNoteAtom, { mode: 'promise' })
+  const createQuiz = useAtomSet(createQuizAtom, { mode: 'promise' })
+  const createFlashcardGroup = useAtomSet(createFlashcardGroupAtom, {
+    mode: 'promise',
+  })
 
   const handleToggleDocument = (documentId: string) => {
     setSelectedDocumentIds((prev) => {
@@ -70,31 +76,42 @@ export function GenerationDialog() {
     setSelectedDocumentIds(new Set())
   }
 
-  const handleGenerate = async (type: GenerationType) => {
+  const handleGenerate = async () => {
     if (!projectId || !prompt.trim()) return
 
     setIsGenerating(true)
-    setGenerationType(type)
 
     try {
-      // TODO: Implement actual generation logic
-      // For now, this is a placeholder
-      console.log('Generating', type, {
-        projectId,
-        prompt,
-        documentIds: Array.from(selectedDocumentIds),
-      })
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      switch (selectedType) {
+        case 'note':
+          await createNote({
+            projectId,
+            userPrompt: prompt.trim() || undefined,
+          })
+          break
+        case 'quiz':
+          await createQuiz({
+            projectId,
+            questionCount: 30,
+            userPrompt: prompt.trim() || undefined,
+          })
+          break
+        case 'flashcard':
+          await createFlashcardGroup({
+            projectId,
+            flashcardCount: 30,
+            userPrompt: prompt.trim() || undefined,
+          })
+          break
+      }
 
       // Close dialog and reset state
       handleClose()
     } catch (error) {
       console.error('Generation failed:', error)
+      // TODO: Show error toast/notification
     } finally {
       setIsGenerating(false)
-      setGenerationType(null)
     }
   }
 
@@ -103,7 +120,7 @@ export function GenerationDialog() {
     close()
     setPrompt('')
     setSelectedDocumentIds(new Set())
-    setGenerationType(null)
+    setSelectedType('note')
   }
 
   const hasSelectedDocuments = selectedDocumentIds.size > 0
@@ -118,12 +135,45 @@ export function GenerationDialog() {
         <DialogHeader className="shrink-0">
           <DialogTitle>Generate Study Resource</DialogTitle>
           <DialogDescription>
-            Enter a topic or prompt and select relevant documents to generate a
-            quiz or flashcard set.
+            Choose a resource type, enter a topic or prompt, and select relevant
+            documents to generate.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-hidden">
+          <div className="space-y-2 shrink-0">
+            <Label>Resource Type</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={selectedType === 'note' ? 'default' : 'outline'}
+                onClick={() => setSelectedType('note')}
+                disabled={isGenerating}
+                className="flex-1"
+              >
+                Note
+              </Button>
+              <Button
+                type="button"
+                variant={selectedType === 'quiz' ? 'default' : 'outline'}
+                onClick={() => setSelectedType('quiz')}
+                disabled={isGenerating}
+                className="flex-1"
+              >
+                Quiz
+              </Button>
+              <Button
+                type="button"
+                variant={selectedType === 'flashcard' ? 'default' : 'outline'}
+                onClick={() => setSelectedType('flashcard')}
+                disabled={isGenerating}
+                className="flex-1"
+              >
+                Flashcards
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2 shrink-0">
             <Label htmlFor="prompt">Topic / Prompt</Label>
             <Textarea
@@ -222,30 +272,22 @@ export function GenerationDialog() {
           </Button>
           <Button
             type="button"
-            onClick={() => handleGenerate('quiz')}
+            onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
           >
-            {isGenerating && generationType === 'quiz' ? (
+            {isGenerating ? (
               <>
                 <Loader2Icon className="size-4 mr-2 animate-spin" />
-                Generating Quiz...
+                Generating{' '}
+                {selectedType === 'note'
+                  ? 'Note'
+                  : selectedType === 'quiz'
+                    ? 'Quiz'
+                    : 'Flashcards'}
+                ...
               </>
             ) : (
-              'Generate Quiz'
-            )}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => handleGenerate('flashcard')}
-            disabled={isGenerating || !prompt.trim()}
-          >
-            {isGenerating && generationType === 'flashcard' ? (
-              <>
-                <Loader2Icon className="size-4 mr-2 animate-spin" />
-                Generating Flashcards...
-              </>
-            ) : (
-              'Generate Flashcards'
+              `Generate ${selectedType === 'note' ? 'Note' : selectedType === 'quiz' ? 'Quiz' : 'Flashcards'}`
             )}
           </Button>
         </DialogFooter>
