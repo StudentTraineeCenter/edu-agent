@@ -5,6 +5,7 @@ from core.services.chat import ChatService
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
 from core.services.flashcards import FlashcardService
+from core.services.notes import NoteService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
 from core.services.usage import UsageService
@@ -27,6 +28,7 @@ chat_service = ChatService(
 )
 flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
+note_service = NoteService(search_interface=search_interface)
 attempt_service = AttemptService()
 
 
@@ -48,6 +50,10 @@ def get_flashcard_service():
 
 def get_quiz_service():
     return quiz_service
+
+
+def get_note_service():
+    return note_service
 
 
 def get_attempt_service():

@@ -555,6 +555,85 @@ export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
   data: S.Array(QuizQuestionDto),
 }) {}
 
+export class ListNotesV1NotesGetParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Note data transfer object.
+ */
+export class NoteDto extends S.Class<NoteDto>('NoteDto')({
+  id: S.String,
+  project_id: S.String,
+  title: S.String,
+  description: S.optionalWith(S.String, { nullable: true }),
+  content: S.String,
+  created_at: S.String,
+  updated_at: S.String,
+}) {}
+
+/**
+ * Response model for listing notes.
+ */
+export class NoteListResponse extends S.Class<NoteListResponse>(
+  'NoteListResponse',
+)({
+  /**
+   * List of notes
+   */
+  data: S.Array(NoteDto),
+}) {}
+
+export class CreateNoteV1NotesPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating a note.
+ */
+export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
+  'CreateNoteRequest',
+)({
+  /**
+   * Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.
+   */
+  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
+}) {}
+
+/**
+ * Response model for note operations.
+ */
+export class NoteResponse extends S.Class<NoteResponse>('NoteResponse')({
+  note: NoteDto,
+  message: S.String,
+}) {}
+
+/**
+ * Request model for updating a note.
+ */
+export class UpdateNoteRequest extends S.Class<UpdateNoteRequest>(
+  'UpdateNoteRequest',
+)({
+  /**
+   * Title of the note
+   */
+  title: S.optionalWith(S.String.pipe(S.minLength(1), S.maxLength(255)), {
+    nullable: true,
+  }),
+  /**
+   * Description of the note
+   */
+  description: S.optionalWith(S.String.pipe(S.maxLength(1000)), {
+    nullable: true,
+  }),
+  /**
+   * Markdown content of the note
+   */
+  content: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+}) {}
+
 export class ListAttemptsV1AttemptsGetParams extends S.Struct({
   /**
    * Optional project ID filter
@@ -1037,6 +1116,64 @@ export const make = (
           }),
         ),
       ),
+    listNotesV1NotesGet: (options) =>
+      HttpClientRequest.get(`/v1/notes`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options?.['project_id'] as any,
+        }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createNoteV1NotesPost: (options) =>
+      HttpClientRequest.post(`/v1/notes`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getNoteV1NotesNoteIdGet: (noteId) =>
+      HttpClientRequest.get(`/v1/notes/${noteId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateNoteV1NotesNoteIdPut: (noteId, options) =>
+      HttpClientRequest.put(`/v1/notes/${noteId}`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteNoteV1NotesNoteIdDelete: (noteId) =>
+      HttpClientRequest.del(`/v1/notes/${noteId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     listAttemptsV1AttemptsGet: (options) =>
       HttpClientRequest.get(`/v1/attempts`).pipe(
         HttpClientRequest.setUrlParams({
@@ -1381,6 +1518,63 @@ export interface Client {
     quizId: string,
   ) => Effect.Effect<
     typeof QuizQuestionListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all notes for a project
+   */
+  readonly listNotesV1NotesGet: (
+    options: typeof ListNotesV1NotesGetParams.Encoded,
+  ) => Effect.Effect<
+    typeof NoteListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new note with AI-generated markdown content
+   */
+  readonly createNoteV1NotesPost: (options: {
+    readonly params: typeof CreateNoteV1NotesPostParams.Encoded
+    readonly payload: typeof CreateNoteRequest.Encoded
+  }) => Effect.Effect<
+    typeof NoteResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a specific note by ID
+   */
+  readonly getNoteV1NotesNoteIdGet: (
+    noteId: string,
+  ) => Effect.Effect<
+    typeof NoteResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Update a note
+   */
+  readonly updateNoteV1NotesNoteIdPut: (
+    noteId: string,
+    options: typeof UpdateNoteRequest.Encoded,
+  ) => Effect.Effect<
+    typeof NoteResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a note
+   */
+  readonly deleteNoteV1NotesNoteIdDelete: (
+    noteId: string,
+  ) => Effect.Effect<
+    void,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

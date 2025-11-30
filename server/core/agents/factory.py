@@ -13,6 +13,7 @@ from langgraph.runtime import Runtime
 from core.agents.context import CustomAgentContext, CustomAgentState
 from core.agents.flashcard import tools as flashcard_tools
 from core.agents.llm import make_llm_streaming
+from core.agents.note import tools as note_tools
 from core.agents.quiz import tools as quiz_tools
 from db.models import ChatMessageSource
 
@@ -123,7 +124,7 @@ def ensure_sources_in_stream(
 
 def make_agent():
     llm = make_llm_streaming()
-    tools = [*flashcard_tools, *quiz_tools]
+    tools = [*flashcard_tools, *quiz_tools, *note_tools]
 
     return create_agent(
         model=llm,

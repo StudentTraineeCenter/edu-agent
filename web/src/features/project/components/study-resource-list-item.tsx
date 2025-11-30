@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import {
   BrainCircuitIcon,
+  FileTextIcon,
   ListChecksIcon,
   MoreVerticalIcon,
   TrashIcon,
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteFlashcardGroupAtom } from '@/data-acess/flashcard'
+import { deleteNoteAtom } from '@/data-acess/note'
 import { deleteQuizAtom } from '@/data-acess/quiz'
 import { StudyResource } from '@/data-acess/study-resources'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
@@ -55,6 +57,7 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
     mode: 'promise',
   })
   const deleteQuiz = useAtomSet(deleteQuizAtom, { mode: 'promise' })
+  const deleteNote = useAtomSet(deleteNoteAtom, { mode: 'promise' })
   const confirmationDialog = useConfirmationDialog()
 
   return StudyResource.$match(studyResource, {
@@ -154,6 +157,66 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 name: quiz.name,
                 created_at: quiz.created_at,
                 icon: ListChecksIcon,
+              })}
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVerticalIcon className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDelete} variant="destructive">
+                  <TrashIcon className="size-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </li>
+      )
+    },
+    Note: ({ data: note }) => {
+      const handleDelete = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const confirmed = await confirmationDialog.open({
+          title: 'Delete Note',
+          description: `Are you sure you want to delete "${note.title}"? This action cannot be undone.`,
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+          variant: 'destructive',
+        })
+
+        if (confirmed) {
+          await deleteNote({
+            noteId: note.id,
+            projectId: note.project_id ?? '',
+          })
+        }
+      }
+
+      return (
+        <li className="rounded-md p-3 hover:bg-muted/50 group">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/p/$projectId/n/$noteId"
+              params={{
+                projectId: note.project_id ?? '',
+                noteId: note.id,
+              }}
+              className="flex-1"
+            >
+              {renderContent({
+                name: note.title,
+                created_at: note.created_at,
+                icon: FileTextIcon,
               })}
             </Link>
             <DropdownMenu>

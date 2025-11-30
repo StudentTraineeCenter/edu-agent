@@ -280,6 +280,27 @@ class QuizQuestion(Base):
     project = relationship("Project")
 
 
+class Note(Base):
+    __tablename__ = "notes"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    title: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    content: Mapped[str] = mapped_column(Text)  # Markdown content
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    project = relationship("Project")
+
+
 class StudyAttempt(Base):
     __tablename__ = "study_attempts"
     id: Mapped[str] = mapped_column(
