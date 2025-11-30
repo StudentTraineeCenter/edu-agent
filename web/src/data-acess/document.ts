@@ -1,6 +1,6 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
-import { Data, Effect, pipe } from 'effect'
+import { Data, Effect } from 'effect'
 import { runtime } from './runtime'
 import { usageAtom } from './usage'
 
@@ -49,6 +49,15 @@ export const indexedDocumentsAtom = Atom.family((projectId: string) =>
     get(documentsRemoteAtom(projectId)).pipe(
       Result.map((d) => d.filter((d) => d.status === 'indexed')),
     ),
+  ),
+)
+
+export const documentAtom = Atom.family((documentId: string) =>
+  Atom.make(
+    Effect.fn(function* () {
+      const client = yield* makeApiClient
+      return yield* client.getDocumentV1DocumentsDocumentIdGet(documentId)
+    }),
   ),
 )
 
