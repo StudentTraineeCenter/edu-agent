@@ -16,7 +16,14 @@ export const HomePage = () => {
         search?.redirect || sessionStorage.getItem('auth.redirect')
       if (redirectUrl) {
         sessionStorage.removeItem('auth.redirect')
-        navigate({ to: redirectUrl })
+        // Ensure redirect URLs are prefixed with /dashboard
+        const dashboardUrl = redirectUrl.startsWith('/dashboard')
+          ? redirectUrl
+          : `/dashboard${redirectUrl}`
+        navigate({ to: dashboardUrl })
+      } else {
+        // Default redirect to dashboard
+        navigate({ to: '/dashboard' })
       }
     }
   }, [isAuthenticated, navigate, search?.redirect])

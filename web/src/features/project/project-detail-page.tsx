@@ -122,7 +122,7 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
   const handleCreateChat = async () => {
     const chat = await createChat({ project_id: projectId })
     navigate({
-      to: '/p/$projectId/c/$chatId',
+      to: '/dashboard/p/$projectId/c/$chatId',
       params: { projectId, chatId: chat.id },
     })
   }

@@ -51,7 +51,7 @@ export const ChatListItem = ({ chat }: Props) => {
     <li className="rounded-md p-3 hover:bg-muted/50 group">
       <div className="flex items-center gap-2">
         <Link
-          to="/p/$projectId/c/$chatId"
+          to="/dashboard/p/$projectId/c/$chatId"
           params={{
             projectId: chat.project_id,
             chatId: chat.id,

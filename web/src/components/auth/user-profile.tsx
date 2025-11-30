@@ -48,7 +48,7 @@ export const UserProfile = () => {
         <p className="text-xs text-gray-500 truncate">{user.email}</p>
       </div>
       <div className="flex items-center gap-2">
-        <Link to="/" className={cn(buttonVariants({ variant: 'default' }))}>
+        <Link to="/dashboard" className={cn(buttonVariants({ variant: 'default' }))}>
           Dashboard
         </Link>
       </div>

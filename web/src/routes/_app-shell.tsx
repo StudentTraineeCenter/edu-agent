@@ -1,12 +1,16 @@
-import { Outlet } from '@tanstack/react-router'
+import { Outlet, useLocation } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/navigation/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { useAuth } from '@/hooks/use-auth'
 
 export const AppShell = () => {
   const { isAuthenticated } = useAuth()
+  const location = useLocation()
 
-  if (!isAuthenticated) {
+  // Only show sidebar on dashboard routes
+  const isDashboardRoute = location.pathname.startsWith('/dashboard')
+
+  if (!isAuthenticated || !isDashboardRoute) {
     return <Outlet />
   }
 

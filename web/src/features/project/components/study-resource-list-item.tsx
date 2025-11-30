@@ -83,7 +83,7 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
         <li className="rounded-md p-3 hover:bg-muted/50 group">
           <div className="flex items-center gap-2">
             <Link
-              to="/p/$projectId/f/$flashcardGroupId"
+              to="/dashboard/p/$projectId/f/$flashcardGroupId"
               params={{
                 projectId: flashcardGroup.project_id ?? '',
                 flashcardGroupId: flashcardGroup.id,
@@ -143,7 +143,7 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
         <li className="rounded-md p-3 hover:bg-muted/50 group">
           <div className="flex items-center gap-2">
             <Link
-              to="/p/$projectId/q/$quizId"
+              to="/dashboard/p/$projectId/q/$quizId"
               params={{
                 projectId: quiz.project_id ?? '',
                 quizId: quiz.id,

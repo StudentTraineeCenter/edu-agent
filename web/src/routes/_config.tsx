@@ -8,6 +8,8 @@ import { DocumentDetailRoute } from './document-detail-route'
 import { QuizDetailRoute } from './quiz-detail-route'
 import { FlashcardDetailRoute } from './flashcard-detail-route'
 import { SettingsPage } from '@/features/settings/settings-page'
+import { DashboardRoute } from './dashboard-route'
+import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { z } from 'zod'
 
 const requireAuth = () => {
@@ -39,6 +41,14 @@ export const rootRoute = createRootRoute({
   ),
 })
 
+// Dashboard layout route - parent for all authenticated routes
+export const dashboardRoute = createRoute({
+  path: '/dashboard',
+  getParentRoute: () => rootRoute,
+  beforeLoad: requireAuth,
+  component: DashboardRoute,
+})
+
 export const indexRoute = createRoute({
   path: '/',
   getParentRoute: () => rootRoute,
@@ -46,54 +56,57 @@ export const indexRoute = createRoute({
   component: HomePage,
 })
 
+export const dashboardIndexRoute = createRoute({
+  path: '/',
+  getParentRoute: () => dashboardRoute,
+  component: () => <DashboardPage />,
+})
+
 export const projectDetailRoute = createRoute({
   path: '/p/$projectId',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: ProjectDetailRoute,
 })
 
 export const chatDetailRoute = createRoute({
   path: '/p/$projectId/c/$chatId',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: ChatDetailRoute,
 })
 
 export const documentDetailRoute = createRoute({
   path: '/p/$projectId/d/$documentId',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: DocumentDetailRoute,
 })
 
 export const flashcardDetailRoute = createRoute({
   path: '/p/$projectId/f/$flashcardGroupId',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: FlashcardDetailRoute,
 })
 
 export const quizDetailRoute = createRoute({
   path: '/p/$projectId/q/$quizId',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: QuizDetailRoute,
 })
 
 export const settingsRoute = createRoute({
   path: '/settings',
-  getParentRoute: () => rootRoute,
-  beforeLoad: requireAuth,
+  getParentRoute: () => dashboardRoute,
   component: SettingsPage,
 })
 
 export const routeTree = rootRoute.addChildren([
-  projectDetailRoute,
-  chatDetailRoute,
-  documentDetailRoute,
-  flashcardDetailRoute,
-  quizDetailRoute,
-  settingsRoute,
+  dashboardRoute.addChildren([
+    dashboardIndexRoute,
+    projectDetailRoute,
+    chatDetailRoute,
+    documentDetailRoute,
+    flashcardDetailRoute,
+    quizDetailRoute,
+    settingsRoute,
+  ]),
   indexRoute,
 ])

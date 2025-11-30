@@ -84,7 +84,7 @@ const MessageSources = ({ sources, projectId }: MessageSourcesProps) => {
   const handleSourceClick = (source: SourceDto) => {
     if (!source.document_id) return
     navigate({
-      to: '/p/$projectId/d/$documentId',
+      to: '/dashboard/p/$projectId/d/$documentId',
       params: {
         projectId,
         documentId: source.document_id,

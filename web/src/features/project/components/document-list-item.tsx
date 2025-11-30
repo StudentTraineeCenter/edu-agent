@@ -96,7 +96,7 @@ export const DocumentListItem = ({ document }: Props) => {
     <li className="rounded-md p-3 hover:bg-muted/50 group">
       <div className="flex items-center gap-2">
         <Link
-          to="/p/$projectId/d/$documentId"
+          to="/dashboard/p/$projectId/d/$documentId"
           params={{
             projectId: document.project_id ?? '',
             documentId: document.id,
