@@ -335,6 +335,34 @@ class StudyAttempt(Base):
     project = relationship("Project")
 
 
+class StudyPlan(Base):
+    __tablename__ = "study_plans"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id"), index=True, unique=True
+    )  # 1 plan per project
+
+    # Plan content
+    title: Mapped[str] = mapped_column(String)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    plan_content: Mapped[dict] = mapped_column(JSON)  # Structured plan data
+
+    # Timestamps
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
+    project = relationship("Project")
+
+
 class UserUsage(Base):
     __tablename__ = "user_usage"
     id: Mapped[str] = mapped_column(

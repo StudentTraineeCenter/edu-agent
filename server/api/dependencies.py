@@ -8,6 +8,7 @@ from core.services.flashcards import FlashcardService
 from core.services.notes import NoteService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
+from core.services.study_plans import StudyPlanService
 from core.services.usage import UsageService
 from db.models import User
 from fastapi import Depends
@@ -30,6 +31,7 @@ flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
 note_service = NoteService(search_interface=search_interface)
 attempt_service = AttemptService()
+study_plan_service = StudyPlanService(attempt_service=attempt_service)
 
 
 def get_document_service():
@@ -71,3 +73,7 @@ def get_data_processing_service():
 
 def get_usage_service():
     return usage_service
+
+
+def get_study_plan_service():
+    return study_plan_service

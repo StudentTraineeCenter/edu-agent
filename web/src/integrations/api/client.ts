@@ -838,6 +838,23 @@ export class UsageResponse extends S.Class<UsageResponse>('UsageResponse')({
   usage: UsageDto,
 }) {}
 
+/**
+ * Study plan data transfer object.
+ */
+export class StudyPlanDto extends S.Class<StudyPlanDto>('StudyPlanDto')({
+  id: S.String,
+  user_id: S.String,
+  project_id: S.String,
+  title: S.String,
+  description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Structured plan content (JSON)
+   */
+  plan_content: S.Record({ key: S.String, value: S.Unknown }),
+  generated_at: S.String,
+  updated_at: S.String,
+}) {}
+
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
 
 export const make = (
@@ -1311,6 +1328,26 @@ export const make = (
           }),
         ),
       ),
+    getStudyPlanV1ProjectsProjectIdStudyPlansGet: (projectId) =>
+      HttpClientRequest.get(`/v1/projects/${projectId}/study-plans`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudyPlanDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateStudyPlanV1ProjectsProjectIdStudyPlansPost: (projectId) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/study-plans`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudyPlanDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     healthCheckHealthGet: () =>
       HttpClientRequest.get(`/health`).pipe(
         withResponse(
@@ -1729,6 +1766,28 @@ export interface Client {
   readonly getUsageV1UsageGet: () => Effect.Effect<
     typeof UsageResponse.Type,
     HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Get the latest study plan for a project (1 plan per project)
+   */
+  readonly getStudyPlanV1ProjectsProjectIdStudyPlansGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof StudyPlanDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate or regenerate personalized study plan based on performance
+   */
+  readonly generateStudyPlanV1ProjectsProjectIdStudyPlansPost: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof StudyPlanDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
    * Simple health check that doesn't require database

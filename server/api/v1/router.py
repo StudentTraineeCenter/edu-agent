@@ -6,6 +6,7 @@ from api.v1.endpoints.flashcards import router as flashcards_router
 from api.v1.endpoints.notes import router as notes_router
 from api.v1.endpoints.projects import router as projects_router
 from api.v1.endpoints.quizzes import router as quizzes_router
+from api.v1.endpoints.study_plans import router as study_plans_router
 from api.v1.endpoints.usage import router as usage_router
 from fastapi import APIRouter
 
@@ -24,3 +25,4 @@ v1_router.include_router(router=notes_router, prefix="/notes", tags=["notes"])
 v1_router.include_router(router=attempts_router, prefix="/attempts", tags=["attempts"])
 v1_router.include_router(router=auth_router, prefix="/auth", tags=["auth"])
 v1_router.include_router(router=usage_router, prefix="/usage", tags=["usage"])
+v1_router.include_router(router=study_plans_router, tags=["study-plans"])

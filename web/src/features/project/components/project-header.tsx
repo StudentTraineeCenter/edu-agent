@@ -11,8 +11,8 @@ import { projectAtom, deleteProjectAtom } from '@/data-acess/project'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { TrashIcon, PencilIcon } from 'lucide-react'
-import { useNavigate } from '@tanstack/react-router'
+import { TrashIcon, PencilIcon, CalendarIcon } from 'lucide-react'
+import { useNavigate, Link } from '@tanstack/react-router'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { useCreateProjectDialog } from './upsert-project-dialog'
 
@@ -80,6 +80,15 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
       </div>
       {Result.isSuccess(projectResult) && (
         <div className="flex items-center gap-2 px-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              to="/dashboard/p/$projectId/sp"
+              params={{ projectId }}
+            >
+              <CalendarIcon className="size-4 mr-2" />
+              <span>Study Plan</span>
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
