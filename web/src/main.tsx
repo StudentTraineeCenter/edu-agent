@@ -11,6 +11,7 @@ import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
 import { TooltipProvider } from '@/components/ui/tooltip.tsx'
 import { ModalProvider } from '@/providers/modal-provider.tsx'
+import { ThemeProvider } from '@/providers/theme-provider.tsx'
 
 const TanStackQueryProviderContext = TanStackQueryProvider.getContext()
 const router = createRouter({
@@ -35,15 +36,17 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <MSALProvider>
-        <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-          <TooltipProvider>
-            <ModalProvider>
-              <RouterProvider router={router} />
-            </ModalProvider>
-          </TooltipProvider>
-        </TanStackQueryProvider.Provider>
-      </MSALProvider>
+      <ThemeProvider>
+        <MSALProvider>
+          <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
+            <TooltipProvider>
+              <ModalProvider>
+                <RouterProvider router={router} />
+              </ModalProvider>
+            </TooltipProvider>
+          </TanStackQueryProvider.Provider>
+        </MSALProvider>
+      </ThemeProvider>
     </StrictMode>,
   )
 }
