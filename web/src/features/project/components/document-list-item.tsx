@@ -17,6 +17,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteDocumentAtom } from '@/data-acess/document'
 import { DocumentStatus } from '@/integrations/api/client'
@@ -103,27 +108,30 @@ export const DocumentListItem = ({ document }: Props) => {
           }}
           className="flex-1"
         >
-          <div className="grid grid-cols-6 items-center">
-            <div className="flex flex-col w-full col-span-5">
-              <div className="flex items-center gap-2">
-                <FileIcon className="size-4" />
-                <span>{document.file_name}</span>
-                <Badge variant={statusInfo.variant} className="gap-1">
-                  <StatusIcon
-                    className={cn(
-                      'size-3',
-                      statusInfo.variant === 'secondary' && 'animate-spin',
-                    )}
-                  />
-                  {statusInfo.label}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-col col-span-1 text-right">
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(document.uploaded_at), 'MM/dd HH:mm')}
-              </span>
-            </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <FileIcon className="size-4 flex-shrink-0" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate flex-1 min-w-0">
+                  {document.file_name}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{document.file_name}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Badge variant={statusInfo.variant} className="gap-1 flex-shrink-0">
+              <StatusIcon
+                className={cn(
+                  'size-3',
+                  statusInfo.variant === 'secondary' && 'animate-spin',
+                )}
+              />
+              {statusInfo.label}
+            </Badge>
+            <span className="text-xs text-muted-foreground flex-shrink-0">
+              {format(new Date(document.uploaded_at), 'MM/dd HH:mm')}
+            </span>
           </div>
         </Link>
         <DropdownMenu>
