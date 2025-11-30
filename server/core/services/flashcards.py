@@ -457,28 +457,35 @@ class FlashcardService:
         Returns:
             PromptTemplate instance
         """
-        template = """You are an expert educational content creator. Based on the following document content, generate a flashcard group with name, description, and {count} high-quality flashcards.
+        template = """You are an expert educational content creator specializing in creating effective learning materials. Your goal is to help students master the course material through well-designed flashcards that promote deep understanding.
 
 Document Content:
 {document_content}
 
 User Instructions: {user_prompt}
 
-IMPORTANT: Generate all content in {language_code} language. All names, descriptions, questions, and answers must be in {language_code}.
+CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
+- Group name and description
+- All flashcard questions
+- All flashcard answers
+- Any explanations or additional context
+Never use any language other than {language_code}. If the document content is in a different language, translate all relevant information to {language_code}.
 
-Guidelines for flashcard group creation:
-1. Generate a concise name (2-6 words) that captures the main topic or theme
-2. Generate a description (1-2 sentences) explaining what the flashcards will cover
-3. Create flashcards that test understanding, not just memorization
-4. Include a mix of difficulty levels (easy, medium, hard)
-5. Cover key concepts, definitions, important facts, and practical applications
-6. Make questions clear and concise
-7. Provide comprehensive but concise answers
-8. Focus on the most important and educational content from the documents
+Educational Guidelines for flashcard creation:
+1. Name: Generate a concise, descriptive name (2-6 words) that captures the main topic or theme in {language_code}
+2. Description: Generate a clear description (1-2 sentences) in {language_code} explaining what knowledge the flashcards will help students master
+3. Learning-focused questions: Create flashcards that test understanding, application, and critical thinking - not just rote memorization
+4. Difficulty distribution: Include a balanced mix of difficulty levels (easy: foundational concepts, medium: application, hard: analysis/synthesis)
+5. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
+6. Question quality: Make questions clear, specific, and thought-provoking - they should require understanding, not just recall
+7. Answer quality: Provide comprehensive but concise answers that explain the "why" behind the concept, not just the "what"
+8. Educational value: Focus on the most pedagogically important content that will help students truly understand the material
+9. Progressive learning: Structure flashcards to build from basic concepts to more complex applications
+10. Active recall: Design questions that require active retrieval and application of knowledge
 
 {format_instructions}
 
-Generate exactly {count} flashcards that are relevant to the document content and follow the user's instructions."""
+Generate exactly {count} high-quality flashcards in {language_code} that are relevant to the document content, follow the user's instructions, and promote deep learning."""
 
         return PromptTemplate(
             template=template,

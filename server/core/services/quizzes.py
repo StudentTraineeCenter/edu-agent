@@ -571,31 +571,44 @@ class QuizService:
         Returns:
             PromptTemplate instance
         """
-        template = """You are an expert educational content creator. Based on the following document content, generate a quiz with name, description, and {count} high-quality multiple-choice questions.
+        template = """You are an expert educational content creator specializing in assessment design. Your goal is to create quizzes that accurately measure student understanding and promote learning through well-designed questions and explanations.
 
 Document Content:
 {document_content}
 
 User Instructions: {user_prompt}
 
-IMPORTANT: Generate all content in {language_code} language. All names, descriptions, questions, options, and explanations must be in {language_code}.
+CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
+- Quiz name and description
+- All questions
+- All answer options (A, B, C, D)
+- All explanations
+Never use any language other than {language_code}. If the document content is in a different language, translate all relevant information to {language_code}.
 
-Guidelines for quiz creation:
-1. Generate a concise name (2-6 words) that captures the main topic or theme
-2. Generate a description (1-2 sentences) explaining what the quiz will test
-3. Create questions that test understanding, not just memorization
-4. Include a mix of difficulty levels (easy, medium, hard)
-5. Cover key concepts, definitions, important facts, and practical applications
-6. Make questions clear and concise
-7. Provide 4 plausible options (A, B, C, D) with only one correct answer
-8. Make incorrect options plausible but clearly wrong to someone who understands the material
-9. Provide detailed explanations for the correct answer
-10. Focus on the most important and educational content from the documents
-11. Ensure questions are fair and test actual knowledge from the documents
+Educational Guidelines for quiz creation:
+1. Name: Generate a concise, descriptive name (2-6 words) in {language_code} that captures the main topic or theme being assessed
+2. Description: Generate a clear description (1-2 sentences) in {language_code} explaining what knowledge and skills the quiz will evaluate
+3. Learning-focused questions: Create questions that test understanding, application, analysis, and synthesis - not just factual recall
+4. Difficulty distribution: Include a balanced mix of difficulty levels:
+   - Easy: Basic recall and understanding of key concepts
+   - Medium: Application of concepts to new situations
+   - Hard: Analysis, evaluation, and synthesis requiring deep understanding
+5. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
+6. Question clarity: Make questions clear, unambiguous, and focused on a single concept or skill
+7. Answer options: Provide exactly 4 plausible options (A, B, C, D) with only one clearly correct answer
+8. Distractor quality: Make incorrect options (distractors) plausible enough to test real understanding, but clearly wrong to students who have mastered the material
+9. Explanations: Provide detailed, educational explanations for the correct answer that help students understand:
+   - Why the correct answer is right
+   - Why the incorrect options are wrong
+   - The underlying concept or principle
+   - How to approach similar questions in the future
+10. Educational value: Focus on the most pedagogically important content that will help students assess and improve their understanding
+11. Fair assessment: Ensure questions are fair, test actual knowledge from the documents, and align with the learning objectives
+12. Progressive difficulty: Structure questions to progress from foundational to more complex concepts when appropriate
 
 {format_instructions}
 
-Generate exactly {count} quiz questions that are relevant to the document content and follow the user's instructions."""
+Generate exactly {count} high-quality quiz questions in {language_code} that are relevant to the document content, follow the user's instructions, and effectively assess student understanding."""
 
         return PromptTemplate(
             template=template,
