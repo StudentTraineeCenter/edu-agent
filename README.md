@@ -40,21 +40,23 @@ EduAgent helps students study course materials through intelligent document proc
 - **💬 AI Chat Tutor** - Interactive conversations with an AI assistant that understands your course materials
 - **📝 Auto-Generated Quizzes** - AI-powered multiple-choice questions based on your documents
 - **🎴 Smart Flashcards** - Automatically generated flashcard sets for efficient studying
+- **📝 AI-Generated Notes** - Create comprehensive study notes from your documents with AI assistance
+- **🗺️ Mind Maps** - Visual knowledge maps generated from your course materials
+- **📋 Study Plans** - Personalized study plans based on your performance and progress
 - **📊 Study Tracking** - Monitor your progress with detailed attempt tracking and analytics
 - **🌐 Multi-language Support** - Study materials in multiple languages
 - **🔐 Azure Entra ID Authentication** - Secure authentication and authorization
-- **🔍 Semantic Search** - Vector-based search across your documents using embeddings
+- **🔍 Semantic Search** - Vector-based search across your documents using PostgreSQL pgvector
 
 ## 🏗️ Tech Stack
 
 ### Backend
 
 - **[FastAPI](https://fastapi.tiangolo.com/)** - Modern, fast Python web framework
-- **[PostgreSQL](https://www.postgresql.org/)** - Relational database with Alembic migrations
-- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - LLM capabilities for chat, quizzes, and flashcards
+- **[PostgreSQL](https://www.postgresql.org/)** - Relational database with Alembic migrations and pgvector extension
+- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - LLM capabilities for chat, quizzes, flashcards, notes, mind maps, and study plans
 - **[Azure Content Understanding](https://azure.microsoft.com/en-us/products/ai-services/document-intelligence)** - Document processing and text extraction
 - **[Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs)** - File storage
-- **[Azure AI Search](https://azure.microsoft.com/en-us/products/ai-services/ai-search)** - Vector search and semantic queries
 - **[Azure Entra ID](https://azure.microsoft.com/en-us/products/entra/)** - Authentication and authorization
 
 ### Frontend
@@ -79,7 +81,6 @@ Before you begin, ensure you have the following installed:
   - Azure OpenAI
   - Azure Content Understanding (Document Intelligence)
   - Azure Blob Storage
-  - Azure AI Search
   - Azure Entra ID (App Registration)
 
 ## 🚀 Quick Start
@@ -153,45 +154,27 @@ pnpm gen:types
 Create a `.env` file in the `server/` directory:
 
 ```env
-# Azure OpenAI
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+# Azure Key Vault (required for production)
+# All other Azure service credentials are retrieved from Key Vault
+AZURE_KEY_VAULT_URI=https://your-key-vault.vault.azure.net/
 
-# Azure Content Understanding
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
-AZURE_DOCUMENT_INTELLIGENCE_KEY=your-key
-
-# Azure Storage
-AZURE_STORAGE_CONNECTION_STRING=your-connection-string
-AZURE_STORAGE_CONTAINER_NAME=documents
-
-# Azure AI Search
-AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
-AZURE_SEARCH_API_KEY=your-search-key
-AZURE_SEARCH_INDEX_NAME=documents
-
-# Azure Entra ID
-AZURE_TENANT_ID=your-tenant-id
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/eduagent
-
-# Application
-ENVIRONMENT=development
-LOG_LEVEL=INFO
+# Usage Limits (optional, defaults shown)
+MAX_CHAT_MESSAGES_PER_DAY=100
+MAX_FLASHCARD_GENERATIONS_PER_DAY=100
+MAX_QUIZ_GENERATIONS_PER_DAY=100
+MAX_DOCUMENT_UPLOADS_PER_DAY=100
 ```
+
+**Note:** For local development, you can set individual environment variables instead of using Key Vault. The application will fall back to environment variables if Key Vault is not configured or if a secret is not found. See [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed configuration options.
 
 ### Frontend Environment Variables
 
 Create a `.env` file in the `web/` directory:
 
 ```env
-VITE_API_URL=http://localhost:8000
-VITE_AZURE_CLIENT_ID=your-client-id
-VITE_AZURE_TENANT_ID=your-tenant-id
+VITE_SERVER_URL=http://localhost:8000
+VITE_AZURE_ENTRA_CLIENT_ID=your-client-id
+VITE_AZURE_ENTRA_TENANT_ID=your-tenant-id
 ```
 
 For detailed configuration instructions, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md).
@@ -203,6 +186,7 @@ edu-agent/
 ├── server/                 # FastAPI backend
 │   ├── api/               # API routes and endpoints
 │   │   ├── v1/           # API version 1
+│   │   │   └── endpoints/ # Individual endpoint modules
 │   │   └── endpoints.py  # Main endpoint definitions
 │   ├── core/             # Core business logic
 │   │   ├── agents/       # AI agent implementations

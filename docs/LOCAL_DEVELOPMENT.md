@@ -105,7 +105,46 @@ This creates all necessary tables including:
 
 ### Step 3: Configure Server Environment
 
-Create a `.env` file in the `server/` directory or set environment variables:
+The application supports two configuration modes:
+
+#### Option 1: Azure Key Vault (Production)
+
+For production deployments, configure Azure Key Vault and set only:
+
+```bash
+# Azure Key Vault (required)
+AZURE_KEY_VAULT_URI=https://your-key-vault.vault.azure.net/
+
+# Usage Limits (optional, defaults shown)
+MAX_CHAT_MESSAGES_PER_DAY=100
+MAX_FLASHCARD_GENERATIONS_PER_DAY=100
+MAX_QUIZ_GENERATIONS_PER_DAY=100
+MAX_DOCUMENT_UPLOADS_PER_DAY=100
+```
+
+All other Azure service credentials are automatically retrieved from Key Vault using these secret names:
+
+- `database-url`
+- `azure-openai-api-key`
+- `azure-openai-endpoint`
+- `azure-openai-default-model`
+- `azure-openai-chat-deployment`
+- `azure-openai-embedding-deployment`
+- `azure-openai-api-version`
+- `azure-storage-connection-string`
+- `azure-storage-input-container-name`
+- `azure-storage-output-container-name`
+- `azure-document-intelligence-endpoint`
+- `azure-document-intelligence-key`
+- `azure-cu-endpoint`
+- `azure-cu-key`
+- `azure-cu-analyzer-id`
+- `azure-entra-tenant-id`
+- `azure-entra-client-id`
+
+#### Option 2: Environment Variables (Local Development)
+
+For local development, you can set individual environment variables instead of using Key Vault:
 
 ```bash
 # Database
@@ -121,9 +160,12 @@ AZURE_OPENAI_API_VERSION=2024-06-01
 
 # Azure Storage (required)
 AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
-AZURE_STORAGE_CONTAINER_NAME=documents
+AZURE_STORAGE_INPUT_CONTAINER_NAME=input
+AZURE_STORAGE_OUTPUT_CONTAINER_NAME=output
 
 # Azure Content Understanding (required)
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
+AZURE_DOCUMENT_INTELLIGENCE_KEY=your-cu-key
 AZURE_CU_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
 AZURE_CU_KEY=your-cu-key
 AZURE_CU_ANALYZER_ID=prebuilt-documentAnalyzer
@@ -133,13 +175,13 @@ AZURE_ENTRA_TENANT_ID=your-tenant-id
 AZURE_ENTRA_CLIENT_ID=your-client-id
 
 # Usage Limits (optional, defaults shown)
-MAX_CHAT_MESSAGES_PER_DAY=50
-MAX_FLASHCARD_GENERATIONS_PER_DAY=10
-MAX_QUIZ_GENERATIONS_PER_DAY=10
-MAX_DOCUMENT_UPLOADS_PER_DAY=5
+MAX_CHAT_MESSAGES_PER_DAY=100
+MAX_FLASHCARD_GENERATIONS_PER_DAY=100
+MAX_QUIZ_GENERATIONS_PER_DAY=100
+MAX_DOCUMENT_UPLOADS_PER_DAY=100
 ```
 
-**Note:** The server uses `python-dotenv` to load environment variables from `.env` files automatically.
+**Note:** The server uses `python-dotenv` to load environment variables from `.env` files automatically. If `AZURE_KEY_VAULT_URI` is set, the application will attempt to fetch secrets from Key Vault first, falling back to environment variables if a secret is not found.
 
 ### Step 4: Start the API Server
 
@@ -364,26 +406,67 @@ pnpm lint
 
 ### Server (API) Environment Variables
 
-| Variable                            | Description                     | Required | Default                   |
-| ----------------------------------- | ------------------------------- | -------- | ------------------------- |
-| `DATABASE_URL`                      | PostgreSQL connection string    | Yes      | -                         |
-| `AZURE_OPENAI_ENDPOINT`             | Azure OpenAI endpoint URL       | Yes      | -                         |
-| `AZURE_OPENAI_API_KEY`              | Azure OpenAI API key            | Yes      | -                         |
-| `AZURE_OPENAI_DEFAULT_MODEL`        | Default OpenAI model            | No       | gpt-4o                    |
-| `AZURE_OPENAI_CHAT_DEPLOYMENT`      | Chat model deployment name      | Yes      | -                         |
-| `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Embedding model deployment      | Yes      | -                         |
-| `AZURE_OPENAI_API_VERSION`          | OpenAI API version              | No       | 2024-06-01                |
-| `AZURE_STORAGE_CONNECTION_STRING`   | Azure Storage connection string | Yes      | -                         |
-| `AZURE_STORAGE_CONTAINER_NAME`      | Blob container name             | Yes      | -                         |
-| `AZURE_CU_ENDPOINT`                 | Content Understanding endpoint  | Yes      | -                         |
-| `AZURE_CU_KEY`                      | Content Understanding API key   | Yes      | -                         |
-| `AZURE_CU_ANALYZER_ID`              | Content Understanding analyzer  | No       | prebuilt-documentAnalyzer |
-| `AZURE_ENTRA_TENANT_ID`             | Azure AD tenant ID              | Yes      | -                         |
-| `AZURE_ENTRA_CLIENT_ID`             | Azure AD client ID              | Yes      | -                         |
-| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit        | No       | 50                        |
-| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit           | No       | 10                        |
-| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit                | No       | 10                        |
-| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit     | No       | 5                         |
+The application uses Azure Key Vault for secure credential management. In production, only the Key Vault URI and usage limits need to be set as environment variables. All other credentials are retrieved from Key Vault.
+
+#### Required Environment Variables (Production)
+
+| Variable                            | Description                 | Required | Default |
+| ----------------------------------- | --------------------------- | -------- | ------- |
+| `AZURE_KEY_VAULT_URI`               | Azure Key Vault URI         | Yes\*    | -       |
+| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit    | No       | 100     |
+| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit       | No       | 100     |
+| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit            | No       | 100     |
+| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit | No       | 100     |
+
+\* Required for production. For local development, you can set individual environment variables instead.
+
+#### Key Vault Secret Names
+
+When using Key Vault, the following secrets are expected:
+
+| Secret Name                            | Description                     |
+| -------------------------------------- | ------------------------------- |
+| `database-url`                         | PostgreSQL connection string    |
+| `azure-openai-api-key`                 | Azure OpenAI API key            |
+| `azure-openai-endpoint`                | Azure OpenAI endpoint URL       |
+| `azure-openai-default-model`           | Default OpenAI model            |
+| `azure-openai-chat-deployment`         | Chat model deployment name      |
+| `azure-openai-embedding-deployment`    | Embedding model deployment      |
+| `azure-openai-api-version`             | OpenAI API version              |
+| `azure-storage-connection-string`      | Azure Storage connection string |
+| `azure-storage-input-container-name`   | Input blob container name       |
+| `azure-storage-output-container-name`  | Output blob container name      |
+| `azure-document-intelligence-endpoint` | Document Intelligence endpoint  |
+| `azure-document-intelligence-key`      | Document Intelligence API key   |
+| `azure-cu-endpoint`                    | Content Understanding endpoint  |
+| `azure-cu-key`                         | Content Understanding API key   |
+| `azure-cu-analyzer-id`                 | Content Understanding analyzer  |
+| `azure-entra-tenant-id`                | Azure AD tenant ID              |
+| `azure-entra-client-id`                | Azure AD client ID              |
+
+#### Local Development Environment Variables
+
+For local development (when Key Vault is not used), you can set these environment variables directly:
+
+| Variable                               | Description                     | Required | Default                   |
+| -------------------------------------- | ------------------------------- | -------- | ------------------------- |
+| `DATABASE_URL`                         | PostgreSQL connection string    | Yes      | -                         |
+| `AZURE_OPENAI_ENDPOINT`                | Azure OpenAI endpoint URL       | Yes      | -                         |
+| `AZURE_OPENAI_API_KEY`                 | Azure OpenAI API key            | Yes      | -                         |
+| `AZURE_OPENAI_DEFAULT_MODEL`           | Default OpenAI model            | No       | gpt-4o                    |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT`         | Chat model deployment name      | Yes      | -                         |
+| `AZURE_OPENAI_EMBEDDING_DEPLOYMENT`    | Embedding model deployment      | Yes      | -                         |
+| `AZURE_OPENAI_API_VERSION`             | OpenAI API version              | No       | 2024-06-01                |
+| `AZURE_STORAGE_CONNECTION_STRING`      | Azure Storage connection string | Yes      | -                         |
+| `AZURE_STORAGE_INPUT_CONTAINER_NAME`   | Input blob container name       | No       | input                     |
+| `AZURE_STORAGE_OUTPUT_CONTAINER_NAME`  | Output blob container name      | No       | output                    |
+| `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` | Document Intelligence endpoint  | Yes      | -                         |
+| `AZURE_DOCUMENT_INTELLIGENCE_KEY`      | Document Intelligence API key   | Yes      | -                         |
+| `AZURE_CU_ENDPOINT`                    | Content Understanding endpoint  | Yes      | -                         |
+| `AZURE_CU_KEY`                         | Content Understanding API key   | Yes      | -                         |
+| `AZURE_CU_ANALYZER_ID`                 | Content Understanding analyzer  | No       | prebuilt-documentAnalyzer |
+| `AZURE_ENTRA_TENANT_ID`                | Azure AD tenant ID              | Yes      | -                         |
+| `AZURE_ENTRA_CLIENT_ID`                | Azure AD client ID              | Yes      | -                         |
 
 ### Web Frontend Environment Variables
 
@@ -392,6 +475,8 @@ pnpm lint
 | `VITE_SERVER_URL`            | API server URL     | Yes      |
 | `VITE_AZURE_ENTRA_TENANT_ID` | Azure AD tenant ID | Yes      |
 | `VITE_AZURE_ENTRA_CLIENT_ID` | Azure AD client ID | Yes      |
+
+**Note:** All `VITE_*` variables are exposed to the browser. Do not include sensitive information.
 
 **Note:** All `VITE_*` variables are exposed to the browser. Do not include sensitive information.
 

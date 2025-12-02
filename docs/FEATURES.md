@@ -9,9 +9,12 @@
 5. [Chat](#chat)
 6. [Quizzes](#quizzes)
 7. [Flashcards](#flashcards)
-8. [Study Attempts](#study-attempts)
-9. [Usage Limits](#usage-limits)
-10. [Architecture](#architecture)
+8. [Notes](#notes)
+9. [Mind Maps](#mind-maps)
+10. [Study Plans](#study-plans)
+11. [Study Attempts](#study-attempts)
+12. [Usage Limits](#usage-limits)
+13. [Architecture](#architecture)
 
 ## Overview
 
@@ -27,6 +30,9 @@ All content is organized within **Projects**. A project represents a course or s
 - Chats (conversations with the AI tutor)
 - Quizzes (AI-generated multiple-choice questions)
 - Flashcard groups (AI-generated study cards)
+- Notes (AI-generated study notes)
+- Mind Maps (visual knowledge representations)
+- Study Plans (personalized learning plans)
 - Study attempts (tracking of user progress)
 
 Each project has a language code that determines the language used for AI-generated content.
@@ -364,6 +370,178 @@ Generated flashcards follow these guidelines:
 - Comprehensive but concise answers
 - Focus on important educational content
 
+## Notes
+
+Notes are AI-generated study notes created from project documents. They provide comprehensive markdown-formatted content that helps students understand and review course materials.
+
+### Note Generation
+
+**Process:**
+
+1. User requests note creation with an optional prompt
+2. System searches project documents for relevant content
+3. AI analyzes document content and generates structured notes
+4. Notes are saved with title, description, and markdown content
+
+**Generation Parameters:**
+
+- `user_prompt`: Optional instructions for topic filtering or focus
+- `project_id`: Project containing source documents
+
+### Note Structure
+
+Each note contains:
+
+- **Title**: Auto-generated or user-provided title
+- **Description**: Brief explanation of note content
+- **Content**: Markdown-formatted study notes with:
+  - Structured sections and headings
+  - Key concepts and definitions
+  - Explanations and examples
+  - Organized information hierarchy
+
+### Note Features
+
+- **Create Note**: Generate a new note with AI-generated content
+- **List Notes**: View all notes in a project
+- **Get Note**: Retrieve note details and content
+- **Update Note**: Modify note title, description, or content
+- **Delete Note**: Remove a note
+
+### Topic Filtering
+
+Notes can be generated from specific topics by providing a `user_prompt`:
+
+- The prompt is used to search for relevant documents
+- Only matching document content is used for generation
+- Allows focused note creation on specific subjects
+
+### Note Quality
+
+Generated notes follow these guidelines:
+
+- Well-structured with clear headings and sections
+- Comprehensive coverage of key concepts
+- Markdown formatting for readability
+- Organized information hierarchy
+- Focus on important educational content
+
+## Mind Maps
+
+Mind Maps are visual knowledge representations generated from project documents. They help students understand relationships between concepts and organize information visually.
+
+### Mind Map Generation
+
+**Process:**
+
+1. User requests mind map creation (optionally with a topic prompt)
+2. System searches project documents for relevant content
+3. AI analyzes document content and identifies key concepts
+4. AI generates structured mind map data (nodes and edges)
+5. Mind map is saved with title, description, and map data
+
+**Generation Parameters:**
+
+- `user_prompt`: Optional instructions for topic filtering or focus
+- `project_id`: Project containing source documents
+
+### Mind Map Structure
+
+Each mind map contains:
+
+- **Title**: Auto-generated or user-provided title
+- **Description**: Brief explanation of mind map content
+- **Map Data**: Structured JSON data containing:
+  - Nodes: Concepts, topics, or ideas
+  - Edges: Relationships between nodes
+  - Hierarchical organization
+  - Visual layout information
+
+### Mind Map Features
+
+- **Generate Mind Map**: Create a new mind map from documents
+- **List Mind Maps**: View all mind maps in a project
+- **Get Mind Map**: Retrieve mind map details and data
+
+### Topic Filtering
+
+Mind maps can be generated from specific topics by providing a `user_prompt`:
+
+- The prompt is used to search for relevant documents
+- Only matching document content is used for generation
+- Allows focused mind map creation on specific subjects
+
+### Mind Map Quality
+
+Generated mind maps follow these guidelines:
+
+- Clear hierarchical structure
+- Logical relationships between concepts
+- Comprehensive coverage of key topics
+- Visual organization suitable for display
+- Focus on important educational content
+
+## Study Plans
+
+Study Plans are personalized learning plans generated based on user performance and project content. They help students organize their study schedule and focus on areas that need improvement.
+
+### Study Plan Generation
+
+**Process:**
+
+1. User requests study plan generation for a project
+2. System analyzes user's study attempts and performance
+3. System searches project documents for content
+4. AI generates personalized study plan based on:
+   - User's performance data
+   - Document content
+   - Learning objectives
+5. Study plan is saved (one plan per project)
+
+**Generation Parameters:**
+
+- `project_id`: Project for which to generate the plan
+
+### Study Plan Structure
+
+Each study plan contains:
+
+- **Title**: Auto-generated plan title
+- **Description**: Brief explanation of the plan
+- **Plan Content**: Structured JSON data containing:
+  - Study schedule and timeline
+  - Focus areas and topics
+  - Recommended activities
+  - Learning objectives
+  - Performance-based recommendations
+
+### Study Plan Features
+
+- **Generate Study Plan**: Create or regenerate a study plan
+- **Get Study Plan**: Retrieve the latest study plan for a project
+
+**Note:** Each project can have only one study plan. Generating a new plan replaces the existing one.
+
+### Personalization
+
+Study plans are personalized based on:
+
+- **Performance Analysis**: Review of quiz and flashcard attempts
+- **Weak Areas**: Identification of topics needing more practice
+- **Strong Areas**: Recognition of mastered concepts
+- **Document Content**: Available learning materials in the project
+- **Learning Objectives**: Goals derived from project documents
+
+### Study Plan Quality
+
+Generated study plans follow these guidelines:
+
+- Personalized recommendations based on performance
+- Realistic study schedules
+- Focus on areas needing improvement
+- Balanced coverage of all topics
+- Actionable learning activities
+
 ## Study Attempts
 
 Study Attempts track user progress when studying flashcards or taking quizzes.
@@ -459,25 +637,28 @@ graph TB
         D[Chat Service]
         E[Quiz Service]
         F[Flashcard Service]
-        G[Attempt Service]
-        H[Usage Service]
+        G[Note Service]
+        H[Mind Map Service]
+        I[Study Plan Service]
+        J[Attempt Service]
+        K[Usage Service]
     end
 
     subgraph "Agent Layer"
-        I[AI Agent]
-        J[Search Interface]
-        K[Tool Handlers]
+        L[AI Agent]
+        M[Search Interface]
+        N[Tool Handlers]
     end
 
     subgraph "Data Layer"
-        L[PostgreSQL Database]
-        M[Azure Blob Storage]
-        N[Vector Store]
+        O[PostgreSQL Database]
+        P[Azure Blob Storage]
+        Q[Vector Store pgvector]
     end
 
     subgraph "External Services"
-        O[Azure OpenAI]
-        P[Azure Content Understanding]
+        R[Azure OpenAI]
+        S[Azure Content Understanding]
     end
 
     A --> B
@@ -487,31 +668,43 @@ graph TB
     A --> F
     A --> G
     A --> H
+    A --> I
+    A --> J
+    A --> K
 
-    D --> I
-    E --> I
-    F --> I
-
-    I --> J
-    I --> K
-
-    J --> C
-    C --> N
-
-    B --> L
-    C --> L
-    C --> M
     D --> L
     E --> L
     F --> L
     G --> L
     H --> L
+    I --> L
 
+    L --> M
+    L --> N
+
+    M --> C
+    C --> Q
+
+    B --> O
+    C --> O
     C --> P
-    I --> O
+    D --> O
     E --> O
     F --> O
-    N --> O
+    G --> O
+    H --> O
+    I --> O
+    J --> O
+    K --> O
+
+    C --> S
+    L --> R
+    E --> R
+    F --> R
+    G --> R
+    H --> R
+    I --> R
+    Q --> R
 ```
 
 ### Data Flow
@@ -530,11 +723,18 @@ User Message → RAG Search → Document Retrieval → Context Building →
 AI Agent → Tool Execution (if needed) → Streaming Response → Save History
 ```
 
-**Quiz/Flashcard Generation:**
+**Quiz/Flashcard/Note/Mind Map Generation:**
 
 ```
 User Request → Document Search → Content Extraction → AI Generation →
 Validation → Database Storage → Return Results
+```
+
+**Study Plan Generation:**
+
+```
+User Request → Performance Analysis → Document Search → AI Generation →
+Personalization → Database Storage → Return Results
 ```
 
 ### Database Schema
@@ -550,16 +750,20 @@ Validation → Database Storage → Return Results
 - `quiz_questions`: Individual quiz questions
 - `flashcard_groups`: Flashcard containers
 - `flashcards`: Individual flashcards
+- `notes`: AI-generated study notes
+- `mind_maps`: Visual knowledge maps
+- `study_plans`: Personalized study plans
 - `study_attempts`: User study progress
 - `user_usage`: Daily usage tracking
 
 **Relationships:**
 
 - Users own Projects
-- Projects contain Documents, Chats, Quizzes, Flashcard Groups
+- Projects contain Documents, Chats, Quizzes, Flashcard Groups, Notes, Mind Maps, and Study Plans
 - Documents have Document Segments
 - Quizzes have Quiz Questions
 - Flashcard Groups have Flashcards
+- Each Project has one Study Plan (1:1 relationship)
 - Users make Study Attempts
 - Users have Usage records
 
@@ -567,10 +771,11 @@ Validation → Database Storage → Return Results
 
 The system uses PostgreSQL with pgvector extension for semantic search:
 
-- Embeddings are 3072-dimensional vectors
+- Embeddings are 3072-dimensional vectors (using text-embedding-3-large model)
 - Cosine similarity is used for search
 - Segments are filtered by project and document
 - Top-K results are returned with relevance scores
+- Vector search is performed using LangChain's PGVectorStore
 
 ### Authentication
 

@@ -236,21 +236,41 @@ terraform init -upgrade
 
 ### Server (API) Environment Variables
 
-The following environment variables are automatically configured by Terraform in App Service:
+The application uses Azure Key Vault for secure credential management. In production, only the Key Vault URI and usage limits need to be configured in App Service:
 
-| Variable                            | Description                     | Required | Default |
-| ----------------------------------- | ------------------------------- | -------- | ------- |
-| `DATABASE_URL`                      | PostgreSQL connection string    | Yes      | -       |
-| `AZURE_OPENAI_ENDPOINT`             | Azure OpenAI endpoint URL       | Yes      | -       |
-| `AZURE_OPENAI_API_KEY`              | Azure OpenAI API key            | Yes      | -       |
-| `AZURE_OPENAI_CHAT_DEPLOYMENT`      | Chat model deployment name      | Yes      | -       |
-| `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Embedding model deployment      | Yes      | -       |
-| `AZURE_STORAGE_CONNECTION_STRING`   | Azure Storage connection string | Yes      | -       |
-| `AZURE_STORAGE_CONTAINER_NAME`      | Blob container name             | Yes      | -       |
-| `AZURE_CU_ENDPOINT`                 | Content Understanding endpoint  | Yes      | -       |
-| `AZURE_CU_KEY`                      | Content Understanding API key   | Yes      | -       |
-| `AZURE_ENTRA_TENANT_ID`             | Azure AD tenant ID              | Yes      | -       |
-| `AZURE_ENTRA_CLIENT_ID`             | Azure AD client ID              | Yes      | -       |
+| Variable                            | Description                 | Required | Default |
+| ----------------------------------- | --------------------------- | -------- | ------- |
+| `AZURE_KEY_VAULT_URI`               | Azure Key Vault URI         | Yes      | -       |
+| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit    | No       | 100     |
+| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit       | No       | 100     |
+| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit            | No       | 100     |
+| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit | No       | 100     |
+
+All other Azure service credentials are automatically retrieved from Key Vault using the secret names defined in the application configuration. The App Service must have appropriate RBAC permissions to read secrets from the Key Vault.
+
+### Key Vault Secret Names
+
+The following secrets must be stored in the Key Vault:
+
+| Secret Name                            | Description                     |
+| -------------------------------------- | ------------------------------- |
+| `database-url`                         | PostgreSQL connection string    |
+| `azure-openai-api-key`                 | Azure OpenAI API key            |
+| `azure-openai-endpoint`                | Azure OpenAI endpoint URL       |
+| `azure-openai-default-model`           | Default OpenAI model            |
+| `azure-openai-chat-deployment`         | Chat model deployment name      |
+| `azure-openai-embedding-deployment`    | Embedding model deployment      |
+| `azure-openai-api-version`             | OpenAI API version              |
+| `azure-storage-connection-string`      | Azure Storage connection string |
+| `azure-storage-input-container-name`   | Input blob container name       |
+| `azure-storage-output-container-name`  | Output blob container name      |
+| `azure-document-intelligence-endpoint` | Document Intelligence endpoint  |
+| `azure-document-intelligence-key`      | Document Intelligence API key   |
+| `azure-cu-endpoint`                    | Content Understanding endpoint  |
+| `azure-cu-key`                         | Content Understanding API key   |
+| `azure-cu-analyzer-id`                 | Content Understanding analyzer  |
+| `azure-entra-tenant-id`                | Azure AD tenant ID              |
+| `azure-entra-client-id`                | Azure AD client ID              |
 
 ### Web Frontend Environment Variables
 
@@ -290,4 +310,3 @@ For issues or questions:
 - Review Terraform state: `terraform show`
 - Check Azure Portal for resource status
 - Contact: richard.amare@studentstc.cz
-
