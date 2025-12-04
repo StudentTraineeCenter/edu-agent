@@ -11,6 +11,7 @@ class FlashcardGroupDto(BaseModel):
     project_id: str
     name: str
     description: Optional[str] = None
+    spaced_repetition_enabled: bool = False
     created_at: datetime
     updated_at: datetime
 

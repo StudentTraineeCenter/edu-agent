@@ -69,3 +69,55 @@ export const deleteFlashcardGroupAtom = runtime.fn(
     registry.refresh(flashcardGroupsAtom(input.projectId))
   }),
 )
+
+export const toggleSpacedRepetitionAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    enabled: boolean
+    projectId: string
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch(
+      input.flashcardGroupId,
+      input.enabled,
+    )
+
+    registry.refresh(flashcardGroupAtom(input.flashcardGroupId))
+    registry.refresh(flashcardGroupsAtom(input.projectId))
+  }),
+)
+
+export const exportFlashcardGroupAtom = runtime.fn(
+  Effect.fn(function* (input: { flashcardGroupId: string }) {
+    const client = yield* makeApiClient
+    const response =
+      yield* client.exportFlashcardGroupV1FlashcardsGroupIdExportGet(
+        input.flashcardGroupId,
+      )
+    return response
+  }),
+)
+
+export const importFlashcardGroupAtom = runtime.fn(
+  Effect.fn(function* (input: { projectId: string; file: File }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+
+    const formData = new FormData()
+    formData.append('file', input.file)
+
+    const response =
+      yield* client.importFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost(
+        input.projectId,
+        {
+          file: input.file,
+          group_name: '',
+          group_description: '',
+        },
+      )
+
+    registry.refresh(flashcardGroupsAtom(input.projectId))
+    return response
+  }),
+)

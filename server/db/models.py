@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 from uuid import uuid4
 
 from db.base import Base
 from db.enums import DocumentStatus
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel
-from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Float, JSON, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -190,6 +190,10 @@ class FlashcardGroup(Base):
     project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    spaced_repetition_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    study_session_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("study_sessions.id"), nullable=True, index=True
+    )  # If set, this group belongs to a study session and should be hidden from regular lists
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -301,8 +305,8 @@ class Note(Base):
     project = relationship("Project")
 
 
-class StudyAttempt(Base):
-    __tablename__ = "study_attempts"
+class PracticeRecord(Base):
+    __tablename__ = "practice_records"
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
@@ -335,34 +339,6 @@ class StudyAttempt(Base):
     project = relationship("Project")
 
 
-class StudyPlan(Base):
-    __tablename__ = "study_plans"
-    id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid4())
-    )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
-    project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), index=True, unique=True
-    )  # 1 plan per project
-
-    # Plan content
-    title: Mapped[str] = mapped_column(String)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
-    plan_content: Mapped[dict] = mapped_column(JSON)  # Structured plan data
-
-    # Timestamps
-    generated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
-
-    # Relationships
-    user = relationship("User")
-    project = relationship("Project")
-
-
 class MindMap(Base):
     __tablename__ = "mind_maps"
     id: Mapped[str] = mapped_column(
@@ -384,6 +360,69 @@ class MindMap(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
+    project = relationship("Project")
+
+
+class FlashcardSpacedRepetition(Base):
+    __tablename__ = "flashcard_spaced_repetition"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    flashcard_id: Mapped[str] = mapped_column(String, ForeignKey("flashcards.id"), index=True)
+    group_id: Mapped[str] = mapped_column(String, ForeignKey("flashcard_groups.id"), index=True)
+    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"), index=True)
+
+    # SM-2 algorithm state
+    ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
+    interval_days: Mapped[int] = mapped_column(Integer, default=1)
+    repetition_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_review_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
+    flashcard = relationship("Flashcard")
+    group = relationship("FlashcardGroup")
+    project = relationship("Project")
+
+
+class StudySession(Base):
+    __tablename__ = "study_sessions"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id"), index=True
+    )
+
+    # Session metadata
+    session_data: Mapped[dict] = mapped_column(JSON)  # Contains flashcards, focus_topics, learning_objectives
+    estimated_time_minutes: Mapped[int] = mapped_column(Integer)
+    session_length_minutes: Mapped[int] = mapped_column(Integer)  # Requested length
+    focus_topics: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)  # Optional focus topics
+
+    # Timestamps
+    generated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     # Relationships

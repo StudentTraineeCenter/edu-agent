@@ -1,15 +1,18 @@
 from core.agents.search import DocumentSearchAdapter
 from core.auth import get_current_user
-from core.services.attempts import AttemptService
+from core.services.adaptive_learning import AdaptiveLearningService
+from core.services.exporter import ExporterService
+from core.services.importer import ImporterService
 from core.services.chat import ChatService
 from core.services.data_processing import DataProcessingService
 from core.services.documents import DocumentService
 from core.services.flashcards import FlashcardService
 from core.services.mind_maps import MindMapService
 from core.services.notes import NoteService
+from core.services.practice import PracticeService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
-from core.services.study_plans import StudyPlanService
+from core.services.spaced_repetition import SpacedRepetitionService
 from core.services.usage import UsageService
 from db.models import User
 from fastapi import Depends
@@ -32,9 +35,10 @@ flashcard_service = FlashcardService(search_interface=search_interface)
 quiz_service = QuizService(search_interface=search_interface)
 note_service = NoteService(search_interface=search_interface)
 mind_map_service = MindMapService(search_interface=search_interface)
-attempt_service = AttemptService()
-study_plan_service = StudyPlanService(attempt_service=attempt_service)
-
+practice_service = PracticeService()
+spaced_repetition_service = SpacedRepetitionService()
+exporter_service = ExporterService()
+importer_service = ImporterService()
 
 def get_document_service():
     return document_service
@@ -60,8 +64,8 @@ def get_note_service():
     return note_service
 
 
-def get_attempt_service():
-    return attempt_service
+def get_practice_service():
+    return practice_service
 
 
 def get_user(current_user: User = Depends(get_current_user)) -> User:
@@ -77,9 +81,24 @@ def get_usage_service():
     return usage_service
 
 
-def get_study_plan_service():
-    return study_plan_service
-
-
 def get_mind_map_service():
     return mind_map_service
+
+
+def get_spaced_repetition_service():
+    return spaced_repetition_service
+
+
+def get_adaptive_learning_service():
+    return AdaptiveLearningService(
+        practice_service=practice_service,
+        spaced_repetition_service=spaced_repetition_service
+    )
+
+
+def get_exporter_service():
+    return exporter_service   
+
+
+def get_importer_service():
+    return importer_service

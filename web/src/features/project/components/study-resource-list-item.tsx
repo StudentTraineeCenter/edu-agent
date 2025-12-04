@@ -16,12 +16,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAtomSet } from '@effect-atom/atom-react'
-import { deleteFlashcardGroupAtom } from '@/data-acess/flashcard'
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import {
+  deleteFlashcardGroupAtom,
+  toggleSpacedRepetitionAtom,
+  exportFlashcardGroupAtom,
+  importFlashcardGroupAtom,
+  flashcardGroupAtom,
+} from '@/data-acess/flashcard'
 import { deleteNoteAtom } from '@/data-acess/note'
-import { deleteQuizAtom } from '@/data-acess/quiz'
+import {
+  deleteQuizAtom,
+  exportQuizAtom,
+  importQuizAtom,
+} from '@/data-acess/quiz'
 import { StudyResource } from '@/data-acess/study-resources'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
+import { DownloadIcon, UploadIcon, RepeatIcon } from 'lucide-react'
+import { Result } from '@effect-atom/atom-react'
+import { useState, useRef } from 'react'
 
 type Props = {
   studyResource: StudyResource
@@ -63,6 +76,23 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
 
   return StudyResource.$match(studyResource, {
     FlashcardGroup: ({ data: flashcardGroup }) => {
+      const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroup.id))
+      const toggleSpacedRepetition = useAtomSet(toggleSpacedRepetitionAtom, {
+        mode: 'promise',
+      })
+      const exportGroup = useAtomSet(exportFlashcardGroupAtom, {
+        mode: 'promise',
+      })
+      const importGroup = useAtomSet(importFlashcardGroupAtom, {
+        mode: 'promise',
+      })
+      const fileInputRef = useRef<HTMLInputElement>(null)
+      const [isExporting, setIsExporting] = useState(false)
+
+      const spacedRepetitionEnabled =
+        Result.isSuccess(groupResult) &&
+        groupResult.value.flashcard_group?.spaced_repetition_enabled === true
+
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
@@ -80,6 +110,62 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
             flashcardGroupId: flashcardGroup.id,
             projectId: flashcardGroup.project_id ?? '',
           })
+        }
+      }
+
+      const handleToggleSpacedRepetition = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        await toggleSpacedRepetition({
+          flashcardGroupId: flashcardGroup.id,
+          enabled: !spacedRepetitionEnabled,
+          projectId: flashcardGroup.project_id ?? '',
+        })
+      }
+
+      const handleExport = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        try {
+          setIsExporting(true)
+          const response = await exportGroup({
+            flashcardGroupId: flashcardGroup.id,
+          })
+
+          // Create blob and download
+          const blob = new Blob([response as string], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `flashcards_${flashcardGroup.id}.csv`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          window.URL.revokeObjectURL(url)
+        } catch (error) {
+          console.error('Failed to export flashcard group:', error)
+        } finally {
+          setIsExporting(false)
+        }
+      }
+
+      const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        try {
+          await importGroup({
+            projectId: flashcardGroup.project_id ?? '',
+            file,
+          })
+        } catch (error) {
+          console.error('Failed to import flashcard group:', error)
+        } finally {
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
         }
       }
 
@@ -112,6 +198,29 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleToggleSpacedRepetition}>
+                  <RepeatIcon className="size-4" />
+                  <span>
+                    {spacedRepetitionEnabled
+                      ? 'Disable Spaced Repetition'
+                      : 'Enable Spaced Repetition'}
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                  <DownloadIcon className="size-4" />
+                  <span>Export CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <UploadIcon className="size-4" />
+                  <span>Import CSV</span>
+                </DropdownMenuItem>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleImport}
+                />
                 <DropdownMenuItem onClick={handleDelete} variant="destructive">
                   <TrashIcon className="size-4" />
                   <span>Delete</span>
@@ -123,6 +232,11 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
       )
     },
     Quiz: ({ data: quiz }) => {
+      const exportQuiz = useAtomSet(exportQuizAtom, { mode: 'promise' })
+      const importQuiz = useAtomSet(importQuizAtom, { mode: 'promise' })
+      const fileInputRef = useRef<HTMLInputElement>(null)
+      const [isExporting, setIsExporting] = useState(false)
+
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
@@ -140,6 +254,51 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
             quizId: quiz.id,
             projectId: quiz.project_id ?? '',
           })
+        }
+      }
+
+      const handleExport = async (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        try {
+          setIsExporting(true)
+          const response = await exportQuiz({
+            quizId: quiz.id,
+          })
+
+          // Create blob and download
+          const blob = new Blob([response as string], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `quiz_${quiz.id}.csv`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          window.URL.revokeObjectURL(url)
+        } catch (error) {
+          console.error('Failed to export quiz:', error)
+        } finally {
+          setIsExporting(false)
+        }
+      }
+
+      const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        try {
+          await importQuiz({
+            projectId: quiz.project_id ?? '',
+            file,
+          })
+        } catch (error) {
+          console.error('Failed to import quiz:', error)
+        } finally {
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+          }
         }
       }
 
@@ -172,6 +331,21 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
+                  <DownloadIcon className="size-4" />
+                  <span>Export CSV</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <UploadIcon className="size-4" />
+                  <span>Import CSV</span>
+                </DropdownMenuItem>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleImport}
+                />
                 <DropdownMenuItem onClick={handleDelete} variant="destructive">
                   <TrashIcon className="size-4" />
                   <span>Delete</span>

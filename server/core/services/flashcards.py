@@ -169,7 +169,10 @@ class FlashcardService:
 
                 groups = (
                     db.query(FlashcardGroup)
-                    .filter(FlashcardGroup.project_id == project_id)
+                    .filter(
+                        FlashcardGroup.project_id == project_id,
+                        FlashcardGroup.study_session_id.is_(None)  # Exclude study session groups
+                    )
                     .order_by(FlashcardGroup.created_at.desc())
                     .all()
                 )
@@ -209,6 +212,39 @@ class FlashcardService:
                 return group
             except Exception as e:
                 logger.error(f"error getting flashcard group group_id={group_id}: {e}")
+                raise
+
+    def toggle_spaced_repetition(self, group_id: str, enabled: bool) -> Optional[FlashcardGroup]:
+        """Enable or disable spaced repetition for a flashcard group.
+
+        Args:
+            group_id: The flashcard group ID
+            enabled: Whether to enable spaced repetition
+
+        Returns:
+            Updated FlashcardGroup model instance or None if not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"toggling spaced repetition for group_id={group_id}, enabled={enabled}")
+
+                group = (
+                    db.query(FlashcardGroup)
+                    .filter(FlashcardGroup.id == group_id)
+                    .first()
+                )
+
+                if not group:
+                    return None
+
+                group.spaced_repetition_enabled = enabled
+                db.commit()
+                db.refresh(group)
+
+                logger.info(f"updated spaced repetition for group_id={group_id}")
+                return group
+            except Exception as e:
+                logger.error(f"error toggling spaced repetition for group_id={group_id}: {e}")
                 raise
 
     def get_flashcards_by_group(self, group_id: str) -> List[Flashcard]:

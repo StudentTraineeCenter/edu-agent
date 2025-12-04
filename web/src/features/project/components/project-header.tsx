@@ -11,10 +11,11 @@ import { projectAtom, deleteProjectAtom } from '@/data-acess/project'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { TrashIcon, PencilIcon, CalendarIcon } from 'lucide-react'
-import { useNavigate, Link } from '@tanstack/react-router'
+import { TrashIcon, PencilIcon, History } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { useCreateProjectDialog } from './upsert-project-dialog'
+import { useStudySessionsDialog } from '@/features/adaptive-learning/components/study-sessions-dialog'
 
 const ProjectHeaderContent = ({ projectId }: { projectId: string }) => {
   const projectResult = useAtomValue(projectAtom(projectId))
@@ -45,6 +46,7 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
   const navigate = useNavigate()
   const confirmationDialog = useConfirmationDialog()
   const openEditDialog = useCreateProjectDialog((state) => state.open)
+  const openSessionsDialog = useStudySessionsDialog((state) => state.open)
 
   const handleEdit = () => {
     if (Result.isSuccess(projectResult)) {
@@ -68,6 +70,10 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
     }
   }
 
+  const handleOpenSessions = () => {
+    openSessionsDialog(projectId)
+  }
+
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
       <div className="flex flex-1 items-center gap-2 px-3">
@@ -80,14 +86,9 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
       </div>
       {Result.isSuccess(projectResult) && (
         <div className="flex items-center gap-2 px-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link
-              to="/dashboard/p/$projectId/sp"
-              params={{ projectId }}
-            >
-              <CalendarIcon className="size-4 mr-2" />
-              <span>Study Plan</span>
-            </Link>
+          <Button variant="ghost" size="sm" onClick={handleOpenSessions}>
+            <History className="size-4 mr-2" />
+            <span>Study Sessions</span>
           </Button>
           <Button
             variant="ghost"

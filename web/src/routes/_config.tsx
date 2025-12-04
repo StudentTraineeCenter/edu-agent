@@ -34,14 +34,14 @@ const NoteDetailRoute = lazy(() =>
     default: m.NoteDetailRoute,
   })),
 )
-const StudyPlanDetailRoute = lazy(() =>
-  import('./study-plan-detail-route').then((m) => ({
-    default: m.StudyPlanDetailRoute,
-  })),
-)
 const MindMapDetailRoute = lazy(() =>
   import('./mind-map-detail-route').then((m) => ({
     default: m.MindMapDetailRoute,
+  })),
+)
+const StudySessionDetailRoute = lazy(() =>
+  import('./study-session-detail-route').then((m) => ({
+    default: m.StudySessionDetailRoute,
   })),
 )
 const SettingsPage = lazy(() =>
@@ -234,22 +234,6 @@ export const noteDetailRoute = createRoute({
   ),
 })
 
-export const studyPlanDetailRoute = createRoute({
-  path: '/p/$projectId/sp',
-  getParentRoute: () => dashboardRoute,
-  component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
-      <StudyPlanDetailRoute />
-    </Suspense>
-  ),
-})
-
 export const mindMapDetailRoute = createRoute({
   path: '/p/$projectId/m/$mindMapId',
   getParentRoute: () => dashboardRoute,
@@ -262,6 +246,22 @@ export const mindMapDetailRoute = createRoute({
       }
     >
       <MindMapDetailRoute />
+    </Suspense>
+  ),
+})
+
+export const studySessionDetailRoute = createRoute({
+  path: '/p/$projectId/study-session/$sessionId',
+  getParentRoute: () => dashboardRoute,
+  component: () => (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <StudySessionDetailRoute />
     </Suspense>
   ),
 })
@@ -291,8 +291,8 @@ export const routeTree = rootRoute.addChildren([
     flashcardDetailRoute,
     quizDetailRoute,
     noteDetailRoute,
-    studyPlanDetailRoute,
     mindMapDetailRoute,
+    studySessionDetailRoute,
     settingsRoute,
   ]),
   indexRoute,

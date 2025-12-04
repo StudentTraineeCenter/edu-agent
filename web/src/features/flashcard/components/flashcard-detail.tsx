@@ -2,7 +2,7 @@ import {
   flashcardDetailStateAtom,
   resetAtom,
   setShowAnswerAtom,
-  submitPendingAttemptsAtom,
+  submitPendingPracticeRecordsAtom,
   gotItRightAtom,
   gotItWrongAtom,
 } from '@/data-acess/flashcard-detail-state'
@@ -27,9 +27,12 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
 
   const reset = useAtomSet(resetAtom)
-  const submitPendingAttempts = useAtomSet(submitPendingAttemptsAtom, {
+  const submitPendingPracticeRecords = useAtomSet(
+    submitPendingPracticeRecordsAtom,
+    {
     mode: 'promise',
-  })
+    },
+  )
   const setShowAnswer = useAtomSet(setShowAnswerAtom)
   const gotItRight = useAtomSet(gotItRightAtom)
   const gotItWrong = useAtomSet(gotItWrongAtom)
@@ -41,8 +44,8 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
     })
   }, [navigate, projectId])
 
-  const handleSubmitPendingAttempts = async () => {
-    await submitPendingAttempts({ flashcardGroupId, projectId })
+  const handleSubmitPendingPracticeRecords = async () => {
+    await submitPendingPracticeRecords({ flashcardGroupId, projectId })
     handleClose()
   }
 
@@ -115,7 +118,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
       <FlashcardContent
         flashcardGroupId={flashcardGroupId}
         projectId={projectId}
-        onSubmit={handleSubmitPendingAttempts}
+        onSubmit={handleSubmitPendingPracticeRecords}
         onRetry={handleRetry}
         onClose={handleClose}
       />

@@ -23,7 +23,7 @@ import {
   quizDetailStateAtom,
   quizStatsAtom,
   resetQuizAtom,
-  submitPendingAttemptsAtom,
+  submitPendingPracticeRecordsAtom,
 } from '@/data-acess/quiz-detail-state'
 import { quizQuestionsAtom } from '@/data-acess/quiz'
 
@@ -227,16 +227,16 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
   const resetQuiz = useAtomSet(resetQuizAtom)
-  const submitPendingAttempts = useAtomSet(submitPendingAttemptsAtom, {
+  const submitPendingPracticeRecords = useAtomSet(submitPendingPracticeRecordsAtom, {
     mode: 'promise',
   })
 
-  const hasPendingAttempts =
+  const hasPendingPracticeRecords =
     Option.isSome(stateResult) &&
-    Object.keys(stateResult.value.pendingAttempts).length > 0
+    Object.keys(stateResult.value.pendingPracticeRecords).length > 0
 
   const handleSubmit = async () => {
-    await submitPendingAttempts({ quizId, projectId })
+    await submitPendingPracticeRecords({ quizId, projectId })
     navigate({
       to: '/dashboard/p/$projectId',
       params: { projectId },
@@ -256,7 +256,7 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   return (
     <div className="flex flex-col gap-3">
-      {hasPendingAttempts && (
+      {hasPendingPracticeRecords && (
         <Button
           onClick={handleSubmit}
           variant="default"
@@ -264,8 +264,8 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
           size="lg"
         >
           <Upload className="h-4 w-4" />
-          Submit Attempts (
-          {Object.keys(stateResult.value.pendingAttempts).length})
+          Submit Practice Records (
+          {Object.keys(stateResult.value.pendingPracticeRecords).length})
         </Button>
       )}
 

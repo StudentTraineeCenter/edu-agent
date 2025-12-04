@@ -1,4 +1,4 @@
-"""Service for managing study attempts."""
+"""Service for managing practice records."""
 
 from contextlib import contextmanager
 from typing import List
@@ -6,20 +6,20 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from core.logger import get_logger
-from db.models import Flashcard, QuizQuestion, StudyAttempt
+from db.models import Flashcard, PracticeRecord, QuizQuestion
 from db.session import SessionLocal
 
 logger = get_logger(__name__)
 
 
-class AttemptService:
-    """Service for managing study attempts."""
+class PracticeService:
+    """Service for managing practice records."""
 
     def __init__(self) -> None:
-        """Initialize the attempt service."""
+        """Initialize the practice service."""
         pass
 
-    def create_attempt(
+    def create_practice_record(
         self,
         user_id: str,
         project_id: str,
@@ -29,8 +29,9 @@ class AttemptService:
         user_answer: str | None,
         correct_answer: str,
         was_correct: bool,
-    ) -> StudyAttempt:
-        """Create a single attempt record.
+        quality_rating: int | None = None,
+    ) -> PracticeRecord:
+        """Create a single practice record.
 
         Args:
             user_id: The user's unique identifier
@@ -41,9 +42,10 @@ class AttemptService:
             user_answer: User's answer (can be None for flashcards)
             correct_answer: The correct answer
             was_correct: Whether the user's answer was correct
+            quality_rating: Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled.
 
         Returns:
-            Created StudyAttempt model instance
+            Created PracticeRecord model instance
 
         Raises:
             ValueError: If the referenced study resource doesn't exist
@@ -54,7 +56,7 @@ class AttemptService:
                 if not self._validate_item(db, study_resource_type, study_resource_id):
                     raise ValueError(f"Study resource {study_resource_id} of type {study_resource_type} not found")
 
-                attempt = StudyAttempt(
+                practice_record = PracticeRecord(
                     user_id=user_id,
                     project_id=project_id,
                     item_type=study_resource_type,
@@ -65,114 +67,132 @@ class AttemptService:
                     was_correct=was_correct,
                 )
 
-                db.add(attempt)
+                db.add(practice_record)
                 db.commit()
-                db.refresh(attempt)
+                db.refresh(practice_record)
+
+                # If flashcard with spaced repetition enabled, update SR state
+                if study_resource_type == "flashcard" and quality_rating is not None:
+                    from core.services.spaced_repetition import SpacedRepetitionService
+                    from db.models import Flashcard, FlashcardGroup
+
+                    sr_service = SpacedRepetitionService()
+                    flashcard = db.query(Flashcard).filter(Flashcard.id == study_resource_id).first()
+                    if flashcard:
+                        group = db.query(FlashcardGroup).filter(FlashcardGroup.id == flashcard.group_id).first()
+                        if group and group.spaced_repetition_enabled:
+                            sr_service.update_after_practice(
+                                db=db,
+                                user_id=user_id,
+                                flashcard_id=study_resource_id,
+                                quality=quality_rating,
+                                was_correct=was_correct
+                            )
 
                 logger.info(
-                    f"created attempt id={attempt.id} for user_id={user_id}, item_type={study_resource_type}, item_id={study_resource_id}"
+                    f"created practice record id={practice_record.id} for user_id={user_id}, item_type={study_resource_type}, item_id={study_resource_id}"
                 )
 
-                return attempt
+                return practice_record
             except ValueError:
                 raise
             except Exception as e:
                 logger.error(
-                    f"error creating attempt for user_id={user_id}, item_id={study_resource_id}: {e}"
+                    f"error creating practice record for user_id={user_id}, item_id={study_resource_id}: {e}"
                 )
                 raise
 
-    def create_attempts_batch(
+    def create_practice_records_batch(
         self,
         user_id: str,
         project_id: str,
-        attempts_data: List[dict],
-    ) -> List[StudyAttempt]:
-        """Create multiple attempt records in a batch.
+        practice_records_data: List[dict],
+    ) -> List[PracticeRecord]:
+        """Create multiple practice records in a batch.
 
         Args:
             user_id: The user's unique identifier
             project_id: The project ID
-            attempts_data: List of dictionaries containing attempt data
+            practice_records_data: List of dictionaries containing practice record data
 
         Returns:
-            List of created StudyAttempt model instances
+            List of created PracticeRecord model instances
         """
         with self._get_db_session() as db:
             try:
-                created_attempts = []
+                created_records = []
 
-                for attempt_data in attempts_data:
-                    item_type = attempt_data.get("item_type")
-                    item_id = attempt_data.get("item_id")
+                for record_data in practice_records_data:
+                    item_type = record_data.get("item_type")
+                    item_id = record_data.get("item_id")
 
                     # Validate that the referenced study resource exists
                     if not self._validate_item(db, item_type, item_id):
                         logger.warning(
-                            f"skipping attempt: study resource {item_id} of type {item_type} not found"
+                            f"skipping practice record: study resource {item_id} of type {item_type} not found"
                         )
                         continue
 
-                    attempt = StudyAttempt(
+                    practice_record = PracticeRecord(
                         user_id=user_id,
                         project_id=project_id,
                         item_type=item_type,
                         item_id=item_id,
-                        topic=attempt_data.get("topic"),
-                        user_answer=attempt_data.get("user_answer"),
-                        correct_answer=attempt_data.get("correct_answer"),
-                        was_correct=attempt_data.get("was_correct"),
+                        topic=record_data.get("topic"),
+                        user_answer=record_data.get("user_answer"),
+                        correct_answer=record_data.get("correct_answer"),
+                        was_correct=record_data.get("was_correct"),
                     )
 
-                    db.add(attempt)
-                    created_attempts.append(attempt)
+                    db.add(practice_record)
+                    created_records.append(practice_record)
 
                 db.commit()
 
-                # Refresh all attempts
-                for attempt in created_attempts:
-                    db.refresh(attempt)
+                # Refresh all records
+                for record in created_records:
+                    db.refresh(record)
 
                 logger.info(
-                    f"created {len(created_attempts)} attempts for user_id={user_id}, project_id={project_id}"
+                    f"created {len(created_records)} practice records for user_id={user_id}, project_id={project_id}"
                 )
 
-                return created_attempts
+                return created_records
             except Exception as e:
                 logger.error(
-                    f"error creating attempts batch for user_id={user_id}, project_id={project_id}: {e}"
+                    f"error creating practice records batch for user_id={user_id}, project_id={project_id}: {e}"
                 )
                 raise
 
-    def get_user_attempts(
+    def get_user_practice_records(
         self, user_id: str, project_id: str | None = None
-    ) -> List[StudyAttempt]:
-        """Retrieve attempts for a user, optionally filtered by project.
+    ) -> List[PracticeRecord]:
+        """Retrieve practice records for a user, optionally filtered by project.
 
         Args:
             user_id: The user's unique identifier
             project_id: Optional project ID to filter by
 
         Returns:
-            List of StudyAttempt model instances
+            List of PracticeRecord model instances
         """
         with self._get_db_session() as db:
             try:
-                query = db.query(StudyAttempt).filter(StudyAttempt.user_id == user_id)
+                query = db.query(PracticeRecord).filter(PracticeRecord.user_id == user_id)
 
                 if project_id:
-                    query = query.filter(StudyAttempt.project_id == project_id)
+                    query = query.filter(PracticeRecord.project_id == project_id)
 
-                attempts = query.order_by(StudyAttempt.created_at.desc()).all()
+                records = query.order_by(PracticeRecord.created_at.desc()).all()
 
                 logger.info(
-                    f"retrieved {len(attempts)} attempts for user_id={user_id}, project_id={project_id}"
+                    f"retrieved {len(records)} practice records for user_id={user_id}, project_id={project_id}"
                 )
 
-                return attempts
+                return records
             except Exception as e:
                 logger.error(
-                    f"error retrieving attempts for user_id={user_id}, project_id={project_id}: {e}"
+                    f"error retrieving practice records for user_id={user_id}, project_id={project_id}: {e}"
                 )
                 raise
 
@@ -215,3 +235,4 @@ class AttemptService:
             raise
         finally:
             db.close()
+

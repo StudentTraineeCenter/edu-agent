@@ -174,13 +174,13 @@ const CompletionActions = ({
 }: CompletionActionsProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
 
-  const hasPendingAttempts =
+  const hasPendingPracticeRecords =
     Option.isSome(stateResult) &&
-    Object.keys(stateResult.value.pendingAttempts).length > 0
+    Object.keys(stateResult.value.pendingPracticeRecords).length > 0
 
   return (
     <div className="flex flex-col gap-3">
-      {hasPendingAttempts && (
+      {hasPendingPracticeRecords && (
         <Button
           onClick={onSubmit}
           variant="default"
@@ -188,7 +188,7 @@ const CompletionActions = ({
           size="lg"
         >
           <Upload className="h-4 w-4" />
-          Submit Attempts ({total})
+          Submit Practice Records ({total})
         </Button>
       )}
 

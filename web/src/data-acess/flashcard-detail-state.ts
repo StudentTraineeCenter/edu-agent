@@ -1,14 +1,14 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
-import type { CreateAttemptRequest } from '@/integrations/api'
+import type { CreatePracticeRecordRequest } from '@/integrations/api'
 import { runtime } from './runtime'
-import { submitAttemptsBatchAtom } from './attempt'
+import { submitPracticeRecordsBatchAtom } from './practice'
 import { flashcardsAtom } from './flashcard'
 
 export type FlashcardDetailState = {
   readonly currentCardIndex: number
   readonly showAnswer: boolean
-  readonly pendingAttempts: Record<string, CreateAttemptRequest>
+  readonly pendingPracticeRecords: Record<string, CreatePracticeRecordRequest>
   readonly markedCardIds: ReadonlySet<string>
   readonly isCompleted: boolean
 }
@@ -16,14 +16,14 @@ export type FlashcardDetailState = {
 type FlashcardDetailAction = Data.TaggedEnum<{
   SetCurrentCardIndex: { readonly index: number }
   SetShowAnswer: { readonly show: boolean }
-  AddAttempt: {
+  AddPracticeRecord: {
     readonly cardId: string
-    readonly attempt: CreateAttemptRequest
+    readonly practiceRecord: CreatePracticeRecordRequest
   }
   MarkCard: { readonly cardId: string }
   SetCompleted: { readonly completed: boolean }
   Reset: {}
-  ClearAttempts: {}
+  ClearPracticeRecords: {}
 }>
 const FlashcardDetailAction = Data.taggedEnum<FlashcardDetailAction>()
 
@@ -37,7 +37,7 @@ const FlashcardDetailAction = Data.taggedEnum<FlashcardDetailAction>()
 const initialState: FlashcardDetailState = {
   currentCardIndex: 0,
   showAnswer: false,
-  pendingAttempts: {},
+  pendingPracticeRecords: {},
   markedCardIds: new Set(),
   isCompleted: false,
 }
@@ -62,12 +62,12 @@ export const flashcardDetailStateAtom = Atom.family(
             SetShowAnswer: ({ show }) => {
               return { ...result.value, showAnswer: show }
             },
-            AddAttempt: (args) => {
+            AddPracticeRecord: (args) => {
               return {
                 ...result.value,
-                pendingAttempts: {
-                  ...result.value.pendingAttempts,
-                  [args.cardId]: args.attempt,
+                pendingPracticeRecords: {
+                  ...result.value.pendingPracticeRecords,
+                  [args.cardId]: args.practiceRecord,
                 },
               }
             },
@@ -83,8 +83,8 @@ export const flashcardDetailStateAtom = Atom.family(
             Reset: () => {
               return initialState
             },
-            ClearAttempts: () => {
-              return { ...result.value, pendingAttempts: {} }
+            ClearPracticeRecords: () => {
+              return { ...result.value, pendingPracticeRecords: {} }
             },
           })
 
@@ -104,11 +104,11 @@ export const flashcardStatsAtom = Atom.family((flashcardGroupId: string) =>
       if (Option.isNone(state))
         return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
 
-      const pendingAttempts = state.value.pendingAttempts
-      const attempts = Object.values(pendingAttempts)
-      const total = attempts.length
-      const correct = attempts.filter((a) => a.was_correct).length
-      const incorrect = attempts.filter((a) => !a.was_correct).length
+      const pendingPracticeRecords = state.value.pendingPracticeRecords
+      const practiceRecords = Object.values(pendingPracticeRecords)
+      const total = practiceRecords.length
+      const correct = practiceRecords.filter((a) => a.was_correct).length
+      const incorrect = practiceRecords.filter((a) => !a.was_correct).length
       const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
       return { total, correct, incorrect, percentage }
     }),
@@ -120,8 +120,8 @@ export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
     Effect.fn(function* (get) {
       const state = get(flashcardDetailStateAtom(flashcardGroupId))
       if (Option.isNone(state)) return { correct: [], incorrect: [] }
-      const pendingAttempts = state.value.pendingAttempts
-      const attempts = Object.values(pendingAttempts)
+      const pendingPracticeRecords = state.value.pendingPracticeRecords
+      const practiceRecords = Object.values(pendingPracticeRecords)
 
       const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
       if (!Result.isSuccess(flashcardsResult))
@@ -129,10 +129,10 @@ export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
       const flashcards = flashcardsResult.value.data
 
       const correct = flashcards.filter((f) =>
-        attempts.some((a) => a.item_id === f.id && a.was_correct),
+        practiceRecords.some((a) => a.item_id === f.id && a.was_correct),
       )
       const incorrect = flashcards.filter((f) =>
-        attempts.some((a) => a.item_id === f.id && !a.was_correct),
+        practiceRecords.some((a) => a.item_id === f.id && !a.was_correct),
       )
 
       return { correct, incorrect }
@@ -160,18 +160,18 @@ export const setShowAnswerAtom = runtime.fn(
   }),
 )
 
-export const addAttemptAtom = runtime.fn(
+export const addPracticeRecordAtom = runtime.fn(
   Effect.fn(function* (input: {
     flashcardGroupId: string
     cardId: string
-    attempt: CreateAttemptRequest
+    practiceRecord: CreatePracticeRecordRequest
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
-      FlashcardDetailAction.AddAttempt({
+      FlashcardDetailAction.AddPracticeRecord({
         cardId: input.cardId,
-        attempt: input.attempt,
+        practiceRecord: input.practiceRecord,
       }),
     )
   }),
@@ -210,17 +210,17 @@ export const resetAtom = runtime.fn(
   }),
 )
 
-export const clearAttemptsAtom = runtime.fn(
+export const clearPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
-      FlashcardDetailAction.ClearAttempts(),
+      FlashcardDetailAction.ClearPracticeRecords(),
     )
   }),
 )
 
-export const submitPendingAttemptsAtom = runtime.fn(
+export const submitPendingPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
 
@@ -231,20 +231,22 @@ export const submitPendingAttemptsAtom = runtime.fn(
     if (Option.isNone(currentStateResult)) return
 
     const currentState = currentStateResult.value
-    const pendingAttempts = Object.values(currentState.pendingAttempts ?? {})
-    if (pendingAttempts.length === 0) return
+    const pendingPracticeRecords = Object.values(
+      currentState.pendingPracticeRecords ?? {},
+    )
+    if (pendingPracticeRecords.length === 0) return
 
-    registry.set(submitAttemptsBatchAtom, {
+    registry.set(submitPracticeRecordsBatchAtom, {
       projectId: input.projectId,
-      attempts: pendingAttempts as unknown as [
-        CreateAttemptRequest,
-        ...CreateAttemptRequest[],
+      practice_records: pendingPracticeRecords as unknown as [
+        CreatePracticeRecordRequest,
+        ...CreatePracticeRecordRequest[],
       ],
     })
 
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
-      FlashcardDetailAction.ClearAttempts(),
+      FlashcardDetailAction.ClearPracticeRecords(),
     )
   }),
 )
@@ -345,7 +347,7 @@ export const gotItRightAtom = runtime.fn(
 
     if (markedCardIds.has(currentCard.id)) return
 
-    const attempt: CreateAttemptRequest = {
+    const practiceRecord: CreatePracticeRecordRequest = {
       item_type: 'flashcard',
       item_id: currentCard.id,
       topic: extractTopic(currentCard.question),
@@ -358,9 +360,85 @@ export const gotItRightAtom = runtime.fn(
 
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
-      FlashcardDetailAction.AddAttempt({
+      FlashcardDetailAction.AddPracticeRecord({
         cardId: currentCard.id,
-        attempt,
+        practiceRecord,
+      }),
+    )
+
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.MarkCard({ cardId: currentCard.id }),
+    )
+
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.SetShowAnswer({ show: false }),
+    )
+
+    if (isLastCard) {
+      registry.set(
+        flashcardDetailStateAtom(input.flashcardGroupId),
+        FlashcardDetailAction.SetCompleted({ completed: true }),
+      )
+    } else {
+      registry.set(
+        flashcardDetailStateAtom(input.flashcardGroupId),
+        FlashcardDetailAction.SetCurrentCardIndex({
+          index: currentCardIndex + 1,
+        }),
+      )
+    }
+  }),
+)
+
+export const gotItWithQualityAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    projectId: string
+    quality: number
+  }) {
+    const registry = yield* Registry.AtomRegistry
+
+    const currentStateResult = registry.get(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+    )
+    if (Option.isNone(currentStateResult)) return
+    const currentState = currentStateResult.value
+
+    const flashcardsResult = registry.get(
+      flashcardsAtom(input.flashcardGroupId),
+    )
+    if (!Result.isSuccess(flashcardsResult)) return
+
+    const { currentCardIndex, markedCardIds } = currentState
+    const flashcards = flashcardsResult.value.data
+
+    const currentCard = flashcards[currentCardIndex]
+    if (!currentCard) return
+
+    if (markedCardIds.has(currentCard.id)) return
+
+    // Quality 0-2 is wrong, 3-5 is right
+    const wasCorrect = input.quality >= 3
+
+    const practiceRecord: CreatePracticeRecordRequest = {
+      item_type: 'flashcard',
+      item_id: currentCard.id,
+      topic: extractTopic(currentCard.question),
+      user_answer: undefined,
+      correct_answer: currentCard.answer,
+      was_correct: wasCorrect,
+      quality_rating: input.quality,
+    }
+
+    const isLastCard = currentCardIndex === flashcards.length - 1
+
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.AddPracticeRecord({
+        cardId: currentCard.id,
+        practiceRecord,
       }),
     )
 
@@ -413,7 +491,7 @@ export const gotItWrongAtom = runtime.fn(
 
     if (markedCardIds.has(currentCard.id)) return
 
-    const attempt: CreateAttemptRequest = {
+    const practiceRecord: CreatePracticeRecordRequest = {
       item_type: 'flashcard',
       item_id: currentCard.id,
       topic: extractTopic(currentCard.question),
@@ -426,9 +504,9 @@ export const gotItWrongAtom = runtime.fn(
 
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
-      FlashcardDetailAction.AddAttempt({
+      FlashcardDetailAction.AddPracticeRecord({
         cardId: currentCard.id,
-        attempt,
+        practiceRecord,
       }),
     )
 

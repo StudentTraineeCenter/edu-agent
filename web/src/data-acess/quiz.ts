@@ -65,3 +65,33 @@ export const deleteQuizAtom = runtime.fn(
     registry.refresh(quizzesAtom(input.projectId))
   }),
 )
+
+export const exportQuizAtom = runtime.fn(
+  Effect.fn(function* (input: { quizId: string }) {
+    const client = yield* makeApiClient
+    const response = yield* client.exportQuizV1QuizzesQuizIdExportGet(
+      input.quizId,
+    )
+    return response
+  }),
+)
+
+export const importQuizAtom = runtime.fn(
+  Effect.fn(function* (input: { projectId: string; file: File }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+
+    const response =
+      yield* client.importQuizV1ProjectsProjectIdQuizzesImportPost(
+        input.projectId,
+        {
+          file: input.file,
+          quiz_name: '',
+          quiz_description: '',
+        },
+      )
+
+    registry.refresh(quizzesAtom(input.projectId))
+    return response
+  }),
+)

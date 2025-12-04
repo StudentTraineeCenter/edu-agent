@@ -1,14 +1,14 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
-import type { CreateAttemptRequest } from '@/integrations/api'
+import type { CreatePracticeRecordRequest } from '@/integrations/api'
 import { runtime } from './runtime'
-import { submitAttemptsBatchAtom } from './attempt'
+import { submitPracticeRecordsBatchAtom } from './practice'
 import { quizQuestionsAtom } from './quiz'
 
 export type QuizDetailState = {
   readonly currentQuestionIndex: number
   readonly showResults: boolean
-  readonly pendingAttempts: Record<string, CreateAttemptRequest>
+  readonly pendingPracticeRecords: Record<string, CreatePracticeRecordRequest>
   readonly selectedByQuestionId: Record<string, 'A' | 'B' | 'C' | 'D'>
 }
 
@@ -19,11 +19,11 @@ type QuizDetailAction = Data.TaggedEnum<{
     readonly questionId: string
     readonly option: 'A' | 'B' | 'C' | 'D'
   }
-  SetPendingAttempts: {
-    readonly attempts: Record<string, CreateAttemptRequest>
+  SetPendingPracticeRecords: {
+    readonly practiceRecords: Record<string, CreatePracticeRecordRequest>
   }
   Reset: {}
-  ClearAttempts: {}
+  ClearPracticeRecords: {}
 }>
 
 const QuizDetailAction = Data.taggedEnum<QuizDetailAction>()
@@ -31,7 +31,7 @@ const QuizDetailAction = Data.taggedEnum<QuizDetailAction>()
 const initialState: QuizDetailState = {
   currentQuestionIndex: 0,
   showResults: false,
-  pendingAttempts: {},
+  pendingPracticeRecords: {},
   selectedByQuestionId: {},
 }
 
@@ -63,14 +63,14 @@ export const quizDetailStateAtom = Atom.family((quizId: string) =>
               },
             }
           },
-          SetPendingAttempts: ({ attempts }) => {
-            return { ...result.value, pendingAttempts: attempts }
+          SetPendingPracticeRecords: ({ practiceRecords }) => {
+            return { ...result.value, pendingPracticeRecords: practiceRecords }
           },
           Reset: () => {
             return initialState
           },
-          ClearAttempts: () => {
-            return { ...result.value, pendingAttempts: {} }
+          ClearPracticeRecords: () => {
+            return { ...result.value, pendingPracticeRecords: {} }
           },
         })
 
@@ -186,15 +186,17 @@ export const setSelectedAnswerAtom = runtime.fn(
   }),
 )
 
-export const setPendingAttemptsAtom = runtime.fn(
+export const setPendingPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: {
     quizId: string
-    attempts: Record<string, CreateAttemptRequest>
+    practiceRecords: Record<string, CreatePracticeRecordRequest>
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
       quizDetailStateAtom(input.quizId),
-      QuizDetailAction.SetPendingAttempts({ attempts: input.attempts }),
+      QuizDetailAction.SetPendingPracticeRecords({
+        practiceRecords: input.practiceRecords,
+      }),
     )
   }),
 )
@@ -206,12 +208,12 @@ export const resetQuizAtom = runtime.fn(
   }),
 )
 
-export const clearAttemptsAtom = runtime.fn(
+export const clearPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { quizId: string }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
       quizDetailStateAtom(input.quizId),
-      QuizDetailAction.ClearAttempts(),
+      QuizDetailAction.ClearPracticeRecords(),
     )
   }),
 )
@@ -235,17 +237,17 @@ export const submitQuizAtom = runtime.fn(
 
     const quizQuestions = questionsResult.value
 
-    // Track ALL attempts (both correct and incorrect) for study plan generation
-    const attempts: Record<string, CreateAttemptRequest> = {}
+    // Track ALL practice records (both correct and incorrect) for adaptive learning
+    const practiceRecords: Record<string, CreatePracticeRecordRequest> = {}
 
     for (const q of quizQuestions) {
       const userAnswer = selectedByQuestionId[q.id]
       const correctOption = q.correct_option
 
-      // Track all attempts, not just mistakes
+      // Track all practice records, not just mistakes
       if (userAnswer) {
         const wasCorrect = userAnswer === correctOption
-        attempts[q.id] = {
+        practiceRecords[q.id] = {
           item_type: 'quiz',
           item_id: q.id,
           topic: extractTopic(q.question_text),
@@ -262,12 +264,12 @@ export const submitQuizAtom = runtime.fn(
     )
     registry.set(
       quizDetailStateAtom(input.quizId),
-      QuizDetailAction.SetPendingAttempts({ attempts }),
+      QuizDetailAction.SetPendingPracticeRecords({ practiceRecords }),
     )
   }),
 )
 
-export const submitPendingAttemptsAtom = runtime.fn(
+export const submitPendingPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { quizId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
 
@@ -275,20 +277,22 @@ export const submitPendingAttemptsAtom = runtime.fn(
     if (Option.isNone(currentStateResult)) return
 
     const currentState = currentStateResult.value
-    const pendingAttempts = Object.values(currentState.pendingAttempts ?? {})
-    if (pendingAttempts.length === 0) return
+    const pendingPracticeRecords = Object.values(
+      currentState.pendingPracticeRecords ?? {},
+    )
+    if (pendingPracticeRecords.length === 0) return
 
-    registry.set(submitAttemptsBatchAtom, {
+    registry.set(submitPracticeRecordsBatchAtom, {
       projectId: input.projectId,
-      attempts: pendingAttempts as unknown as [
-        CreateAttemptRequest,
-        ...CreateAttemptRequest[],
+      practice_records: pendingPracticeRecords as unknown as [
+        CreatePracticeRecordRequest,
+        ...CreatePracticeRecordRequest[],
       ],
     })
 
     registry.set(
       quizDetailStateAtom(input.quizId),
-      QuizDetailAction.ClearAttempts(),
+      QuizDetailAction.ClearPracticeRecords(),
     )
   }),
 )

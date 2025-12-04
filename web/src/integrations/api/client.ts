@@ -436,6 +436,10 @@ export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
   project_id: S.String,
   name: S.String,
   description: S.optionalWith(S.String, { nullable: true }),
+  spaced_repetition_enabled: S.optionalWith(S.Boolean, {
+    nullable: true,
+    default: () => false as const,
+  }),
   created_at: S.String,
   updated_at: S.String,
 }) {}
@@ -511,6 +515,27 @@ export class FlashcardListResponse extends S.Class<FlashcardListResponse>(
    */
   data: S.Array(FlashcardDto),
 }) {}
+
+export class GetDueFlashcardsV1FlashcardsGroupIdDueForReviewGetParams extends S.Struct(
+  {
+    /**
+     * Maximum number of flashcards to return
+     */
+    limit: S.optionalWith(
+      S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
+      { nullable: true },
+    ),
+  },
+) {}
+
+/**
+ * Whether to enable spaced repetition
+ */
+export class ToggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatchRequest extends S.Boolean {}
+
+export class ExportFlashcardGroupV1FlashcardsGroupIdExportGet200 extends S.Struct(
+  {},
+) {}
 
 export class ListQuizzesV1QuizzesGetParams extends S.Struct({
   project_id: S.String,
@@ -605,6 +630,8 @@ export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
   data: S.Array(QuizQuestionDto),
 }) {}
 
+export class ExportQuizV1QuizzesQuizIdExportGet200 extends S.Struct({}) {}
+
 export class ListNotesV1NotesGetParams extends S.Struct({
   project_id: S.String,
 }) {}
@@ -684,7 +711,7 @@ export class UpdateNoteRequest extends S.Class<UpdateNoteRequest>(
   content: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
 }) {}
 
-export class ListAttemptsV1AttemptsGetParams extends S.Struct({
+export class ListPracticeRecordsV1PracticeRecordsGetParams extends S.Struct({
   /**
    * Optional project ID filter
    */
@@ -692,9 +719,11 @@ export class ListAttemptsV1AttemptsGetParams extends S.Struct({
 }) {}
 
 /**
- * Attempt data transfer object.
+ * Practice record data transfer object.
  */
-export class AttemptDto extends S.Class<AttemptDto>('AttemptDto')({
+export class PracticeRecordDto extends S.Class<PracticeRecordDto>(
+  'PracticeRecordDto',
+)({
   id: S.String,
   user_id: S.String,
   project_id: S.String,
@@ -708,26 +737,26 @@ export class AttemptDto extends S.Class<AttemptDto>('AttemptDto')({
 }) {}
 
 /**
- * Response model for listing attempts.
+ * Response model for listing practice records.
  */
-export class AttemptListResponse extends S.Class<AttemptListResponse>(
-  'AttemptListResponse',
+export class PracticeRecordListResponse extends S.Class<PracticeRecordListResponse>(
+  'PracticeRecordListResponse',
 )({
   /**
-   * List of attempts
+   * List of practice records
    */
-  data: S.Array(AttemptDto),
+  data: S.Array(PracticeRecordDto),
 }) {}
 
-export class CreateAttemptV1AttemptsPostParams extends S.Struct({
+export class CreatePracticeRecordV1PracticeRecordsPostParams extends S.Struct({
   project_id: S.String,
 }) {}
 
 /**
- * Request model for creating an attempt record.
+ * Request model for creating a practice record.
  */
-export class CreateAttemptRequest extends S.Class<CreateAttemptRequest>(
-  'CreateAttemptRequest',
+export class CreatePracticeRecordRequest extends S.Class<CreatePracticeRecordRequest>(
+  'CreatePracticeRecordRequest',
 )({
   /**
    * Type of study resource: flashcard or quiz
@@ -753,32 +782,41 @@ export class CreateAttemptRequest extends S.Class<CreateAttemptRequest>(
    * Whether the user got it right
    */
   was_correct: S.Boolean,
+  /**
+   * Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled.
+   */
+  quality_rating: S.optionalWith(
+    S.Int.pipe(S.greaterThanOrEqualTo(0), S.lessThanOrEqualTo(5)),
+    { nullable: true },
+  ),
 }) {}
 
 /**
- * Response model for attempt operations.
+ * Response model for practice record operations.
  */
-export class AttemptResponse extends S.Class<AttemptResponse>(
-  'AttemptResponse',
+export class PracticeRecordResponse extends S.Class<PracticeRecordResponse>(
+  'PracticeRecordResponse',
 )({
-  attempt: AttemptDto,
+  practice_record: PracticeRecordDto,
   message: S.String,
 }) {}
 
-export class CreateAttemptsBatchV1AttemptsBatchPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
+export class CreatePracticeRecordsBatchV1PracticeRecordsBatchPostParams extends S.Struct(
+  {
+    project_id: S.String,
+  },
+) {}
 
 /**
- * Request model for creating multiple attempt records.
+ * Request model for creating multiple practice records.
  */
-export class CreateAttemptBatchRequest extends S.Class<CreateAttemptBatchRequest>(
-  'CreateAttemptBatchRequest',
+export class CreatePracticeRecordBatchRequest extends S.Class<CreatePracticeRecordBatchRequest>(
+  'CreatePracticeRecordBatchRequest',
 )({
   /**
-   * List of attempts to create
+   * List of practice records to create
    */
-  attempts: S.NonEmptyArray(CreateAttemptRequest).pipe(
+  practice_records: S.NonEmptyArray(CreatePracticeRecordRequest).pipe(
     S.minItems(1),
     S.maxItems(100),
   ),
@@ -839,23 +877,6 @@ export class UsageResponse extends S.Class<UsageResponse>('UsageResponse')({
 }) {}
 
 /**
- * Study plan data transfer object.
- */
-export class StudyPlanDto extends S.Class<StudyPlanDto>('StudyPlanDto')({
-  id: S.String,
-  user_id: S.String,
-  project_id: S.String,
-  title: S.String,
-  description: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * Structured plan content (JSON)
-   */
-  plan_content: S.Record({ key: S.String, value: S.Unknown }),
-  generated_at: S.String,
-  updated_at: S.String,
-}) {}
-
-/**
  * Mind map data transfer object.
  */
 export class MindMapDto extends S.Class<MindMapDto>('MindMapDto')({
@@ -891,6 +912,61 @@ export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
    * Optional user instructions (topic or focus area)
    */
   user_prompt: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams extends S.Struct(
+  {
+    limit: S.optionalWith(
+      S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
+      { nullable: true, default: () => 50 as const },
+    ),
+  },
+) {}
+
+export class StudySessionResponse extends S.Class<StudySessionResponse>(
+  'StudySessionResponse',
+)({
+  session_id: S.String,
+  flashcard_group_id: S.optionalWith(S.String, { nullable: true }),
+  flashcards: S.Array(S.Record({ key: S.String, value: S.Unknown })),
+  estimated_time_minutes: S.Int,
+  focus_topics: S.Array(S.String),
+  learning_objectives: S.Array(S.String),
+  generated_at: S.String,
+}) {}
+
+export class ListStudySessionsV1ProjectsProjectIdStudySessionsGet200 extends S.Array(
+  StudySessionResponse,
+) {}
+
+export class GenerateStudySessionV1ProjectsProjectIdStudySessionsPostParams extends S.Struct(
+  {
+    session_length_minutes: S.optionalWith(
+      S.Int.pipe(S.greaterThanOrEqualTo(10), S.lessThanOrEqualTo(120)),
+      { nullable: true, default: () => 30 as const },
+    ),
+    focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
+  },
+) {}
+
+export class BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost extends S.Class<BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost>(
+  'BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost',
+)({
+  file: S.instanceOf(globalThis.Blob),
+  group_name: S.String,
+  group_description: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class ImportResponse extends S.Class<ImportResponse>('ImportResponse')({
+  id: S.String,
+}) {}
+
+export class BodyImportQuizV1ProjectsProjectIdQuizzesImportPost extends S.Class<BodyImportQuizV1ProjectsProjectIdQuizzesImportPost>(
+  'BodyImportQuizV1ProjectsProjectIdQuizzesImportPost',
+)({
+  file: S.instanceOf(globalThis.Blob),
+  quiz_name: S.String,
+  quiz_description: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
@@ -1192,6 +1268,45 @@ export const make = (
           }),
         ),
       ),
+    getDueFlashcardsV1FlashcardsGroupIdDueForReviewGet: (groupId, options) =>
+      HttpClientRequest.get(`/v1/flashcards/${groupId}/due-for-review`).pipe(
+        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch: (
+      groupId,
+      options,
+    ) =>
+      HttpClientRequest.patch(
+        `/v1/flashcards/${groupId}/spaced-repetition`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardGroupResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    exportFlashcardGroupV1FlashcardsGroupIdExportGet: (groupId) =>
+      HttpClientRequest.get(`/v1/flashcards/${groupId}/export`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ExportFlashcardGroupV1FlashcardsGroupIdExportGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     listQuizzesV1QuizzesGet: (options) =>
       HttpClientRequest.get(`/v1/quizzes`).pipe(
         HttpClientRequest.setUrlParams({
@@ -1244,6 +1359,16 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(QuizQuestionListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    exportQuizV1QuizzesQuizIdExportGet: (quizId) =>
+      HttpClientRequest.get(`/v1/quizzes/${quizId}/export`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ExportQuizV1QuizzesQuizIdExportGet200),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1307,42 +1432,42 @@ export const make = (
           }),
         ),
       ),
-    listAttemptsV1AttemptsGet: (options) =>
-      HttpClientRequest.get(`/v1/attempts`).pipe(
+    listPracticeRecordsV1PracticeRecordsGet: (options) =>
+      HttpClientRequest.get(`/v1/practice-records`).pipe(
         HttpClientRequest.setUrlParams({
           project_id: options?.['project_id'] as any,
         }),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(AttemptListResponse),
+            '2xx': decodeSuccess(PracticeRecordListResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    createAttemptV1AttemptsPost: (options) =>
-      HttpClientRequest.post(`/v1/attempts`).pipe(
+    createPracticeRecordV1PracticeRecordsPost: (options) =>
+      HttpClientRequest.post(`/v1/practice-records`).pipe(
         HttpClientRequest.setUrlParams({
           project_id: options.params?.['project_id'] as any,
         }),
         HttpClientRequest.bodyUnsafeJson(options.payload),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(AttemptResponse),
+            '2xx': decodeSuccess(PracticeRecordResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    createAttemptsBatchV1AttemptsBatchPost: (options) =>
-      HttpClientRequest.post(`/v1/attempts/batch`).pipe(
+    createPracticeRecordsBatchV1PracticeRecordsBatchPost: (options) =>
+      HttpClientRequest.post(`/v1/practice-records/batch`).pipe(
         HttpClientRequest.setUrlParams({
           project_id: options.params?.['project_id'] as any,
         }),
         HttpClientRequest.bodyUnsafeJson(options.payload),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(AttemptListResponse),
+            '2xx': decodeSuccess(PracticeRecordListResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1362,26 +1487,6 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(UsageResponse),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getStudyPlanV1ProjectsProjectIdStudyPlansGet: (projectId) =>
-      HttpClientRequest.get(`/v1/projects/${projectId}/study-plans`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudyPlanDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    generateStudyPlanV1ProjectsProjectIdStudyPlansPost: (projectId) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/study-plans`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudyPlanDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
@@ -1412,6 +1517,76 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(MindMapDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listStudySessionsV1ProjectsProjectIdStudySessionsGet: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.get(`/v1/projects/${projectId}/study-sessions`).pipe(
+        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListStudySessionsV1ProjectsProjectIdStudySessionsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateStudySessionV1ProjectsProjectIdStudySessionsPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/study-sessions`).pipe(
+        HttpClientRequest.setUrlParams({
+          session_length_minutes: options?.['session_length_minutes'] as any,
+          focus_topics: options?.['focus_topics'] as any,
+        }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudySessionResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getStudySessionV1StudySessionsSessionIdGet: (sessionId) =>
+      HttpClientRequest.get(`/v1/study-sessions/${sessionId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudySessionResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    importFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/v1/projects/${projectId}/flashcard-groups/import`,
+      ).pipe(
+        HttpClientRequest.bodyFormDataRecord(options as any),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ImportResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    importQuizV1ProjectsProjectIdQuizzesImportPost: (projectId, options) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/quizzes/import`).pipe(
+        HttpClientRequest.bodyFormDataRecord(options as any),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ImportResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1675,6 +1850,43 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Get flashcards that are due for review based on spaced repetition algorithm
+   */
+  readonly getDueFlashcardsV1FlashcardsGroupIdDueForReviewGet: (
+    groupId: string,
+    options?:
+      | typeof GetDueFlashcardsV1FlashcardsGroupIdDueForReviewGetParams.Encoded
+      | undefined,
+  ) => Effect.Effect<
+    typeof FlashcardListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Enable or disable spaced repetition for a flashcard group
+   */
+  readonly toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch: (
+    groupId: string,
+    options: typeof ToggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatchRequest.Encoded,
+  ) => Effect.Effect<
+    typeof FlashcardGroupResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Export a flashcard group to CSV format
+   */
+  readonly exportFlashcardGroupV1FlashcardsGroupIdExportGet: (
+    groupId: string,
+  ) => Effect.Effect<
+    typeof ExportFlashcardGroupV1FlashcardsGroupIdExportGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * List all quizzes for a project
    */
   readonly listQuizzesV1QuizzesGet: (
@@ -1726,6 +1938,17 @@ export interface Client {
     quizId: string,
   ) => Effect.Effect<
     typeof QuizQuestionListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Export a quiz to CSV format
+   */
+  readonly exportQuizV1QuizzesQuizIdExportGet: (
+    quizId: string,
+  ) => Effect.Effect<
+    typeof ExportQuizV1QuizzesQuizIdExportGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -1788,36 +2011,38 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List study attempt records for the current user, optionally filtered by project
+   * List practice records for the current user, optionally filtered by project
    */
-  readonly listAttemptsV1AttemptsGet: (
-    options?: typeof ListAttemptsV1AttemptsGetParams.Encoded | undefined,
+  readonly listPracticeRecordsV1PracticeRecordsGet: (
+    options?:
+      | typeof ListPracticeRecordsV1PracticeRecordsGetParams.Encoded
+      | undefined,
   ) => Effect.Effect<
-    typeof AttemptListResponse.Type,
+    typeof PracticeRecordListResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new study attempt record for a flashcard or quiz question
+   * Create a new practice record for a flashcard or quiz question
    */
-  readonly createAttemptV1AttemptsPost: (options: {
-    readonly params: typeof CreateAttemptV1AttemptsPostParams.Encoded
-    readonly payload: typeof CreateAttemptRequest.Encoded
+  readonly createPracticeRecordV1PracticeRecordsPost: (options: {
+    readonly params: typeof CreatePracticeRecordV1PracticeRecordsPostParams.Encoded
+    readonly payload: typeof CreatePracticeRecordRequest.Encoded
   }) => Effect.Effect<
-    typeof AttemptResponse.Type,
+    typeof PracticeRecordResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create multiple study attempt records in a single batch operation
+   * Create multiple practice records in a single batch operation
    */
-  readonly createAttemptsBatchV1AttemptsBatchPost: (options: {
-    readonly params: typeof CreateAttemptsBatchV1AttemptsBatchPostParams.Encoded
-    readonly payload: typeof CreateAttemptBatchRequest.Encoded
+  readonly createPracticeRecordsBatchV1PracticeRecordsBatchPost: (options: {
+    readonly params: typeof CreatePracticeRecordsBatchV1PracticeRecordsBatchPostParams.Encoded
+    readonly payload: typeof CreatePracticeRecordBatchRequest.Encoded
   }) => Effect.Effect<
-    typeof AttemptListResponse.Type,
+    typeof PracticeRecordListResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -1835,28 +2060,6 @@ export interface Client {
   readonly getUsageV1UsageGet: () => Effect.Effect<
     typeof UsageResponse.Type,
     HttpClientError.HttpClientError | ParseError
-  >
-  /**
-   * Get the latest study plan for a project (1 plan per project)
-   */
-  readonly getStudyPlanV1ProjectsProjectIdStudyPlansGet: (
-    projectId: string,
-  ) => Effect.Effect<
-    typeof StudyPlanDto.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Generate or regenerate personalized study plan based on performance
-   */
-  readonly generateStudyPlanV1ProjectsProjectIdStudyPlansPost: (
-    projectId: string,
-  ) => Effect.Effect<
-    typeof StudyPlanDto.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
    * List all mind maps for a project
@@ -1888,6 +2091,69 @@ export interface Client {
     mindMapId: string,
   ) => Effect.Effect<
     typeof MindMapDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all study sessions for a project
+   */
+  readonly listStudySessionsV1ProjectsProjectIdStudySessionsGet: (
+    projectId: string,
+    options?:
+      | typeof ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams.Encoded
+      | undefined,
+  ) => Effect.Effect<
+    typeof ListStudySessionsV1ProjectsProjectIdStudySessionsGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate a personalized study session based on performance and spaced repetition
+   */
+  readonly generateStudySessionV1ProjectsProjectIdStudySessionsPost: (
+    projectId: string,
+    options?:
+      | typeof GenerateStudySessionV1ProjectsProjectIdStudySessionsPostParams.Encoded
+      | undefined,
+  ) => Effect.Effect<
+    typeof StudySessionResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a study session by ID
+   */
+  readonly getStudySessionV1StudySessionsSessionIdGet: (
+    sessionId: string,
+  ) => Effect.Effect<
+    typeof StudySessionResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Import flashcards from CSV file
+   */
+  readonly importFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost: (
+    projectId: string,
+    options: typeof BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost.Encoded,
+  ) => Effect.Effect<
+    typeof ImportResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Import quiz from CSV file
+   */
+  readonly importQuizV1ProjectsProjectIdQuizzesImportPost: (
+    projectId: string,
+    options: typeof BodyImportQuizV1ProjectsProjectIdQuizzesImportPost.Encoded,
+  ) => Effect.Effect<
+    typeof ImportResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

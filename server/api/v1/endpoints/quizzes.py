@@ -1,8 +1,10 @@
-from api.dependencies import get_quiz_service, get_user
+from api.dependencies import get_exporter_service, get_quiz_service, get_user
 from core.logger import get_logger
+from core.services.exporter import ExporterService
 from core.services.quizzes import QuizService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi.responses import Response
 from schemas.quizzes import (
     CreateQuizRequest,
     QuizDto,
@@ -185,4 +187,34 @@ async def list_quiz_questions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list quiz questions",
+        )
+
+
+@router.get(
+    path="/{quiz_id}/export",
+    summary="Export quiz to CSV",
+    description="Export a quiz to CSV format"
+)
+async def export_quiz(
+    quiz_id: str = Path(..., description="Quiz ID"),
+    exporter_service: ExporterService = Depends(get_exporter_service),
+    current_user: User = Depends(get_user),
+):
+    """Export quiz to CSV."""
+    try:
+        csv_content = exporter_service.export_quiz_to_csv(quiz_id)
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=quiz_{quiz_id}.csv"
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        logger.error("error exporting quiz: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export quiz"
         )
