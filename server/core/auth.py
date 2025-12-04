@@ -6,18 +6,7 @@ from db.models import User
 from db.session import get_db
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from fastapi_azure_auth import SingleTenantAzureAuthorizationCodeBearer
 from sqlalchemy.orm import Session
-
-azure_auth_scheme = SingleTenantAzureAuthorizationCodeBearer(
-    app_client_id=app_config.AZURE_ENTRA_CLIENT_ID,
-    tenant_id=app_config.AZURE_ENTRA_TENANT_ID,
-    scopes={
-        "openid": "OpenID Connect",
-        "profile": "User profile",
-        "email": "User email",
-    },
-)
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -27,7 +16,7 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Get the current authenticated user from Azure Entra token.
+    Get the current authenticated user from Supabase JWT token.
 
     Args:
         credentials: HTTP Bearer token credentials
@@ -49,37 +38,37 @@ def get_current_user(
     token = credentials.credentials
 
     try:
-        # Decode token to extract user information
-        # Note: In production, you should verify the token signature
-        # For now, we'll decode without verification for compatibility
-        payload = pyjwt.decode(token, options={"verify_signature": False})
+        # Verify and decode Supabase JWT token
+        # Supabase uses HS256 algorithm with the JWT secret
+        payload = pyjwt.decode(
+            token,
+            app_config.SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
 
-        # Extract Azure Object ID (OID) - this is the unique identifier for the user
-        azure_oid = payload.get("oid")
-        if not azure_oid:
+        # Extract Supabase user ID (sub claim) - this is the UUID from auth.users
+        supabase_user_id = payload.get("sub")
+        if not supabase_user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing Azure Object ID",
+                detail="Invalid token: missing user ID",
             )
 
         # Extract user information from token
-        email = payload.get("email") or payload.get("unique_name")
-        name = payload.get("name")
-        given_name = payload.get("given_name")
-        family_name = payload.get("family_name")
+        email = payload.get("email")
+        # Supabase tokens include user_metadata and app_metadata
+        user_metadata = payload.get("user_metadata", {})
+        app_metadata = payload.get("app_metadata", {})
+        
+        # Get name from user_metadata or email
+        name = user_metadata.get("name") or user_metadata.get("full_name")
+        if not name and email:
+            # Fallback to email username part
+            name = email.split("@")[0]
 
-        name = name or given_name + " " + family_name
-
-        # Verify app ID matches our configuration
-        app_id = payload.get("appid")
-        if app_id != app_config.AZURE_ENTRA_CLIENT_ID:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid application ID. Expected: {app_config.AZURE_ENTRA_CLIENT_ID}, Got: {app_id}",
-            )
-
-        # Look for existing user by Azure OID
-        user = db.query(User).filter(User.azure_oid == azure_oid).first()
+        # Look for existing user by ID (which matches auth.users.id)
+        user = db.query(User).filter(User.id == supabase_user_id).first()
 
         if user:
             # Update user information if needed
@@ -90,11 +79,12 @@ def get_current_user(
             db.commit()
             return user
         else:
-            # Create new user
+            # User should be synced from auth.users via database trigger
+            # But create it here as fallback if trigger hasn't run yet
             new_user = User(
-                azure_oid=azure_oid,
+                id=supabase_user_id,  # Use Supabase user ID as primary key
                 email=email,
-                name=name or email or f"user_{azure_oid[:8]}",
+                name=name or email or f"user_{supabase_user_id[:8]}",
             )
             db.add(new_user)
             db.commit()

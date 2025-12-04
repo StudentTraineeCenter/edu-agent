@@ -1,27 +1,88 @@
-import { useMsal, useIsAuthenticated, useAccount } from '@azure/msal-react'
+import { useContext } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { loginRequest } from '@/lib/msal-config'
+import { SupabaseContext } from '@/providers/supabase-provider'
+import { supabase } from '@/lib/supabase'
 
 export const useAuth = () => {
-  const { instance, accounts } = useMsal()
-  const isAuthenticated = useIsAuthenticated()
-  const account = useAccount(accounts[0])
+  const { session, user, loading } = useContext(SupabaseContext)
   const queryClient = useQueryClient()
 
   const loginMutation = useMutation({
-    mutationFn: async () => {
-      await instance.loginRedirect(loginRequest)
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string
+      password?: string
+    }) => {
+      if (password) {
+        // Email/password login
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) throw error
+        return data
+      } else {
+        // Magic link login
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        })
+        if (error) throw error
+        return data
+      }
     },
     onError: (error) => {
       console.error('Login failed:', error)
     },
   })
 
+  const magicLinkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      })
+      if (error) throw error
+      return data
+    },
+    onError: (error) => {
+      console.error('Magic link failed:', error)
+    },
+  })
+
+  const signUpMutation = useMutation({
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string
+      password: string
+    }) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      })
+      if (error) throw error
+      return data
+    },
+    onError: (error) => {
+      console.error('Sign up failed:', error)
+    },
+  })
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await instance.logoutRedirect({
-        postLogoutRedirectUri: '/',
-      })
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.clear()
@@ -32,57 +93,28 @@ export const useAuth = () => {
   })
 
   const getAccessToken = async () => {
-    if (!account) return null
-
-    try {
-      const response = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account: account,
-      })
-      return response.accessToken
-    } catch (error) {
-      console.error('Failed to acquire token:', error)
-      return null
-    }
-  }
-
-  const getProfilePhoto = async (): Promise<string | null> => {
-    const token = await getAccessToken()
-    if (!token) return null
-
-    try {
-      const response = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) return null
-
-      const blob = await response.blob()
-      return URL.createObjectURL(blob)
-    } catch (error) {
-      console.error('Failed to fetch profile photo:', error)
-      return null
-    }
+    if (!session) return null
+    return session.access_token
   }
 
   return {
-    isAuthenticated,
-    account,
+    isAuthenticated: !!session && !!user,
+    session,
+    user,
     login: loginMutation.mutate,
+    signUp: signUpMutation.mutate,
+    sendMagicLink: magicLinkMutation.mutate,
     logout: logoutMutation.mutate,
     getAccessToken,
-    getProfilePhoto,
-    isLoading: loginMutation.isPending || logoutMutation.isPending,
+    isLoading:
+      loading ||
+      loginMutation.isPending ||
+      logoutMutation.isPending ||
+      signUpMutation.isPending ||
+      magicLinkMutation.isPending,
     loginError: loginMutation.error,
     logoutError: logoutMutation.error,
-    user: account
-      ? {
-        id: account.homeAccountId,
-        name: account.name || '',
-        email: account.username || '',
-      }
-      : null,
+    signUpError: signUpMutation.error,
+    magicLinkError: magicLinkMutation.error,
   }
 }

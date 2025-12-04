@@ -7,12 +7,7 @@ variable "azure_subscription_id" {
 }
 
 variable "azure_tenant_id" {
-  description = "Azure Entra ID (formerly Azure AD) Tenant ID"
-  type        = string
-}
-
-variable "azure_app_client_id" {
-  description = "Azure Entra ID Application (Client) ID for authentication"
+  description = "Azure Tenant ID"
   type        = string
 }
 
@@ -57,9 +52,10 @@ variable "workload" {
 # Application Configuration
 # ============================================================================
 variable "database_url" {
-  description = "Database connection URL (stored in Key Vault)"
+  description = "Database connection URL (stored in Key Vault). If using Supabase, this will be automatically generated from Supabase connection string."
   type        = string
   sensitive   = true
+  default     = null
 }
 
 # ============================================================================
@@ -87,4 +83,52 @@ variable "acr_tag_web" {
   description = "Container image tag for web application"
   type        = string
   default     = "latest"
+}
+
+# ============================================================================
+# Supabase Configuration
+# ============================================================================
+variable "supabase_access_token" {
+  description = "Supabase Personal Access Token (from Dashboard > Account > Access Tokens)"
+  type        = string
+  sensitive   = true
+}
+
+variable "supabase_organization_id" {
+  description = "Supabase Organization ID"
+  type        = string
+  sensitive   = true
+}
+
+variable "supabase_database_password" {
+  description = "Database password for Supabase project"
+  type        = string
+  sensitive   = true
+}
+
+variable "supabase_region" {
+  description = "AWS region for Supabase project (e.g., 'us-east-1', 'eu-west-1', 'ap-southeast-1')"
+  type        = string
+  default     = "eu-central-2"
+}
+
+variable "supabase_service_role_key" {
+  description = "Supabase service role key (from Dashboard > Project Settings > API > service_role secret)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "supabase_jwt_secret" {
+  description = "Supabase JWT secret (from Dashboard > Project Settings > Auth > JWT Settings)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "supabase_anon_key" {
+  description = "Supabase anonymous key (from Dashboard > Project Settings > API > anon public key)"
+  type        = string
+  sensitive   = true
+  default     = null
 }

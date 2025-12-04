@@ -42,23 +42,11 @@ async def oauth2_redirect():
 
 @router.get("/", include_in_schema=False)
 async def scalar_docs_ui():
-    """Scalar API documentation UI with Azure Entra authentication."""
-    client_id = app_config.AZURE_ENTRA_CLIENT_ID
-
+    """Scalar API documentation UI with Supabase authentication."""
     return get_scalar_api_reference(
         openapi_url="/openapi.json",
         title="EduAgent API",
         authentication={
             "preferredSecurityScheme": "BearerAuth",
-            "clientId": client_id,
-            "oauth2": {
-                "clientId": client_id,
-                "scopes": [
-                    f"api://{client_id}/user_impersonation",
-                    "openid",
-                    "profile",
-                    "email",
-                ],
-            },
         },
     )

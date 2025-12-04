@@ -105,7 +105,8 @@ resource "azurerm_role_assignment" "current_user_resource_group_contributor" {
 
 # ============================================================================
 # Key Vault Module
-# Note: AI-related secrets are created separately in main.tf after AI module is created
+# Note: AI-related secrets and Supabase database URL are created separately 
+# in main.tf after their respective modules are created
 # ============================================================================
 module "key_vault" {
   source = "./modules/key-vault"
@@ -115,13 +116,12 @@ module "key_vault" {
   location            = module.resource_group.location
   tags                = local.common_tags
 
-  # Basic infrastructure secrets (non-AI)
-  database_url                         = var.database_url
+  # Basic infrastructure secrets (non-AI, non-Supabase)
+  # database_url will be set from Supabase connection string after Supabase is created
+  database_url                         = null  # Will be replaced by Supabase connection string
   azure_storage_connection_string      = module.storage.primary_connection_string
   azure_storage_input_container_name   = module.storage.input_container_name
   azure_storage_output_container_name = module.storage.output_container_name
-  azure_entra_tenant_id                = var.azure_tenant_id
-  azure_entra_client_id                = var.azure_app_client_id
   
   depends_on = [azurerm_role_assignment.current_user_resource_group_contributor]
 }
@@ -245,6 +245,64 @@ resource "azurerm_key_vault_secret" "azure_cu_analyzer_id" {
 }
 
 # ============================================================================
+# Supabase Project
+# Note: Site URL will be updated after app service is created via a separate
+# terraform apply or manually in Supabase dashboard
+# ============================================================================
+module "supabase" {
+  source = "./modules/supabase"
+
+  supabase_organization_id = var.supabase_organization_id
+  project_name            = "${local.org_short}-${local.env_short}"
+  database_password       = var.supabase_database_password
+  region                  = var.supabase_region
+  # Site URL placeholder - update after app service is created
+  # Can be updated via: terraform apply -target=module.supabase.supabase_settings.main
+  site_url                = "http://localhost:3000"  # Will be updated after deployment
+}
+
+# ============================================================================
+# Key Vault Secrets - Supabase (created after Supabase module)
+# ============================================================================
+resource "azurerm_key_vault_secret" "supabase_url" {
+  name         = "supabase-url"
+  value        = module.supabase.api_url
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.supabase, module.key_vault]
+}
+
+# Supabase API keys and JWT secret
+# These can be provided via Terraform variables or updated manually later
+resource "azurerm_key_vault_secret" "supabase_service_role_key" {
+  name         = "supabase-service-role-key"
+  value        = var.supabase_service_role_key != null ? var.supabase_service_role_key : "MANUAL_UPDATE_REQUIRED"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.supabase, module.key_vault]
+}
+
+resource "azurerm_key_vault_secret" "supabase_jwt_secret" {
+  name         = "supabase-jwt-secret"
+  value        = var.supabase_jwt_secret != null ? var.supabase_jwt_secret : "MANUAL_UPDATE_REQUIRED"
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.supabase, module.key_vault]
+}
+
+# ============================================================================
+# Database URL from Supabase Connection String
+# This replaces the database_url variable with Supabase's connection string
+# ============================================================================
+resource "azurerm_key_vault_secret" "database_url" {
+  name         = "database-url"
+  value        = module.supabase.database_connection_string
+  key_vault_id = module.key_vault.id
+
+  depends_on = [module.supabase, module.key_vault]
+}
+
+# ============================================================================
 # App Service Plan & Web Apps
 # ============================================================================
 module "app_service" {
@@ -281,9 +339,9 @@ module "app_service" {
     "WEBSITES_PORT"                       = "80"
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
 
-    # Frontend environment variables
-    "VITE_AZURE_ENTRA_TENANT_ID" = var.azure_tenant_id
-    "VITE_AZURE_ENTRA_CLIENT_ID" = var.azure_app_client_id
+    # Frontend environment variables - Supabase
+    "VITE_SUPABASE_URL"     = module.supabase.api_url
+    "VITE_SUPABASE_ANON_KEY" = var.supabase_anon_key != null ? var.supabase_anon_key : ""
 
     # URLs - constructed from name pattern (will match actual hostname)
     "VITE_SERVER_URL" = "https://${module.app_service.server_app_default_hostname}"

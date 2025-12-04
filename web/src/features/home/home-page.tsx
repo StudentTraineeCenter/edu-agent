@@ -1,8 +1,9 @@
 import { useAuth } from '@/hooks/use-auth'
 import { UserProfile } from '@/components/auth/user-profile'
-import { LoginButton } from '@/components/auth/login-button'
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { LogIn } from 'lucide-react'
 
 export const HomePage = () => {
   const { isAuthenticated } = useAuth()
@@ -32,7 +33,31 @@ export const HomePage = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-4">
         <div className="lg:col-span-1">
-          {isAuthenticated ? <UserProfile /> : <LoginButton />}
+          {isAuthenticated ? (
+            <UserProfile />
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link
+                to="/sign-in"
+                search={
+                  search?.redirect ? { redirect: search.redirect } : undefined
+                }
+              >
+                <Button className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Sign in
+                </Button>
+              </Link>
+              <Link
+                to="/sign-up"
+                search={
+                  search?.redirect ? { redirect: search.redirect } : undefined
+                }
+              >
+                <Button variant="outline">Sign up</Button>
+              </Link>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
           <div className="lg:col-span-2">

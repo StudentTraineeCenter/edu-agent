@@ -1,7 +1,7 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeApiClient } from '@/integrations/api/http'
 import { Data, Effect } from 'effect'
-import { getAccessTokenEffect } from '@/lib/msal-service'
+import { getAccessTokenEffect } from '@/lib/supabase-service'
 import { runtime } from './runtime'
 import { usageAtom } from './usage'
 

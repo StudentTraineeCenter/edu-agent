@@ -63,24 +63,5 @@ resource "azurerm_key_vault_secret" "azure_storage_output_container_name" {
 # Note: AI-related secrets are created in main.tf after AI module is created
 # This keeps the module focused on basic infrastructure secrets
 
-resource "azurerm_key_vault_secret" "azure_entra_tenant_id" {
-  count = var.azure_entra_tenant_id != null ? 1 : 0
-
-  name         = "azure-entra-tenant-id"
-  value        = var.azure_entra_tenant_id
-  key_vault_id = azurerm_key_vault.main.id
-
-  depends_on = [azurerm_key_vault.main]
-}
-
-resource "azurerm_key_vault_secret" "azure_entra_client_id" {
-  count = var.azure_entra_client_id != null ? 1 : 0
-
-  name         = "azure-entra-client-id"
-  value        = var.azure_entra_client_id
-  key_vault_id = azurerm_key_vault.main.id
-
-  depends_on = [azurerm_key_vault.main]
-}
 
 

@@ -13,16 +13,17 @@ from sqlalchemy.sql import func
 
 class User(Base):
     __tablename__ = "users"
+    # Use Supabase user ID as primary key to sync with auth.users
     id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid4())
-    )
+        String, primary_key=True
+    )  # Maps to auth.users.id (UUID from Supabase)
     name: Mapped[str] = mapped_column(String, nullable=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=True)
-    azure_oid: Mapped[str] = mapped_column(
-        String, unique=True, index=True, nullable=True
-    )  # Azure Object ID
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     # Relationships

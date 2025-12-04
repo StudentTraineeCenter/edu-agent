@@ -24,7 +24,6 @@ dataclasses-json==0.6.7
 distro==1.9.0
 dotenv==0.9.9
 fastapi==0.122.0
-fastapi-azure-auth==5.2.0
 frozenlist==1.7.0
 greenlet==3.2.4
 h11==0.16.0
@@ -78,6 +77,7 @@ pydantic_core==2.33.2
 PyJWT==2.10.1
 PyMuPDF==1.26.5
 python-dotenv==1.1.1
+supabase==2.25.0
 python-multipart==0.0.20
 PyYAML==6.0.2
 regex==2025.9.18

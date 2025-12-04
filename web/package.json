@@ -13,8 +13,7 @@
     "gen:client": "curl localhost:8000/openapi.json > openapi.json && pnpx @tim-smart/openapi-gen --spec ./openapi.json > src/integrations/api/client.ts && rimraf openapi.json && prettier --write src/integrations/api/client.ts"
   },
   "dependencies": {
-    "@azure/msal-browser": "^4.25.0",
-    "@azure/msal-react": "^3.0.20",
+    "@supabase/supabase-js": "^2.47.10",
     "@effect-atom/atom-react": "^0.3.4",
     "@effect/platform": "^0.92.1",
     "@effect/platform-browser": "^0.72.0",

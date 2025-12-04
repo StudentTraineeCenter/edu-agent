@@ -171,6 +171,25 @@ class AppConfig:
         "AZURE_ENTRA_CLIENT_ID",
     )
 
+    # SUPABASE
+    SUPABASE_URL: str = _get_config_value(
+        _KEY_VAULT_URI,
+        "supabase-url",
+        "SUPABASE_URL",
+    )
+
+    SUPABASE_SERVICE_ROLE_KEY: str = _get_config_value(
+        _KEY_VAULT_URI,
+        "supabase-service-role-key",
+        "SUPABASE_SERVICE_ROLE_KEY",
+    )
+
+    SUPABASE_JWT_SECRET: str = _get_config_value(
+        _KEY_VAULT_URI,
+        "supabase-jwt-secret",
+        "SUPABASE_JWT_SECRET",
+    )
+
     AZURE_CU_ENDPOINT: str = _get_config_value(
         _KEY_VAULT_URI,
         "azure-cu-endpoint",

@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/time"
       version = "0.13.1"
     }
+    supabase = {
+      source  = "supabase/supabase"
+      version = "~> 1.0"
+    }
   }
 }
 
@@ -24,4 +28,8 @@ provider "azurerm" {
       prevent_deletion_if_contains_resources = false
     }
   }
+}
+
+provider "supabase" {
+  access_token = var.supabase_access_token
 }

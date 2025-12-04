@@ -11,8 +11,11 @@ DOCKERFILE_PATH="${2:-../web/Dockerfile}"
 CONTEXT_DIR="${3:-../web}"
 
 SERVER_URL="$(terraform output -raw app_server_url)"
-TENANT_ID="$(terraform output -raw azure_tenant_id)"
-CLIENT_ID="$(terraform output -raw azure_app_client_id)"
+SUPABASE_URL="$(terraform output -raw supabase_api_url)"
+
+# Note: Supabase anon key is sensitive and should be retrieved from Key Vault or environment
+# For build scripts, you may need to pass it as an environment variable or retrieve from Key Vault
+SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
 
 if [[ -z "$ACR_NAME" ]]; then
   echo "ERROR: ACR_NAME is not set. Please run 'terraform apply' first." >&2
@@ -29,13 +32,15 @@ echo "➤ Logging in to ACR: $REGISTRY"
 az acr login --name "$ACR_NAME"
 
 echo "➤ Building Docker image: $IMAGE"
+# Note: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set via App Service environment variables
+# They don't need to be build args since they're injected at runtime
 docker build \
   --platform linux/amd64 \
   --file "$DOCKERFILE_PATH" \
   --tag "$IMAGE" \
   --build-arg VITE_SERVER_URL="https://${SERVER_URL}" \
-  --build-arg VITE_AZURE_ENTRA_TENANT_ID="${TENANT_ID}" \
-  --build-arg VITE_AZURE_ENTRA_CLIENT_ID="${CLIENT_ID}" \
+  --build-arg VITE_SUPABASE_URL="${SUPABASE_URL}" \
+  --build-arg VITE_SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
   "$CONTEXT_DIR"
 
 echo "➤ Pushing image to registry"

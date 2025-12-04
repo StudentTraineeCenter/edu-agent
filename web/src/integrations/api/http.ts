@@ -2,7 +2,7 @@ import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as HttpClient from '@effect/platform/HttpClient'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import * as Effect from 'effect/Effect'
-import { getAccessTokenEffect } from '@/lib/msal-service'
+import { getAccessTokenEffect } from '@/lib/supabase-service'
 import * as ApiClient from '@/integrations/api/client'
 
 export const makeHttpClient = Effect.gen(function* () {

@@ -56,16 +56,4 @@ variable "azure_storage_output_container_name" {
 # Note: AI-related secret variables removed - these secrets are created in main.tf
 # after the AI module is created to avoid circular dependencies
 
-variable "azure_entra_tenant_id" {
-  description = "Azure Entra ID tenant ID"
-  type        = string
-  default     = null
-}
-
-variable "azure_entra_client_id" {
-  description = "Azure Entra ID client ID"
-  type        = string
-  default     = null
-}
-
 

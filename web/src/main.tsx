@@ -5,7 +5,7 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routes/_config.tsx'
 
 import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx'
-import { MSALProvider } from './providers/msal-provider.tsx'
+import { SupabaseProvider } from './providers/supabase-provider.tsx'
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
@@ -37,7 +37,7 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ThemeProvider>
-        <MSALProvider>
+        <SupabaseProvider>
           <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
             <TooltipProvider>
               <ModalProvider>
@@ -45,7 +45,7 @@ if (rootElement && !rootElement.innerHTML) {
               </ModalProvider>
             </TooltipProvider>
           </TanStackQueryProvider.Provider>
-        </MSALProvider>
+        </SupabaseProvider>
       </ThemeProvider>
     </StrictMode>,
   )

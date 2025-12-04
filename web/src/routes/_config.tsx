@@ -13,6 +13,16 @@ const ProjectDetailRoute = lazy(() =>
 const HomePage = lazy(() =>
   import('@/features/home/home-page').then((m) => ({ default: m.HomePage })),
 )
+const SignInPage = lazy(() =>
+  import('@/features/auth/sign-in-page').then((m) => ({
+    default: m.SignInPage,
+  })),
+)
+const SignUpPage = lazy(() =>
+  import('@/features/auth/sign-up-page').then((m) => ({
+    default: m.SignUpPage,
+  })),
+)
 const ChatDetailRoute = lazy(() =>
   import('./chat-detail-route').then((m) => ({ default: m.ChatDetailRoute })),
 )
@@ -58,19 +68,18 @@ const DashboardPage = lazy(() =>
   })),
 )
 
-const requireAuth = () => {
-  // Check if user is authenticated by looking at MSAL keys in sessionStorage
-  const msalKeys = Object.keys(sessionStorage).filter((key) =>
-    key.startsWith('msal.'),
-  )
+const requireAuth = async () => {
+  // Check if user is authenticated by checking Supabase session
+  const { supabase } = await import('@/lib/supabase')
 
-  // Look for account keys specifically
-  const accountKeys = msalKeys.filter((key) => key.includes('account'))
-  const isAuthenticated = accountKeys.length > 0
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  const isAuthenticated = !!session
 
   if (!isAuthenticated) {
     throw redirect({
-      to: '/',
+      to: '/sign-in',
       search: {
         redirect: window.location.pathname,
       },
@@ -118,6 +127,40 @@ export const indexRoute = createRoute({
       }
     >
       <HomePage />
+    </Suspense>
+  ),
+})
+
+export const signInRoute = createRoute({
+  path: '/sign-in',
+  getParentRoute: () => rootRoute,
+  validateSearch: z.object({ redirect: z.string().optional() }).optional(),
+  component: () => (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <SignInPage />
+    </Suspense>
+  ),
+})
+
+export const signUpRoute = createRoute({
+  path: '/sign-up',
+  getParentRoute: () => rootRoute,
+  validateSearch: z.object({ redirect: z.string().optional() }).optional(),
+  component: () => (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <SignUpPage />
     </Suspense>
   ),
 })
@@ -296,4 +339,6 @@ export const routeTree = rootRoute.addChildren([
     settingsRoute,
   ]),
   indexRoute,
+  signInRoute,
+  signUpRoute,
 ])

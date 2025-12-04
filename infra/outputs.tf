@@ -98,19 +98,40 @@ output "app_web_url" {
   value       = module.app_service.web_app_default_hostname
 }
 
-# Azure Entra ID
+# Azure Tenant ID
 output "azure_tenant_id" {
   description = "Azure Tenant ID"
   value       = var.azure_tenant_id
-}
-
-output "azure_app_client_id" {
-  description = "Azure App Client ID"
-  value       = var.azure_app_client_id
 }
 
 # Key Vault
 output "azure_key_vault_uri" {
   description = "URI of the Azure Key Vault"
   value       = module.key_vault.uri
+}
+
+# Supabase
+output "supabase_project_id" {
+  description = "Supabase project ID"
+  value       = module.supabase.project_id
+}
+
+output "supabase_project_ref" {
+  description = "Supabase project reference ID"
+  value       = module.supabase.project_ref
+}
+
+output "supabase_api_url" {
+  description = "Supabase API URL"
+  value       = module.supabase.api_url
+}
+
+output "supabase_database_host" {
+  description = "Supabase database host"
+  value       = module.supabase.database_host
+}
+
+output "supabase_database_name" {
+  description = "Supabase database name"
+  value       = module.supabase.database_name
 }
