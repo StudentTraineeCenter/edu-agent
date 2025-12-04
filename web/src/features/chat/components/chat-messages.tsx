@@ -1,5 +1,4 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
 import {
   Message,
   MessageAvatar,
@@ -26,8 +25,6 @@ import {
   ToolInput,
   ToolOutput,
 } from '@/components/ai-elements/tool'
-import { useAtomValue } from '@effect-atom/atom-react'
-import { profilePhotoAtom } from '@/data-acess/auth'
 import type {
   ChatMessageDto,
   SourceDto,
@@ -142,33 +139,16 @@ const AssistantMessage = ({ message, projectId }: AssistantMessageProps) => (
 type ChatMessageItemProps = {
   message: ChatMessageDto
   projectId: string
-  photoUrl?: string
 }
 
-const ChatMessageItem = ({
-  message,
-  projectId,
-  photoUrl,
-}: ChatMessageItemProps) => {
+const ChatMessageItem = ({ message, projectId }: ChatMessageItemProps) => {
   if (message.role === 'user') {
-    return <UserMessage message={message} photoUrl={photoUrl} />
+    return <UserMessage message={message} />
   }
   return <AssistantMessage message={message} projectId={projectId} />
 }
 
 export const ChatMessages = ({ messages, projectId }: Props) => {
-  const profilePhotoResult = useAtomValue(profilePhotoAtom)
-  const photoUrl =
-    profilePhotoResult._tag === 'Success' ? profilePhotoResult.value : undefined
-
-  useEffect(() => {
-    return () => {
-      if (photoUrl) {
-        URL.revokeObjectURL(photoUrl)
-      }
-    }
-  }, [photoUrl])
-
   return (
     <Conversation className="flex-1 min-h-0 max-h-full w-full">
       <ConversationContent className="max-w-5xl mx-auto">
@@ -185,7 +165,6 @@ export const ChatMessages = ({ messages, projectId }: Props) => {
             key={msg.id ?? index}
             message={msg}
             projectId={projectId}
-            photoUrl={photoUrl}
           />
         ))}
       </ConversationContent>

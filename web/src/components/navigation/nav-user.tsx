@@ -34,7 +34,7 @@ export function NavUser() {
 
   const usageResult = useAtomValue(usageAtom)
 
-  const name = user?.name ?? 'User'
+  const name = (user?.user_metadata?.name as string | undefined) ?? 'User'
   const email = user?.email ?? ''
   const initials = name
     .split(' ')

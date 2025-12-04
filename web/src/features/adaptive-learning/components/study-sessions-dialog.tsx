@@ -14,7 +14,7 @@ import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { Result } from '@effect-atom/atom-react'
 import { listStudySessionsAtom } from '@/data-acess/adaptive-learning'
 import { generateStudySessionAtom } from '@/data-acess/adaptive-learning'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import type { StudySessionResponse } from '@/integrations/api/client'
 
 type StudySessionsDialogStore = {

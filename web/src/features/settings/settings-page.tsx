@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -29,22 +29,15 @@ import {
 import { useAtomValue } from '@effect-atom/atom-react'
 import { usageAtom } from '@/data-acess/usage'
 import { Result } from '@effect-atom/atom-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Trash2Icon, Loader2Icon } from 'lucide-react'
 
 export function SettingsPage() {
-  const { user, account, getProfilePhoto } = useAuth()
+  const { user } = useAuth()
   const { theme, setTheme } = useTheme()
   const confirmationDialog = useConfirmationDialog()
   const usageResult = useAtomValue(usageAtom)
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
   const [isDeletingAllChats, setIsDeletingAllChats] = useState(false)
-
-  useEffect(() => {
-    if (account) {
-      getProfilePhoto().then(setProfilePhoto)
-    }
-  }, [account, getProfilePhoto])
 
   const handleDeleteAllChats = async () => {
     const confirmed = await confirmationDialog.open({
@@ -123,21 +116,19 @@ export function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <Avatar className="size-16">
-                  {profilePhoto && (
-                    <AvatarImage src={profilePhoto} alt={user?.name} />
-                  )}
                   <AvatarFallback>
-                    {user?.name ? getInitials(user.name) : 'U'}
+                    {user?.user_metadata?.name
+                      ? getInitials(user.user_metadata.name)
+                      : 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-semibold">{user?.name || 'Unknown'}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
-                  {account && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ID: {account.homeAccountId}
-                    </p>
-                  )}
+                  <p className="font-semibold">
+                    {user?.user_metadata?.name || 'Unknown'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {user?.email || 'Unknown'}
+                  </p>
                 </div>
               </div>
             </CardContent>
