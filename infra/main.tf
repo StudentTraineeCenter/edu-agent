@@ -133,18 +133,6 @@ module "key_vault" {
 }
 
 # ============================================================================
-# Key Vault RBAC - Grant Terraform service principal access immediately
-# This ensures RBAC is set up before any secret operations
-# ============================================================================
-resource "azurerm_role_assignment" "terraform_key_vault_secrets_officer" {
-  scope                = module.key_vault.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
-  
-  depends_on = [module.key_vault]
-}
-
-# ============================================================================
 # Azure AI Services (AI Foundry & Cognitive Services)
 # ============================================================================
 module "ai" {

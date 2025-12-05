@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
 
+from core.exceptions import NotFoundError
 from core.logger import get_logger
 from db.models import Project
 from db.session import SessionLocal
@@ -71,7 +72,7 @@ class ProjectService:
             Project model instance
 
         Raises:
-            ValueError: If project not found
+            NotFoundError: If project not found
         """
         with self._get_db_session() as db:
             try:
@@ -81,11 +82,11 @@ class ProjectService:
                     .first()
                 )
                 if not project:
-                    raise ValueError(f"Project {project_id} not found")
+                    raise NotFoundError(f"Project {project_id} not found")
 
                 logger.info(f"retrieved project project_id={project_id}")
                 return project
-            except ValueError:
+            except NotFoundError:
                 raise
             except Exception as e:
                 logger.error(f"error getting project project_id={project_id}: {e}")
@@ -163,7 +164,7 @@ class ProjectService:
             Updated Project model instance
 
         Raises:
-            ValueError: If project not found
+            NotFoundError: If project not found
         """
         with self._get_db_session() as db:
             try:
@@ -173,7 +174,7 @@ class ProjectService:
                     .first()
                 )
                 if not project:
-                    raise ValueError(f"Project {project_id} not found")
+                    raise NotFoundError(f"Project {project_id} not found")
 
                 if name is not None:
                     project.name = name
@@ -187,7 +188,7 @@ class ProjectService:
 
                 logger.info(f"updated project project_id={project_id}")
                 return project
-            except ValueError:
+            except NotFoundError:
                 raise
             except Exception as e:
                 logger.error(f"error updating project project_id={project_id}: {e}")
@@ -201,7 +202,7 @@ class ProjectService:
             owner_id: The project owner's user ID
 
         Raises:
-            ValueError: If project not found
+            NotFoundError: If project not found
         """
         with self._get_db_session() as db:
             try:
@@ -211,13 +212,13 @@ class ProjectService:
                     .first()
                 )
                 if not project:
-                    raise ValueError(f"Project {project_id} not found")
+                    raise NotFoundError(f"Project {project_id} not found")
 
                 db.delete(project)
                 db.commit()
 
                 logger.info(f"deleted project project_id={project_id}")
-            except ValueError:
+            except NotFoundError:
                 raise
             except Exception as e:
                 logger.error(f"error deleting project project_id={project_id}: {e}")

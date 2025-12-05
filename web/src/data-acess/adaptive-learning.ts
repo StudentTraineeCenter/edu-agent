@@ -35,6 +35,7 @@ export const listStudySessionsAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const client = yield* makeApiClient
+      if (!projectId) return []
       const response =
         yield* client.listStudySessionsV1ProjectsProjectIdStudySessionsGet(
           projectId,

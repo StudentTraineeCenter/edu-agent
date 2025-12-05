@@ -11,8 +11,19 @@ resource "azurerm_role_assignment" "server_app_key_vault_secrets_user" {
   principal_id         = var.server_app_identity_principal_id
 }
 
-# Note: Key Vault Secrets Officer role for Terraform is assigned in main.tf
-# to ensure it's created before Key Vault secrets are managed
+# Current user: Key Vault Secrets Officer (manage secrets)
+resource "azurerm_role_assignment" "current_user_key_vault_secrets_officer" {
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Current user: Key Vault Reader (read Key Vault properties)
+resource "azurerm_role_assignment" "current_user_key_vault_reader" {
+  scope                = var.key_vault_id
+  role_definition_name = "Key Vault Reader"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
 
 # ============================================================================
 # Azure Container Registry RBAC Assignments
@@ -30,6 +41,20 @@ resource "azurerm_role_assignment" "web_app_acr_pull" {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.web_app_identity_principal_id
+}
+
+# Current user: ACR Push (push images to registry)
+resource "azurerm_role_assignment" "current_user_acr_push" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPush"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Current user: ACR Pull (pull images from registry)
+resource "azurerm_role_assignment" "current_user_acr_pull" {
+  scope                = var.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
 
 # ============================================================================
@@ -66,5 +91,12 @@ resource "azurerm_role_assignment" "current_user_cognitive_services_openai_contr
   scope                = var.ai_foundry_cognitive_account_id
   role_definition_name = "Cognitive Services OpenAI Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Server app: Cognitive Services OpenAI User (required for using OpenAI deployments)
+resource "azurerm_role_assignment" "server_app_cognitive_services_openai_user" {
+  scope                = var.ai_foundry_cognitive_account_id
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = var.server_app_identity_principal_id
 }
 

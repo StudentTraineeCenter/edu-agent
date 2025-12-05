@@ -84,13 +84,6 @@ def get_project(
 
     result = project_service.get_project(project_id, current_user.id)
 
-    if not result:
-        logger.error(f"Project not found: {project_id}")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found",
-        )
-
     return ProjectDto.model_validate(result)
 
 
