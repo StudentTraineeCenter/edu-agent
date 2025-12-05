@@ -57,10 +57,18 @@ output "database_user" {
 }
 
 output "database_connection_string" {
-  description = "Full PostgreSQL connection string for Supabase database"
+  description = "Full PostgreSQL connection string for Supabase database (direct connection - requires IPv6 or IPv4 add-on)"
   # Construct PostgreSQL connection string using Supabase's standard pattern
   # Format: postgresql+psycopg2://user:password@host:port/database
   value = "postgresql+psycopg2://postgres:${var.database_password}@db.${supabase_project.main.id}.supabase.co:5432/postgres"
+  sensitive = true
+}
+
+output "database_pooler_connection_string" {
+  description = "Full PostgreSQL connection string using Supabase session pooler (supports IPv4 without add-on)"
+  # Session pooler format: postgresql+psycopg2://postgres.{project_ref}:password@aws-1-{region}.pooler.supabase.com:5432/postgres
+  # Username format: postgres.{project_ref} (not just postgres)
+  value = "postgresql+psycopg2://postgres.${supabase_project.main.id}:${var.database_password}@aws-1-${var.region}.pooler.supabase.com:5432/postgres"
   sensitive = true
 }
 

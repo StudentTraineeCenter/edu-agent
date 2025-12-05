@@ -297,12 +297,13 @@ resource "azurerm_key_vault_secret" "supabase_jwt_secret" {
 }
 
 # ============================================================================
-# Database URL from Supabase Connection String
-# This replaces the database_url variable with Supabase's connection string
+# Database URL from Supabase Session Pooler Connection String
+# Using session pooler (port 5432) which supports IPv4 without requiring IPv4 add-on
+# This avoids IPv6 connection issues on Azure App Service
 # ============================================================================
 resource "azurerm_key_vault_secret" "database_url" {
   name         = "database-url"
-  value        = module.supabase.database_connection_string
+  value        = module.supabase.database_pooler_connection_string
   key_vault_id = module.key_vault.id
 
   depends_on = [module.supabase, module.key_vault]
