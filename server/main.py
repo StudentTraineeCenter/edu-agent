@@ -71,9 +71,23 @@ app.openapi = lambda: custom_openapi(app)
 # Add HTTP logging middleware first (outermost) to capture all requests/responses
 app.add_middleware(HTTPLoggingMiddleware)
 
+# CORS configuration
+# Note: Cannot use allow_origins=["*"] with allow_credentials=True
+# Read allowed origins from environment variable, with defaults for development and production
+_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if _cors_origins_env:
+    # Parse comma-separated origins from environment variable
+    cors_origins = [origin.strip() for origin in _cors_origins_env.split(",")]
+else:
+    # Default origins: Azure production URL and localhost for development
+    cors_origins = [
+        "https://app-eduagent-dev-swc-web-4xaeje.azurewebsites.net",
+        "http://localhost:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this for production
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

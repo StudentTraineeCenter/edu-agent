@@ -346,6 +346,9 @@ module "app_service" {
     # Application Insights
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.app_insights_connection_string
 
+    # CORS configuration - allow requests from web app and localhost
+    "CORS_ALLOWED_ORIGINS" = "https://${local.web_app_name}.azurewebsites.net,http://localhost:3000"
+
     # Usage limits (read directly from env, not from Key Vault)
     "MAX_CHAT_MESSAGES_PER_DAY"         = "50"
     "MAX_FLASHCARD_GENERATIONS_PER_DAY" = "10"
