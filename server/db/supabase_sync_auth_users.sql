@@ -40,7 +40,7 @@ CREATE OR REPLACE FUNCTION sync_auth_user_delete()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Delete user from public.users table
-  DELETE FROM public.users WHERE id = OLD.id;
+  DELETE FROM public.users WHERE id = OLD.id::text;
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
