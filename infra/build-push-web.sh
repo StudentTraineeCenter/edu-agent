@@ -22,6 +22,14 @@ if [[ -z "$ACR_NAME" ]]; then
   exit 1
 fi
 
+if [[ -z "$SUPABASE_ANON_KEY" ]]; then
+  echo "ERROR: SUPABASE_ANON_KEY is not set. Please set it as an environment variable:" >&2
+  echo "  export SUPABASE_ANON_KEY='your-anon-key'" >&2
+  echo "Or retrieve it from Key Vault:" >&2
+  echo "  export SUPABASE_ANON_KEY=\$(az keyvault secret show --vault-name <vault-name> --name supabase-anon-key --query value -o tsv)" >&2
+  exit 1
+fi
+
 REGISTRY="${ACR_NAME}.azurecr.io"
 IMAGE="${REGISTRY}/${REPO_NAME}:${TAG}"
 
@@ -32,8 +40,8 @@ echo "➤ Logging in to ACR: $REGISTRY"
 az acr login --name "$ACR_NAME"
 
 echo "➤ Building Docker image: $IMAGE"
-# Note: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set via App Service environment variables
-# They don't need to be build args since they're injected at runtime
+# Note: VITE_* variables must be build args since Vite replaces them at build time
+# SUPABASE_ANON_KEY must be set as environment variable before running this script
 docker build \
   --platform linux/amd64 \
   --file "$DOCKERFILE_PATH" \
