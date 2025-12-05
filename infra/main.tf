@@ -51,7 +51,13 @@ locals {
   ai_foundry_hub_name = substr("aif-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 64)
 
   # AI Services: cog-{org}-{env}-{region}-{workload}-{instance} (max 64 chars)
-  ai_services_name = substr("cog-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 64)
+  ai_services_name = substr("cog-${local.org_short}-${local.env_short}-${local.region_short}${replace(local.workload_part, "-", "")}${local.instance}", 0, 64)
+
+  # Application Insights: appi-{org}-{env}-{region}-{workload}-{instance} (max 260 chars)
+  app_insights_name = substr("appi-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 260)
+
+  # Log Analytics Workspace: law-{org}-{env}-{region}-{workload}-{instance} (max 63 chars)
+  log_analytics_workspace_name = substr("law-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 63)
 }
 
 # ============================================================================
@@ -303,6 +309,19 @@ resource "azurerm_key_vault_secret" "database_url" {
 }
 
 # ============================================================================
+# Application Insights & Log Analytics
+# ============================================================================
+module "application_insights" {
+  source = "./modules/application-insights"
+
+  app_insights_name            = local.app_insights_name
+  log_analytics_workspace_name = local.log_analytics_workspace_name
+  location                     = module.resource_group.location
+  resource_group_name          = module.resource_group.name
+  tags                         = local.common_tags
+}
+
+# ============================================================================
 # App Service Plan & Web Apps
 # ============================================================================
 module "app_service" {
@@ -323,6 +342,9 @@ module "app_service" {
     # Key Vault configuration - app uses managed identity to fetch secrets via RBAC
     "AZURE_KEY_VAULT_URI" = module.key_vault.uri
 
+    # Application Insights
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.app_insights_connection_string
+
     # Usage limits (read directly from env, not from Key Vault)
     "MAX_CHAT_MESSAGES_PER_DAY"         = "50"
     "MAX_FLASHCARD_GENERATIONS_PER_DAY" = "10"
@@ -332,8 +354,12 @@ module "app_service" {
     # Required for Python web apps
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
     "WEBSITES_PORT"                  = "8000"
-    "STARTUP_COMMAND"                = "gunicorn -k uvicorn.workers.UvicornWorker -w 2 app.main:app --bind 0.0.0.0:8000"
+    # Disable access logging - HTTP logs handled by HTTPLoggingMiddleware and sent to Azure Monitor
+    # Note: uvicorn workers will respect access_log=False set in main.py
+    "STARTUP_COMMAND"                = "gunicorn -k uvicorn.workers.UvicornWorker -w 2 --log-level info app.main:app --bind 0.0.0.0:8000"
   }
+
+  depends_on = [module.application_insights]
 
   web_app_settings = {
     "WEBSITES_PORT"                       = "80"

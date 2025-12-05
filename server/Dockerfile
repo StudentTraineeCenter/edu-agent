@@ -21,5 +21,6 @@ COPY . /app
 # Expose the port your app listens on
 EXPOSE 8000
 
-# Start your app via Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start your app via Uvicorn with access logging disabled
+# HTTP logs are handled by HTTPLoggingMiddleware and sent to Azure Monitor
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
