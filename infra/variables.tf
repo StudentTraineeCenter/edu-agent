@@ -109,7 +109,7 @@ variable "supabase_database_password" {
 variable "supabase_region" {
   description = "AWS region for Supabase project (e.g., 'us-east-1', 'eu-west-1', 'ap-southeast-1')"
   type        = string
-  default     = "eu-central-2"
+  default     = "eu-north-1"
 }
 
 variable "supabase_service_role_key" {
