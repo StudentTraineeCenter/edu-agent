@@ -6,13 +6,28 @@ import {
   BreadcrumbItem,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue } from '@effect-atom/atom-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { flashcardGroupAtom } from '@/data-acess/flashcard'
+import {
+  flashcardDetailStateAtom,
+  setModeAtom,
+  type FlashcardMode,
+} from '@/data-acess/flashcard-detail-state'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Settings2 } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { Option } from 'effect'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string
@@ -60,6 +75,22 @@ export const FlashcardHeader = ({
   projectId,
 }: FlashcardHeaderProps) => {
   const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
+  const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
+  const setMode = useAtomSet(setModeAtom)
+
+  const state = Option.isSome(stateResult) ? stateResult.value : null
+  const currentMode = state?.mode ?? 'normal'
+
+  const modes: Array<{ value: FlashcardMode; label: string }> = [
+    {
+      value: 'normal',
+      label: 'Normal',
+    },
+    {
+      value: 'cycle-until-correct',
+      label: 'Cycle Until Correct',
+    },
+  ]
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -80,6 +111,34 @@ export const FlashcardHeader = ({
           className="mr-2 data-[orientation=vertical]:h-4"
         />
         <FlashcardHeaderContent flashcardGroupId={flashcardGroupId} />
+      </div>
+      <div className="flex items-center gap-2 px-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {modes.find((m) => m.value === currentMode)?.label || 'Mode'}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Practice Mode</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={currentMode}
+              onValueChange={(value) =>
+                setMode({ flashcardGroupId, mode: value as FlashcardMode })
+              }
+            >
+              {modes.map((mode) => (
+                <DropdownMenuRadioItem key={mode.value} value={mode.value}>
+                  {mode.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

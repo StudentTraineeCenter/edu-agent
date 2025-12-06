@@ -7,8 +7,9 @@ import {
   gotItRightAtom,
   gotItWrongAtom,
   gotItWithQualityAtom,
+  filteredFlashcardsAtom,
 } from '@/data-acess/flashcard-detail-state'
-import { flashcardsAtom, flashcardGroupAtom } from '@/data-acess/flashcard'
+import { flashcardGroupAtom } from '@/data-acess/flashcard'
 import { Option } from 'effect'
 import { useMemo } from 'react'
 
@@ -22,7 +23,9 @@ export const FlashcardControls = ({
   projectId,
 }: FlashcardControlsProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
+  const filteredFlashcardsResult = useAtomValue(
+    filteredFlashcardsAtom(flashcardGroupId),
+  )
   const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
 
   const setShowAnswer = useAtomSet(setShowAnswerAtom)
@@ -38,14 +41,17 @@ export const FlashcardControls = ({
     groupResult.value.flashcard_group?.spaced_repetition_enabled === true
 
   const currentCard = useMemo(() => {
-    if (!Result.isSuccess(flashcardsResult) || Option.isNone(stateResult))
+    if (
+      !Result.isSuccess(filteredFlashcardsResult) ||
+      Option.isNone(stateResult)
+    )
       return null
 
     const { currentCardIndex } = stateResult.value
-    const { data } = flashcardsResult.value
+    const flashcards = filteredFlashcardsResult.value
 
-    return data[currentCardIndex]
-  }, [flashcardsResult, stateResult])
+    return flashcards[currentCardIndex]
+  }, [filteredFlashcardsResult, stateResult])
 
   const isCardMarked = useMemo(() => {
     if (!currentCard || Option.isNone(stateResult)) return false
@@ -113,25 +119,25 @@ export const FlashcardControls = ({
               </div>
             ) : (
               <div className="flex gap-2">
-            <Button
-              onClick={handleGotItRight}
-              variant="default"
-              className="px-6 bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              <span>Got it right</span>
-              <span className="ml-2 text-xs opacity-70">(R)</span>
-            </Button>
+                <Button
+                  onClick={handleGotItRight}
+                  variant="default"
+                  className="px-6 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <span>Got it right</span>
+                  <span className="ml-2 text-xs opacity-70">(R)</span>
+                </Button>
 
-            <Button
-              onClick={handleGotItWrong}
-              variant="default"
-              className="px-6 bg-red-600 hover:bg-red-700 text-white"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              <span>Got it wrong</span>
-              <span className="ml-2 text-xs opacity-70">(W)</span>
-            </Button>
+                <Button
+                  onClick={handleGotItWrong}
+                  variant="default"
+                  className="px-6 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  <span>Got it wrong</span>
+                  <span className="ml-2 text-xs opacity-70">(W)</span>
+                </Button>
               </div>
             )}
           </>

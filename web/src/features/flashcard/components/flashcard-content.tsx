@@ -1,5 +1,8 @@
 import { flashcardsAtom } from '@/data-acess/flashcard'
-import { flashcardDetailStateAtom, filteredFlashcardsAtom } from '@/data-acess/flashcard-detail-state'
+import {
+  flashcardDetailStateAtom,
+  filteredFlashcardsAtom,
+} from '@/data-acess/flashcard-detail-state'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
 import { Option } from 'effect'
@@ -7,7 +10,6 @@ import { FlashcardCompletionScreen } from './flashcard-completion-screen'
 import { FlashcardCard } from './flashcard-card'
 import { FlashcardControls } from './flashcard-controls'
 import { FlashcardProgress } from './flashcard-progress'
-import { FlashcardModeSelector } from './flashcard-mode-selector'
 
 type FlashcardContentProps = {
   flashcardGroupId: string
@@ -26,7 +28,9 @@ export const FlashcardContent = ({
 }: FlashcardContentProps) => {
   const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const filteredFlashcardsResult = useAtomValue(filteredFlashcardsAtom(flashcardGroupId))
+  const filteredFlashcardsResult = useAtomValue(
+    filteredFlashcardsAtom(flashcardGroupId),
+  )
 
   return Result.builder(flashcardsResult)
     .onInitialOrWaiting(() => (
@@ -44,24 +48,11 @@ export const FlashcardContent = ({
       const state = Option.isSome(stateResult) ? stateResult.value : null
       if (!state) return null
 
-      const hasStarted = state.markedCardIds.size > 0 || state.isCompleted
-
-      // Show mode selector if not started yet
-      if (!hasStarted) {
-        return (
-          <div className="flex flex-1 items-center justify-center p-4">
-            <div className="max-w-2xl w-full">
-              <FlashcardModeSelector flashcardGroupId={flashcardGroupId} />
-            </div>
-          </div>
-        )
-      }
-
       // Use filtered flashcards based on mode
       const flashcards = Result.isSuccess(filteredFlashcardsResult)
         ? filteredFlashcardsResult.value
-        : result.data ?? []
-      
+        : (result.data ?? [])
+
       const currentCard = flashcards[state.currentCardIndex]
 
       if (!currentCard || flashcards.length === 0) {
