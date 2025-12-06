@@ -1,6 +1,6 @@
 import { Progress } from '@/components/ui/progress'
 import { useAtomValue, Result } from '@effect-atom/atom-react'
-import { flashcardDetailStateAtom } from '@/data-acess/flashcard-detail-state'
+import { flashcardDetailStateAtom, filteredFlashcardsAtom } from '@/data-acess/flashcard-detail-state'
 import { flashcardsAtom } from '@/data-acess/flashcard'
 import { Option } from 'effect'
 import { useMemo } from 'react'
@@ -14,30 +14,36 @@ export const FlashcardProgress = ({
 }: FlashcardProgressProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
   const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
+  const filteredFlashcardsResult = useAtomValue(filteredFlashcardsAtom(flashcardGroupId))
 
-  const currentCardIdx = Option.isSome(stateResult)
-    ? stateResult.value.currentCardIndex
-    : 0
+  const state = Option.isSome(stateResult) ? stateResult.value : null
+  const currentCardIdx = state?.currentCardIndex ?? 0
 
   const totalCount = useMemo(() => {
-    if (!Result.isSuccess(flashcardsResult)) return 0
-    const { data } = flashcardsResult.value
-    return data.length
-  }, [flashcardsResult])
+    // Use filtered flashcards if available (for cycle mode)
+    if (Result.isSuccess(filteredFlashcardsResult)) {
+      return filteredFlashcardsResult.value.length
+    }
+    if (Result.isSuccess(flashcardsResult)) {
+      return flashcardsResult.value.data.length
+    }
+    return 0
+  }, [flashcardsResult, filteredFlashcardsResult])
 
   const progressPercentage = useMemo(() => {
-    if (Option.isNone(stateResult) || !totalCount) return 0
+    if (!state || !totalCount) return 0
+    return ((currentCardIdx + 1) / totalCount) * 100
+  }, [totalCount, state, currentCardIdx])
 
-    const { currentCardIndex } = stateResult.value
-
-    return ((currentCardIndex + 1) / totalCount) * 100
-  }, [totalCount, stateResult])
+  const roundInfo = state?.mode === 'cycle-until-correct' && state.currentRound > 1
+    ? `Round ${state.currentRound} - `
+    : ''
 
   return (
     <>
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Card {currentCardIdx + 1} of {totalCount}
+          {roundInfo}Card {currentCardIdx + 1} of {totalCount}
         </span>
         <span>{Math.round(progressPercentage)}% complete</span>
       </div>

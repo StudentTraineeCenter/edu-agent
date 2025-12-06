@@ -30,7 +30,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
   const submitPendingPracticeRecords = useAtomSet(
     submitPendingPracticeRecordsAtom,
     {
-    mode: 'promise',
+      mode: 'promise',
     },
   )
   const setShowAnswer = useAtomSet(setShowAnswerAtom)

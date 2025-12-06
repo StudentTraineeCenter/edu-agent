@@ -5,12 +5,18 @@ import { runtime } from './runtime'
 import { submitPracticeRecordsBatchAtom } from './practice'
 import { flashcardsAtom } from './flashcard'
 
+export type FlashcardMode = 'normal' | 'cycle-until-correct'
+
 export type FlashcardDetailState = {
   readonly currentCardIndex: number
   readonly showAnswer: boolean
   readonly pendingPracticeRecords: Record<string, CreatePracticeRecordRequest>
   readonly markedCardIds: ReadonlySet<string>
   readonly isCompleted: boolean
+  readonly mode: FlashcardMode
+  readonly currentRound: number
+  readonly wrongCardIds: ReadonlySet<string>
+  readonly filteredCardIds: ReadonlySet<string> // Cards to show in current round
 }
 
 type FlashcardDetailAction = Data.TaggedEnum<{
@@ -24,6 +30,9 @@ type FlashcardDetailAction = Data.TaggedEnum<{
   SetCompleted: { readonly completed: boolean }
   Reset: {}
   ClearPracticeRecords: {}
+  SetMode: { readonly mode: FlashcardMode }
+  StartNewRound: { readonly wrongCardIds: ReadonlySet<string> }
+  AddWrongCard: { readonly cardId: string }
 }>
 const FlashcardDetailAction = Data.taggedEnum<FlashcardDetailAction>()
 
@@ -40,6 +49,10 @@ const initialState: FlashcardDetailState = {
   pendingPracticeRecords: {},
   markedCardIds: new Set(),
   isCompleted: false,
+  mode: 'normal',
+  currentRound: 1,
+  wrongCardIds: new Set(),
+  filteredCardIds: new Set(),
 }
 
 export const flashcardDetailStateAtom = Atom.family(
@@ -77,14 +90,42 @@ export const flashcardDetailStateAtom = Atom.family(
                 markedCardIds: new Set([...result.value.markedCardIds, cardId]),
               }
             },
+            AddWrongCard: ({ cardId }) => {
+              return {
+                ...result.value,
+                wrongCardIds: new Set([...result.value.wrongCardIds, cardId]),
+              }
+            },
             SetCompleted: ({ completed }) => {
               return { ...result.value, isCompleted: completed }
             },
             Reset: () => {
-              return initialState
+              // Preserve mode when resetting
+              const currentMode = result.value.mode
+              return {
+                ...initialState,
+                mode: currentMode,
+              }
             },
             ClearPracticeRecords: () => {
               return { ...result.value, pendingPracticeRecords: {} }
+            },
+            SetMode: ({ mode }) => {
+              return { ...result.value, mode }
+            },
+            StartNewRound: ({ wrongCardIds }) => {
+              // Start new round with wrong cards from previous round
+              // Reset marked cards and tracking, but keep the wrong cards as filtered
+              return {
+                ...result.value,
+                currentRound: result.value.currentRound + 1,
+                wrongCardIds: new Set() as ReadonlySet<string>, // Reset to track new wrong cards
+                filteredCardIds: new Set(wrongCardIds) as ReadonlySet<string>, // Filter to wrong cards
+                currentCardIndex: 0,
+                markedCardIds: new Set() as ReadonlySet<string>,
+                showAnswer: false,
+                isCompleted: false,
+              }
             },
           })
 
@@ -136,6 +177,30 @@ export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
       )
 
       return { correct, incorrect }
+    }),
+  ),
+)
+
+export const filteredFlashcardsAtom = Atom.family((flashcardGroupId: string) =>
+  Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(flashcardDetailStateAtom(flashcardGroupId))
+      const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
+
+      if (!Result.isSuccess(flashcardsResult) || Option.isNone(state)) {
+        return []
+      }
+
+      const flashcards = flashcardsResult.value.data
+      const { mode, filteredCardIds, currentRound } = state.value
+
+      // In cycle mode, filter to wrong cards after round 1
+      if (mode === 'cycle-until-correct' && currentRound > 1) {
+        return flashcards.filter((f) => filteredCardIds.has(f.id))
+      }
+
+      // Normal mode or first round: show all cards
+      return flashcards
     }),
   ),
 )
@@ -220,6 +285,32 @@ export const clearPracticeRecordsAtom = runtime.fn(
   }),
 )
 
+export const setModeAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    mode: FlashcardMode
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.SetMode({ mode: input.mode }),
+    )
+  }),
+)
+
+export const startNewRoundAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    wrongCardIds: ReadonlySet<string>
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.StartNewRound({ wrongCardIds: input.wrongCardIds }),
+    )
+  }),
+)
+
 export const submitPendingPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
@@ -261,14 +352,22 @@ export const goToNextCardAtom = runtime.fn(
     if (Option.isNone(currentStateResult)) return
     const currentState = currentStateResult.value
 
-    const { currentCardIndex } = currentState
+    const { currentCardIndex, mode, filteredCardIds, currentRound } =
+      currentState
 
     const flashcardsResult = registry.get(
       flashcardsAtom(input.flashcardGroupId),
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const flashcards = flashcardsResult.value.data
+    const allFlashcards = flashcardsResult.value.data
+
+    // Get filtered flashcards based on mode
+    const flashcards =
+      mode === 'cycle-until-correct' && currentRound > 1
+        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+        : allFlashcards
+
     const isLastCard = currentCardIndex === flashcards.length - 1
 
     if (isLastCard) {
@@ -339,8 +438,20 @@ export const gotItRightAtom = runtime.fn(
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const { currentCardIndex, markedCardIds } = currentState
-    const flashcards = flashcardsResult.value.data
+    const {
+      currentCardIndex,
+      markedCardIds,
+      mode,
+      filteredCardIds,
+      currentRound,
+    } = currentState
+    const allFlashcards = flashcardsResult.value.data
+
+    // Get filtered flashcards based on mode
+    const flashcards =
+      mode === 'cycle-until-correct' && currentRound > 1
+        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+        : allFlashcards
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
@@ -411,8 +522,20 @@ export const gotItWithQualityAtom = runtime.fn(
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const { currentCardIndex, markedCardIds } = currentState
-    const flashcards = flashcardsResult.value.data
+    const {
+      currentCardIndex,
+      markedCardIds,
+      mode,
+      filteredCardIds,
+      currentRound,
+    } = currentState
+    const allFlashcards = flashcardsResult.value.data
+
+    // Get filtered flashcards based on mode
+    const flashcards =
+      mode === 'cycle-until-correct' && currentRound > 1
+        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+        : allFlashcards
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
@@ -447,6 +570,14 @@ export const gotItWithQualityAtom = runtime.fn(
       FlashcardDetailAction.MarkCard({ cardId: currentCard.id }),
     )
 
+    // Track wrong card for cycle mode
+    if (!wasCorrect) {
+      registry.set(
+        flashcardDetailStateAtom(input.flashcardGroupId),
+        FlashcardDetailAction.AddWrongCard({ cardId: currentCard.id }),
+      )
+    }
+
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
       FlashcardDetailAction.SetShowAnswer({ show: false }),
@@ -478,13 +609,25 @@ export const gotItWrongAtom = runtime.fn(
     if (Option.isNone(currentStateResult)) return
     const currentState = currentStateResult.value
 
-    const { currentCardIndex, markedCardIds } = currentState
+    const {
+      currentCardIndex,
+      markedCardIds,
+      mode,
+      filteredCardIds,
+      currentRound,
+    } = currentState
 
     const flashcardsResult = registry.get(
       flashcardsAtom(input.flashcardGroupId),
     )
     if (!Result.isSuccess(flashcardsResult)) return
-    const flashcards = flashcardsResult.value.data
+    const allFlashcards = flashcardsResult.value.data
+
+    // Get filtered flashcards based on mode
+    const flashcards =
+      mode === 'cycle-until-correct' && currentRound > 1
+        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+        : allFlashcards
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
@@ -513,6 +656,12 @@ export const gotItWrongAtom = runtime.fn(
     registry.set(
       flashcardDetailStateAtom(input.flashcardGroupId),
       FlashcardDetailAction.MarkCard({ cardId: currentCard.id }),
+    )
+
+    // Track wrong card for cycle mode
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.AddWrongCard({ cardId: currentCard.id }),
     )
 
     registry.set(
