@@ -1,8 +1,8 @@
 # Privacy Policy for EduAgent Testing
 
-**Last Updated:** 22.11.2025
+**Last Updated:** 6.12.2025
 
-**Effective Date:** 22.11.2025
+**Effective Date:** 6.12.2025
 
 ## Introduction
 
