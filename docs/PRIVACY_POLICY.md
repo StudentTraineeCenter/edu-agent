@@ -6,21 +6,21 @@
 
 ## Introduction
 
-This Privacy Policy describes how we collect, use, and protect your personal information when you participate in testing the EduAgent application. This application is currently in a testing phase and uses Microsoft Azure Active Directory (Azure AD) for authentication.
+This Privacy Policy describes how we collect, use, and protect your personal information when you participate in testing the EduAgent application. This application is currently in a testing phase and uses Supabase for authentication.
 
 ## Scope
 
-This privacy policy applies to all testers who access the EduAgent application using their personal Microsoft accounts. By signing in and using the application, you acknowledge that you have read and understood this privacy policy.
+This privacy policy applies to all testers who access the EduAgent application using their accounts. By signing in and using the application, you acknowledge that you have read and understood this privacy policy.
 
 ## Information We Collect
 
 ### Account Information
 
-When you sign in with your Microsoft account, we collect the following information from your Microsoft account:
+When you sign in with your account, we collect the following information from Supabase:
 
-- **Azure Object ID (OID)**: A unique identifier assigned by Microsoft Azure AD
-- **Email Address**: Your Microsoft account email address
-- **Name**: Your display name from your Microsoft account (may include given name and family name)
+- **User ID**: A unique identifier assigned by Supabase
+- **Email Address**: Your account email address
+- **Name**: Your display name (may include given name and family name)
 - **Account Creation Timestamp**: The date and time when your account was first created in our system
 
 ### User-Generated Content
@@ -76,13 +76,13 @@ When you use the application, we store the following content associated with you
 
 We use the following third-party services that may process your data:
 
-### Microsoft Azure Services
+### Supabase Services
 
-- **Azure Active Directory (Entra ID)**: For user authentication and identity management
+- **Supabase Auth**: For user authentication and identity management
 
-  - We request the following permissions: `openid`, `profile`, `email`
-  - Microsoft handles the authentication process
+  - Authentication is handled via Supabase Auth
   - We only receive the information listed in the "Account Information" section above
+  - Supabase handles password hashing and secure token management
 
 - **Azure Blob Storage**: For storing your uploaded documents
 
@@ -116,7 +116,7 @@ We use the following third-party services that may process your data:
 
 We implement appropriate technical and organizational measures to protect your personal information:
 
-- **Authentication**: Access requires Microsoft account authentication
+- **Authentication**: Access requires Supabase account authentication
 - **Authorization**: Users can only access their own data
 - **Encryption**: Data in transit is encrypted using HTTPS/TLS
 - **Secure Storage**: Documents stored in Azure Blob Storage with access controls
@@ -211,16 +211,16 @@ If you have questions, concerns, or requests regarding this Privacy Policy or yo
 - **Testing Administrators**: Richard Amare
 - **Email**: richard.amare@studentstc.cz
 
-## Microsoft Privacy Statement
+## Supabase Privacy Statement
 
-Since this application uses Microsoft Azure AD for authentication, your use of Microsoft services is also subject to Microsoft's privacy policies:
+Since this application uses Supabase for authentication, your use of Supabase services is also subject to Supabase's privacy policies:
 
-- [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)
-- [Microsoft Services Agreement](https://www.microsoft.com/legal/terms-of-use)
+- [Supabase Privacy Policy](https://supabase.com/privacy)
+- [Supabase Terms of Service](https://supabase.com/terms)
 
 ## Consent
 
-By signing in to the EduAgent application with your Microsoft account, you consent to:
+By signing in to the EduAgent application, you consent to:
 
 1. The collection and use of your information as described in this Privacy Policy
 2. The processing of your documents by Azure OpenAI and Azure Content Understanding
@@ -233,7 +233,7 @@ If you do not agree with this Privacy Policy, please do not use the application.
 
 **What we collect:**
 
-- Basic account info (OID, email, name) from your Microsoft account
+- Basic account info (user ID, email, name) from your Supabase account
 - Content you create (projects, documents, chats, quizzes, flashcards)
 - Study progress and usage statistics
 
@@ -245,7 +245,7 @@ If you do not agree with this Privacy Policy, please do not use the application.
 
 **Who we share with:**
 
-- Microsoft Azure (hosting and authentication)
+- Supabase (authentication)
 - Azure OpenAI (AI processing)
 - Azure Content Understanding (document processing)
 - No sharing with other users
@@ -259,7 +259,7 @@ If you do not agree with this Privacy Policy, please do not use the application.
 
 **Security:**
 
-- Microsoft authentication required
+- Supabase authentication required
 - Encrypted data transmission
 - Secure cloud storage
 - Access controls in place

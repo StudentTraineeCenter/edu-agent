@@ -115,6 +115,18 @@ export const SignInPage = () => {
             {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
 
+          <div className="text-center text-xs text-muted-foreground">
+            By signing in, you agree to our{' '}
+            <a
+              href="https://github.com/StudentTraineeCenter/edu-agent/blob/master/docs/PRIVACY_POLICY.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </div>
+
           <div className="text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link

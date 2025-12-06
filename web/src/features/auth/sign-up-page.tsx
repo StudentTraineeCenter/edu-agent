@@ -204,6 +204,18 @@ export const SignUpPage = () => {
             {isLoading ? 'Creating account...' : 'Create account'}
           </Button>
 
+          <div className="text-center text-xs text-muted-foreground">
+            By creating an account, you agree to our{' '}
+            <a
+              href="https://github.com/StudentTraineeCenter/edu-agent/blob/master/docs/PRIVACY_POLICY.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </div>
+
           <div className="text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link

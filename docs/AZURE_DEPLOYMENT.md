@@ -20,7 +20,11 @@ This guide covers how to deploy EduAgent to Azure using Terraform.
 - Azure credentials:
   - Subscription ID
   - Tenant ID
-  - Azure App Client ID (for Entra ID authentication)
+- Supabase credentials:
+  - Supabase project URL
+  - Supabase anon key
+  - Supabase service role key
+  - Supabase JWT secret
 
 ## Deployment Steps
 
@@ -269,18 +273,19 @@ The following secrets must be stored in the Key Vault:
 | `azure-cu-endpoint`                    | Content Understanding endpoint  |
 | `azure-cu-key`                         | Content Understanding API key   |
 | `azure-cu-analyzer-id`                 | Content Understanding analyzer  |
-| `azure-entra-tenant-id`                | Azure AD tenant ID              |
-| `azure-entra-client-id`                | Azure AD client ID              |
+| `supabase-url`                         | Supabase project URL            |
+| `supabase-service-role-key`            | Supabase service role key       |
+| `supabase-jwt-secret`                  | Supabase JWT secret             |
 
 ### Web Frontend Environment Variables
 
 The following environment variables are automatically configured by Terraform in App Service:
 
-| Variable                     | Description        | Required |
-| ---------------------------- | ------------------ | -------- |
-| `VITE_SERVER_URL`            | API server URL     | Yes      |
-| `VITE_AZURE_ENTRA_TENANT_ID` | Azure AD tenant ID | Yes      |
-| `VITE_AZURE_ENTRA_CLIENT_ID` | Azure AD client ID | Yes      |
+| Variable                     | Description            | Required |
+| ---------------------------- | ---------------------- | -------- |
+| `VITE_SERVER_URL`            | API server URL         | Yes      |
+| `VITE_SUPABASE_URL`          | Supabase project URL   | Yes      |
+| `VITE_SUPABASE_ANON_KEY`     | Supabase anon key      | Yes      |
 
 ## Infrastructure Overview
 

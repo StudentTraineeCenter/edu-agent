@@ -350,6 +350,10 @@ Flashcards are organized into groups. Each group contains:
 - **Get Flashcards**: List all flashcards in a group
 - **Update Group**: Modify group name or description
 - **Delete Group**: Remove a group and all its flashcards
+- **Spaced Repetition**: Enable SM-2 algorithm for optimized review scheduling
+- **Study Sessions**: Generate personalized study sessions based on performance
+- **Practice Tracking**: Track study attempts and performance metrics
+- **Due Cards**: View flashcards due for review based on spaced repetition schedule
 
 ### Topic Filtering
 
@@ -358,6 +362,70 @@ Flashcards can be generated from specific topics by providing a `user_prompt`:
 - The prompt is used to search for relevant documents
 - Only matching document content is used for generation
 - Allows focused flashcard creation on specific subjects
+
+### Spaced Repetition
+
+Flashcards support spaced repetition using the SM-2 algorithm for optimized learning:
+
+- **Algorithm**: SM-2 (SuperMemo 2) algorithm for calculating review intervals
+- **Quality Ratings**: Users rate their performance (0-5) after each review
+- **Adaptive Scheduling**: Review intervals adjust based on performance
+  - Quality < 3: Reset to 1 day interval
+  - Quality >= 3: Interval increases based on ease factor
+- **Ease Factor**: Adjusts based on difficulty (minimum 1.3)
+- **Review Tracking**: System tracks:
+  - Last reviewed date
+  - Next review date
+  - Repetition count
+  - Current interval (in days)
+
+**Spaced Repetition State:**
+
+- Each user has individual spaced repetition state per flashcard
+- State persists across sessions
+- Due cards are prioritized for review
+- Optimal review timing maximizes retention
+
+### Study Sessions
+
+Adaptive study sessions provide personalized learning experiences:
+
+- **Session Generation**: AI creates customized study sessions based on:
+  - Flashcards due for review (spaced repetition)
+  - Weak topics (low accuracy areas)
+  - Optimal difficulty progression
+  - Historical performance patterns
+- **Session Parameters**:
+  - Session length (10-120 minutes)
+  - Optional focus topics
+  - Project context
+- **Session Features**:
+  - Prioritizes due flashcards
+  - Balances difficulty levels
+  - Focuses on areas needing improvement
+  - Creates temporary flashcard groups for session
+- **Session Tracking**:
+  - Start and completion timestamps
+  - Estimated vs actual time
+  - Session metadata and learning objectives
+
+### Practice Tracking
+
+The system tracks all flashcard practice attempts:
+
+- **Practice Records**: Each study attempt records:
+  - Flashcard ID and topic
+  - Quality rating (0-5) for spaced repetition
+  - Correctness (was_correct)
+  - Timestamp
+- **Performance Analysis**:
+  - Topic-level accuracy tracking
+  - Difficulty-based performance
+  - Progress over time
+- **Integration with Spaced Repetition**:
+  - Practice records automatically update SR state
+  - Quality ratings influence next review date
+  - Performance data informs adaptive sessions
 
 ### Flashcard Quality
 
@@ -750,10 +818,13 @@ Personalization → Database Storage → Return Results
 - `quiz_questions`: Individual quiz questions
 - `flashcard_groups`: Flashcard containers
 - `flashcards`: Individual flashcards
+- `flashcard_spaced_repetition`: Spaced repetition state per user/flashcard
+- `study_sessions`: Adaptive study session records
+- `practice_records`: Practice attempt tracking
 - `notes`: AI-generated study notes
 - `mind_maps`: Visual knowledge maps
 - `study_plans`: Personalized study plans
-- `study_attempts`: User study progress
+- `study_attempts`: User study progress (legacy)
 - `user_usage`: Daily usage tracking
 
 **Relationships:**
@@ -763,8 +834,11 @@ Personalization → Database Storage → Return Results
 - Documents have Document Segments
 - Quizzes have Quiz Questions
 - Flashcard Groups have Flashcards
+- Users have FlashcardSpacedRepetition records (one per flashcard)
+- Users have Study Sessions (one-to-many)
+- Users have Practice Records (one-to-many)
 - Each Project has one Study Plan (1:1 relationship)
-- Users make Study Attempts
+- Users make Study Attempts (legacy) and Practice Records
 - Users have Usage records
 
 ### Vector Search
@@ -779,10 +853,11 @@ The system uses PostgreSQL with pgvector extension for semantic search:
 
 ### Authentication
 
-The system uses Azure AD authentication:
+The system uses Supabase authentication:
 
-- Users are identified by Azure Object ID (OID)
-- Authentication is handled via Azure Identity
+- Users are identified by Supabase user ID (UUID)
+- Authentication is handled via Supabase Auth
+- JWT tokens are validated using Supabase JWT secret
 - User context is passed through API dependencies
 
 ### Error Handling
@@ -823,9 +898,15 @@ The system includes comprehensive error handling:
 ### Flashcard Creation
 
 1. **Topic Focus**: Use prompts to create focused flashcard sets
-2. **Study Regularly**: Use study attempts to track learning
-3. **Mix Difficulties**: Generated flashcards include various difficulty levels
-4. **Review Answers**: Study both questions and answers
+2. **Enable Spaced Repetition**: Activate spaced repetition for optimal review scheduling
+3. **Study Regularly**: Practice flashcards consistently to maintain spaced repetition schedule
+4. **Quality Ratings**: Provide accurate quality ratings (0-5) to improve review scheduling
+5. **Mix Difficulties**: Generated flashcards include various difficulty levels
+6. **Review Answers**: Study both questions and answers thoroughly
+7. **Use Study Sessions**: Generate adaptive study sessions for personalized learning
+8. **Track Progress**: Monitor practice records to identify weak areas
+9. **Review Due Cards**: Prioritize flashcards due for review based on spaced repetition
+10. **Focus on Weak Topics**: Use study sessions to focus on topics with low accuracy
 
 ### Chat Usage
 

@@ -45,7 +45,7 @@ EduAgent helps students study course materials through intelligent document proc
 - **📋 Study Plans** - Personalized study plans based on your performance and progress
 - **📊 Study Tracking** - Monitor your progress with detailed attempt tracking and analytics
 - **🌐 Multi-language Support** - Study materials in multiple languages
-- **🔐 Azure Entra ID Authentication** - Secure authentication and authorization
+- **🔐 Supabase Authentication** - Secure authentication and authorization
 - **🔍 Semantic Search** - Vector-based search across your documents using PostgreSQL pgvector
 
 ## 🏗️ Tech Stack
@@ -57,7 +57,7 @@ EduAgent helps students study course materials through intelligent document proc
 - **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - LLM capabilities for chat, quizzes, flashcards, notes, mind maps, and study plans
 - **[Azure Content Understanding](https://azure.microsoft.com/en-us/products/ai-services/document-intelligence)** - Document processing and text extraction
 - **[Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs)** - File storage
-- **[Azure Entra ID](https://azure.microsoft.com/en-us/products/entra/)** - Authentication and authorization
+- **[Supabase](https://supabase.com/)** - Authentication and authorization
 
 ### Frontend
 
@@ -81,7 +81,8 @@ Before you begin, ensure you have the following installed:
   - Azure OpenAI
   - Azure Content Understanding (Document Intelligence)
   - Azure Blob Storage
-  - Azure Entra ID (App Registration)
+- **Supabase Account** - For authentication:
+  - Supabase project with authentication enabled
 
 ## 🚀 Quick Start
 
@@ -173,8 +174,8 @@ Create a `.env` file in the `web/` directory:
 
 ```env
 VITE_SERVER_URL=http://localhost:8000
-VITE_AZURE_ENTRA_CLIENT_ID=your-client-id
-VITE_AZURE_ENTRA_TENANT_ID=your-tenant-id
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 For detailed configuration instructions, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md).

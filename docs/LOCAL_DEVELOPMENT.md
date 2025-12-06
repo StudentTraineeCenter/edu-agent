@@ -21,7 +21,11 @@ This guide covers how to set up and run EduAgent locally for development.
   - Azure OpenAI endpoint and API key
   - Azure Storage connection string
   - Azure Content Understanding endpoint and key
-  - Azure Entra ID tenant ID and client ID
+- Supabase credentials (for authentication):
+  - Supabase project URL
+  - Supabase anon key (for frontend)
+  - Supabase service role key (for backend)
+  - Supabase JWT secret (for backend)
 
 ## Quick Start
 
@@ -139,8 +143,9 @@ All other Azure service credentials are automatically retrieved from Key Vault u
 - `azure-cu-endpoint`
 - `azure-cu-key`
 - `azure-cu-analyzer-id`
-- `azure-entra-tenant-id`
-- `azure-entra-client-id`
+- `supabase-url`
+- `supabase-service-role-key`
+- `supabase-jwt-secret`
 
 #### Option 2: Environment Variables (Local Development)
 
@@ -170,9 +175,10 @@ AZURE_CU_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
 AZURE_CU_KEY=your-cu-key
 AZURE_CU_ANALYZER_ID=prebuilt-documentAnalyzer
 
-# Azure Entra ID (required)
-AZURE_ENTRA_TENANT_ID=your-tenant-id
-AZURE_ENTRA_CLIENT_ID=your-client-id
+# Supabase (required)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_JWT_SECRET=your-jwt-secret
 
 # Usage Limits (optional, defaults shown)
 MAX_CHAT_MESSAGES_PER_DAY=100
@@ -215,8 +221,8 @@ pnpm install
 # Create .env file or set environment variables
 cat > .env << EOF
 VITE_SERVER_URL=http://localhost:8000
-VITE_AZURE_ENTRA_TENANT_ID=your-tenant-id
-VITE_AZURE_ENTRA_CLIENT_ID=your-client-id
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 EOF
 
 # Start development server
@@ -441,8 +447,9 @@ When using Key Vault, the following secrets are expected:
 | `azure-cu-endpoint`                    | Content Understanding endpoint  |
 | `azure-cu-key`                         | Content Understanding API key   |
 | `azure-cu-analyzer-id`                 | Content Understanding analyzer  |
-| `azure-entra-tenant-id`                | Azure AD tenant ID              |
-| `azure-entra-client-id`                | Azure AD client ID              |
+| `supabase-url`                         | Supabase project URL            |
+| `supabase-service-role-key`            | Supabase service role key       |
+| `supabase-jwt-secret`                  | Supabase JWT secret             |
 
 #### Local Development Environment Variables
 
@@ -465,16 +472,17 @@ For local development (when Key Vault is not used), you can set these environmen
 | `AZURE_CU_ENDPOINT`                    | Content Understanding endpoint  | Yes      | -                         |
 | `AZURE_CU_KEY`                         | Content Understanding API key   | Yes      | -                         |
 | `AZURE_CU_ANALYZER_ID`                 | Content Understanding analyzer  | No       | prebuilt-documentAnalyzer |
-| `AZURE_ENTRA_TENANT_ID`                | Azure AD tenant ID              | Yes      | -                         |
-| `AZURE_ENTRA_CLIENT_ID`                | Azure AD client ID              | Yes      | -                         |
+| `SUPABASE_URL`                         | Supabase project URL            | Yes      | -                         |
+| `SUPABASE_SERVICE_ROLE_KEY`            | Supabase service role key       | Yes      | -                         |
+| `SUPABASE_JWT_SECRET`                  | Supabase JWT secret             | Yes      | -                         |
 
 ### Web Frontend Environment Variables
 
-| Variable                     | Description        | Required |
-| ---------------------------- | ------------------ | -------- |
-| `VITE_SERVER_URL`            | API server URL     | Yes      |
-| `VITE_AZURE_ENTRA_TENANT_ID` | Azure AD tenant ID | Yes      |
-| `VITE_AZURE_ENTRA_CLIENT_ID` | Azure AD client ID | Yes      |
+| Variable                 | Description          | Required |
+| ------------------------ | -------------------- | -------- |
+| `VITE_SERVER_URL`        | API server URL       | Yes      |
+| `VITE_SUPABASE_URL`      | Supabase project URL | Yes      |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key    | Yes      |
 
 **Note:** All `VITE_*` variables are exposed to the browser. Do not include sensitive information.
 
