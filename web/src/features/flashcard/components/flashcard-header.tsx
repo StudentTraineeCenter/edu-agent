@@ -20,12 +20,13 @@ import { flashcardGroupAtom } from '@/data-acess/flashcard'
 import {
   flashcardDetailStateAtom,
   setModeAtom,
+  shuffleFlashcardsAtom,
   type FlashcardMode,
 } from '@/data-acess/flashcard-detail-state'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Settings2 } from 'lucide-react'
+import { ArrowLeft, Settings2, Shuffle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { Option } from 'effect'
 
@@ -77,9 +78,16 @@ export const FlashcardHeader = ({
   const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
   const setMode = useAtomSet(setModeAtom)
+  const shuffleFlashcards = useAtomSet(shuffleFlashcardsAtom, {
+    mode: 'promise',
+  })
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
   const currentMode = state?.mode ?? 'normal'
+
+  const handleShuffle = async () => {
+    await shuffleFlashcards({ flashcardGroupId })
+  }
 
   const modes: Array<{ value: FlashcardMode; label: string }> = [
     {
@@ -113,6 +121,16 @@ export const FlashcardHeader = ({
         <FlashcardHeaderContent flashcardGroupId={flashcardGroupId} />
       </div>
       <div className="flex items-center gap-2 px-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2"
+          onClick={handleShuffle}
+          title="Shuffle flashcards"
+        >
+          <Shuffle className="h-4 w-4" />
+          <span className="hidden sm:inline">Shuffle</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-2">

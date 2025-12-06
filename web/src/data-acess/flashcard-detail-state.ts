@@ -1,6 +1,9 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
-import type { CreatePracticeRecordRequest } from '@/integrations/api'
+import type {
+  CreatePracticeRecordRequest,
+  FlashcardDto,
+} from '@/integrations/api'
 import { runtime } from './runtime'
 import { submitPracticeRecordsBatchAtom } from './practice'
 import { flashcardsAtom } from './flashcard'
@@ -17,6 +20,7 @@ export type FlashcardDetailState = {
   readonly currentRound: number
   readonly wrongCardIds: ReadonlySet<string>
   readonly filteredCardIds: ReadonlySet<string> // Cards to show in current round
+  readonly shuffledOrder: readonly string[] // Shuffled order of card IDs
 }
 
 type FlashcardDetailAction = Data.TaggedEnum<{
@@ -33,6 +37,7 @@ type FlashcardDetailAction = Data.TaggedEnum<{
   SetMode: { readonly mode: FlashcardMode }
   StartNewRound: { readonly wrongCardIds: ReadonlySet<string> }
   AddWrongCard: { readonly cardId: string }
+  Shuffle: { readonly cardIds: readonly string[] }
 }>
 const FlashcardDetailAction = Data.taggedEnum<FlashcardDetailAction>()
 
@@ -53,6 +58,7 @@ const initialState: FlashcardDetailState = {
   currentRound: 1,
   wrongCardIds: new Set(),
   filteredCardIds: new Set(),
+  shuffledOrder: [],
 }
 
 export const flashcardDetailStateAtom = Atom.family(
@@ -127,6 +133,15 @@ export const flashcardDetailStateAtom = Atom.family(
                 isCompleted: false,
               }
             },
+            Shuffle: ({ cardIds }) => {
+              // Shuffle the cards and reset to first card
+              return {
+                ...result.value,
+                shuffledOrder: cardIds,
+                currentCardIndex: 0,
+                showAnswer: false,
+              }
+            },
           })
 
           ctx.setSelf(Option.some(update))
@@ -192,15 +207,31 @@ export const filteredFlashcardsAtom = Atom.family((flashcardGroupId: string) =>
       }
 
       const flashcards = flashcardsResult.value.data
-      const { mode, filteredCardIds, currentRound } = state.value
+      const { mode, filteredCardIds, currentRound, shuffledOrder } = state.value
 
       // In cycle mode, filter to wrong cards after round 1
-      if (mode === 'cycle-until-correct' && currentRound > 1) {
-        return flashcards.filter((f) => filteredCardIds.has(f.id))
+      let filteredCards =
+        mode === 'cycle-until-correct' && currentRound > 1
+          ? flashcards.filter((f) => filteredCardIds.has(f.id))
+          : flashcards
+
+      // Apply shuffle order if available
+      if (shuffledOrder.length > 0) {
+        const cardMap = new Map(filteredCards.map((card) => [card.id, card]))
+        const shuffledCards = shuffledOrder
+          .map((id) => cardMap.get(id))
+          .filter(
+            (card): card is NonNullable<typeof card> => card !== undefined,
+          )
+        // Add any cards not in shuffled order (shouldn't happen, but safety check)
+        const shuffledIds = new Set(shuffledOrder)
+        const missingCards = filteredCards.filter(
+          (card) => !shuffledIds.has(card.id),
+        )
+        return [...shuffledCards, ...missingCards]
       }
 
-      // Normal mode or first round: show all cards
-      return flashcards
+      return filteredCards
     }),
   ),
 )
@@ -311,6 +342,45 @@ export const startNewRoundAtom = runtime.fn(
   }),
 )
 
+export const shuffleFlashcardsAtom = runtime.fn(
+  Effect.fn(function* (input: { flashcardGroupId: string }) {
+    const registry = yield* Registry.AtomRegistry
+
+    const flashcardsResult = registry.get(
+      flashcardsAtom(input.flashcardGroupId),
+    )
+    if (!Result.isSuccess(flashcardsResult)) return
+
+    const stateResult = registry.get(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+    )
+    if (Option.isNone(stateResult)) return
+
+    const state = stateResult.value
+    const { mode, filteredCardIds, currentRound } = state
+
+    // Get the cards that should be shuffled (based on current filter)
+    const allFlashcards = flashcardsResult.value.data
+    const cardsToShuffle =
+      mode === 'cycle-until-correct' && currentRound > 1
+        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+        : allFlashcards
+
+    // Create shuffled array of card IDs
+    const cardIds = [...cardsToShuffle.map((card) => card.id)]
+    // Fisher-Yates shuffle
+    for (let i = cardIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[cardIds[i], cardIds[j]] = [cardIds[j], cardIds[i]]
+    }
+
+    registry.set(
+      flashcardDetailStateAtom(input.flashcardGroupId),
+      FlashcardDetailAction.Shuffle({ cardIds }),
+    )
+  }),
+)
+
 export const submitPendingPracticeRecordsAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
@@ -352,8 +422,7 @@ export const goToNextCardAtom = runtime.fn(
     if (Option.isNone(currentStateResult)) return
     const currentState = currentStateResult.value
 
-    const { currentCardIndex, mode, filteredCardIds, currentRound } =
-      currentState
+    const { currentCardIndex } = currentState
 
     const flashcardsResult = registry.get(
       flashcardsAtom(input.flashcardGroupId),
@@ -362,11 +431,8 @@ export const goToNextCardAtom = runtime.fn(
 
     const allFlashcards = flashcardsResult.value.data
 
-    // Get filtered flashcards based on mode
-    const flashcards =
-      mode === 'cycle-until-correct' && currentRound > 1
-        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
-        : allFlashcards
+    // Get filtered flashcards with shuffle applied
+    const flashcards = getFilteredFlashcards(allFlashcards, currentState)
 
     const isLastCard = currentCardIndex === flashcards.length - 1
 
@@ -423,6 +489,36 @@ const extractTopic = (text: string, maxLength = 100): string => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
 }
 
+// Helper function to get filtered flashcards with shuffle applied
+const getFilteredFlashcards = (
+  allFlashcards: ReadonlyArray<FlashcardDto>,
+  state: FlashcardDetailState,
+): ReadonlyArray<FlashcardDto> => {
+  const { mode, filteredCardIds, currentRound, shuffledOrder } = state
+
+  // In cycle mode, filter to wrong cards after round 1
+  let filteredCards =
+    mode === 'cycle-until-correct' && currentRound > 1
+      ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
+      : allFlashcards
+
+  // Apply shuffle order if available
+  if (shuffledOrder.length > 0) {
+    const cardMap = new Map(filteredCards.map((card) => [card.id, card]))
+    const shuffledCards = shuffledOrder
+      .map((id) => cardMap.get(id))
+      .filter((card): card is FlashcardDto => card !== undefined)
+    // Add any cards not in shuffled order (shouldn't happen, but safety check)
+    const shuffledIds = new Set(shuffledOrder)
+    const missingCards = filteredCards.filter(
+      (card) => !shuffledIds.has(card.id),
+    )
+    return [...shuffledCards, ...missingCards] as ReadonlyArray<FlashcardDto>
+  }
+
+  return filteredCards
+}
+
 export const gotItRightAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
@@ -438,20 +534,11 @@ export const gotItRightAtom = runtime.fn(
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const {
-      currentCardIndex,
-      markedCardIds,
-      mode,
-      filteredCardIds,
-      currentRound,
-    } = currentState
+    const { currentCardIndex, markedCardIds } = currentState
     const allFlashcards = flashcardsResult.value.data
 
-    // Get filtered flashcards based on mode
-    const flashcards =
-      mode === 'cycle-until-correct' && currentRound > 1
-        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
-        : allFlashcards
+    // Get filtered flashcards with shuffle applied
+    const flashcards = getFilteredFlashcards(allFlashcards, currentState)
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
@@ -522,20 +609,11 @@ export const gotItWithQualityAtom = runtime.fn(
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const {
-      currentCardIndex,
-      markedCardIds,
-      mode,
-      filteredCardIds,
-      currentRound,
-    } = currentState
+    const { currentCardIndex, markedCardIds } = currentState
     const allFlashcards = flashcardsResult.value.data
 
-    // Get filtered flashcards based on mode
-    const flashcards =
-      mode === 'cycle-until-correct' && currentRound > 1
-        ? allFlashcards.filter((f) => filteredCardIds.has(f.id))
-        : allFlashcards
+    // Get filtered flashcards with shuffle applied
+    const flashcards = getFilteredFlashcards(allFlashcards, currentState)
 
     const currentCard = flashcards[currentCardIndex]
     if (!currentCard) return
