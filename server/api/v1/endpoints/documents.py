@@ -1,18 +1,6 @@
 import asyncio
-from urllib.parse import quote
-
-from api.dependencies import (
-    get_data_processing_service,
-    get_document_service,
-    get_user,
-    get_usage_service,
-)
-from core.logger import get_logger
-from core.services.data_processing import DataProcessingService
-from core.services.documents import DocumentService
-from core.services.usage import UsageService
-from db.models import User
 from typing import List
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter,
@@ -24,6 +12,18 @@ from fastapi import (
     status,
 )
 from fastapi.responses import Response, StreamingResponse
+
+from api.dependencies import (
+    get_data_processing_service,
+    get_document_service,
+    get_usage_service,
+    get_user,
+)
+from core.logger import get_logger
+from core.services.data_processing import DataProcessingService
+from core.services.documents import DocumentService
+from core.services.usage import UsageService
+from db.models import User
 from schemas.documents import (
     DocumentDto,
     DocumentListResponse,
@@ -67,11 +67,18 @@ async def upload_document(
     logger.info("uploading %d document(s) for project_id=%s", len(files), project_id)
 
     # Validate file types
-    allowed_types = ["pdf", "docx", "doc", "txt", "rtf"]
     document_ids = []
     file_contents = []
+    allowed_types = data_processing_service.get_supported_types()
 
     for file in files:
+        if not file.filename:
+            logger.error("file with empty filename provided")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File with empty filename provided",
+            )
+
         file_extension = (
             file.filename.split(".")[-1].lower() if "." in file.filename else ""
         )
@@ -88,6 +95,8 @@ async def upload_document(
     try:
         # Read all files concurrently
         async def read_file(file: UploadFile) -> tuple[str, bytes]:
+            if not file.filename:
+                raise ValueError("File with empty filename provided")
             content = await file.read()
             return file.filename, content
 
@@ -260,7 +269,9 @@ def preview_document(
         # The frontend will use this URL which sets Content-Disposition: inline
         preview_url = f"/v1/documents/{document_id}/stream"
 
-        return DocumentPreviewResponse(preview_url=preview_url, content_type=content_type)
+        return DocumentPreviewResponse(
+            preview_url=preview_url, content_type=content_type
+        )
 
     except HTTPException:
         raise

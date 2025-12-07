@@ -14,9 +14,9 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 from pydantic import BaseModel
-from core.agents.llm import make_embeddings
 from sqlalchemy.orm import Session
 
+from core.agents.llm import make_embeddings
 from core.config import app_config
 from core.logger import get_logger
 from core.services.content_understanding import AzureContentUnderstandingClient
@@ -49,6 +49,34 @@ class DataProcessingService:
         )
 
         self.embeddings = make_embeddings()
+
+    def get_supported_types(self) -> list[str]:
+        """Get list of supported document types.
+
+        Returns:
+            List of supported file extensions
+        """
+        return [
+            "pdf",
+            "tiff",
+            "jpg",
+            "jpeg",
+            "jpe",
+            "png",
+            "bmp",
+            "heif",
+            "heic",
+            "docx",
+            "xlsx",
+            "pptx",
+            "txt",
+            "html",
+            "md",
+            "rtf",
+            "eml",
+            "msg",
+            "xml",
+        ]
 
     def upload_document(
         self, file_content: bytes, filename: str, project_id: str, owner_id: str
@@ -139,7 +167,9 @@ class DataProcessingService:
                     document_id=document_id,
                     db=db,
                 )
-                logger.info(f"moved blob to output and created contents.txt for document_id={document_id}")
+                logger.info(
+                    f"moved blob to output and created contents.txt for document_id={document_id}"
+                )
 
                 # Step 3: Update document status to processed
                 self._update_document_processed_status(
@@ -252,7 +282,7 @@ class DataProcessingService:
             blob_name = f"{project_id}/{document_id}.{file_extension}"
         else:
             blob_name = f"{project_id}/{document_id}"
-        
+
         blob_client = self.blob_service_client.get_blob_client(
             container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME, blob=blob_name
         )
@@ -301,16 +331,16 @@ class DataProcessingService:
         document = db.query(Document).filter(Document.id == document_id).first()
         if not document:
             raise ValueError(f"Document {document_id} not found")
-        
+
         # Construct blob paths from project_id and document_id
         file_extension = document.file_type if document.file_type != "unknown" else ""
         if file_extension:
             original_blob_name = f"{project_id}/{document_id}.{file_extension}"
         else:
             original_blob_name = f"{project_id}/{document_id}"
-        
+
         contents_blob_name = f"{project_id}/{document_id}.contents.txt"
-        
+
         # Step 1: Copy original blob from input to output container (preserve original file)
         input_blob_client = self.blob_service_client.get_blob_client(
             container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME,
@@ -320,27 +350,33 @@ class DataProcessingService:
             container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
             blob=original_blob_name,
         )
-        
+
         # Download from input and upload to output to copy the blob
         blob_data = input_blob_client.download_blob().readall()
         output_blob_client.upload_blob(blob_data, overwrite=True)
         logger.info(f"copied original blob to output blob_name={original_blob_name}")
-        
+
         # Step 2: Create contents.txt file with processed content
         contents_blob_client = self.blob_service_client.get_blob_client(
             container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
             blob=contents_blob_name,
         )
         contents_blob_client.upload_blob(content.encode("utf-8"), overwrite=True)
-        logger.info(f"created contents.txt file blob_name={contents_blob_name} (not used for operations)")
-        
+        logger.info(
+            f"created contents.txt file blob_name={contents_blob_name} (not used for operations)"
+        )
+
         # Step 3: Delete the original blob from input container
         try:
             input_blob_client.delete_blob()
-            logger.info(f"deleted original blob from input blob_name={original_blob_name}")
+            logger.info(
+                f"deleted original blob from input blob_name={original_blob_name}"
+            )
         except Exception as e:
-            logger.warning(f"error deleting blob from input (may already be deleted): {e}")
-        
+            logger.warning(
+                f"error deleting blob from input (may already be deleted): {e}"
+            )
+
         db.commit()
 
     async def _create_segments_and_embeddings(
