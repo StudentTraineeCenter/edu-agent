@@ -119,9 +119,7 @@ class NoteService:
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(
-                    f"error creating note for project_id={project_id}: {e}"
-                )
+                logger.error(f"error creating note for project_id={project_id}: {e}")
                 raise
 
     def get_notes(self, project_id: str) -> List[Note]:
@@ -442,4 +440,3 @@ Generate a high-quality, well-structured markdown note in {language_code} that i
             raise
         finally:
             db.close()
-

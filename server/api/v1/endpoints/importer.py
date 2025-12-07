@@ -19,7 +19,7 @@ class ImportResponse(BaseModel):
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Import flashcard group from CSV",
-    description="Import flashcards from CSV file"
+    description="Import flashcards from CSV file",
 )
 async def import_flashcard_group(
     project_id: str,
@@ -39,7 +39,7 @@ async def import_flashcard_group(
             project_id=project_id,
             csv_content=csv_content_str,
             group_name=group_name,
-            group_description=group_description
+            group_description=group_description,
         )
 
         return ImportResponse(
@@ -51,7 +51,7 @@ async def import_flashcard_group(
         logger.error(f"error importing flashcard group: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to import flashcard group"
+            detail="Failed to import flashcard group",
         )
 
 
@@ -60,7 +60,7 @@ async def import_flashcard_group(
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Import quiz from CSV",
-    description="Import quiz from CSV file"
+    description="Import quiz from CSV file",
 )
 async def import_quiz(
     project_id: str,
@@ -80,7 +80,7 @@ async def import_quiz(
             project_id=project_id,
             csv_content=csv_content_str,
             quiz_name=quiz_name,
-            quiz_description=quiz_description
+            quiz_description=quiz_description,
         )
 
         return ImportResponse(
@@ -92,6 +92,5 @@ async def import_quiz(
         logger.error(f"error importing quiz: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to import quiz"
+            detail="Failed to import quiz",
         )
-

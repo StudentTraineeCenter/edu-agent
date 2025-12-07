@@ -113,7 +113,9 @@ export function UpsertProjectDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Project' : 'Create Project'}</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? 'Edit Project' : 'Create Project'}
+          </DialogTitle>
           <DialogDescription>
             {isEditMode
               ? 'Update your project details.'

@@ -133,4 +133,3 @@ tools = [
     get_note,
     delete_note,
 ]
-

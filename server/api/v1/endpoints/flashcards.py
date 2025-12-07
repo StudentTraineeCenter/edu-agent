@@ -1,5 +1,10 @@
 from typing import Optional
-from api.dependencies import get_exporter_service, get_flashcard_service, get_flashcard_progress_service, get_user
+from api.dependencies import (
+    get_exporter_service,
+    get_flashcard_service,
+    get_flashcard_progress_service,
+    get_user,
+)
 from core.logger import get_logger
 from core.services.exporter import ExporterService
 from core.services.flashcards import FlashcardService
@@ -209,8 +214,12 @@ async def list_flashcards(
 )
 async def get_study_queue(
     group_id: str = Path(..., description="Flashcard group ID"),
-    include_mastered: bool = Query(False, description="Whether to include mastered cards"),
-    progress_service: FlashcardProgressService = Depends(get_flashcard_progress_service),
+    include_mastered: bool = Query(
+        False, description="Whether to include mastered cards"
+    ),
+    progress_service: FlashcardProgressService = Depends(
+        get_flashcard_progress_service
+    ),
     current_user: User = Depends(get_user),
 ):
     """Get flashcards for study queue."""
@@ -219,7 +228,7 @@ async def get_study_queue(
             "getting study queue for group_id=%s, user_id=%s, include_mastered=%s",
             group_id,
             current_user.id,
-            include_mastered
+            include_mastered,
         )
 
         db = SessionLocal()
@@ -228,7 +237,7 @@ async def get_study_queue(
                 db=db,
                 user_id=current_user.id,
                 group_id=group_id,
-                include_mastered=include_mastered
+                include_mastered=include_mastered,
             )
         finally:
             db.close()
@@ -248,7 +257,7 @@ async def get_study_queue(
 @router.get(
     path="/{group_id}/export",
     summary="Export flashcard group to CSV",
-    description="Export a flashcard group to CSV format"
+    description="Export a flashcard group to CSV format",
 )
 async def export_flashcard_group(
     group_id: str = Path(..., description="Flashcard group ID"),
@@ -263,7 +272,7 @@ async def export_flashcard_group(
             media_type="text/csv",
             headers={
                 "Content-Disposition": f"attachment; filename=flashcards_{group_id}.csv"
-            }
+            },
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -271,5 +280,5 @@ async def export_flashcard_group(
         logger.error("error exporting flashcard group: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to export flashcard group"
+            detail="Failed to export flashcard group",
         )

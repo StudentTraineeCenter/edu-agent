@@ -79,4 +79,3 @@ export const NoteHeader = ({ noteId, projectId }: NoteHeaderProps) => {
     </header>
   )
 }
-

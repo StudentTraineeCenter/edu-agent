@@ -52,7 +52,9 @@ class PracticeService:
             try:
                 # Validate that the referenced study resource exists
                 if not self._validate_item(db, study_resource_type, study_resource_id):
-                    raise ValueError(f"Study resource {study_resource_id} of type {study_resource_type} not found")
+                    raise ValueError(
+                        f"Study resource {study_resource_id} of type {study_resource_type} not found"
+                    )
 
                 practice_record = PracticeRecord(
                     user_id=user_id,
@@ -71,11 +73,17 @@ class PracticeService:
 
                 # If flashcard, update progress
                 if study_resource_type == "flashcard":
-                    from core.services.flashcard_progress import FlashcardProgressService
+                    from core.services.flashcard_progress import (
+                        FlashcardProgressService,
+                    )
                     from db.models import Flashcard
 
                     progress_service = FlashcardProgressService()
-                    flashcard = db.query(Flashcard).filter(Flashcard.id == study_resource_id).first()
+                    flashcard = (
+                        db.query(Flashcard)
+                        .filter(Flashcard.id == study_resource_id)
+                        .first()
+                    )
                     if flashcard:
                         progress_service.record_answer(
                             db=db,
@@ -83,7 +91,7 @@ class PracticeService:
                             flashcard_id=study_resource_id,
                             group_id=flashcard.group_id,
                             project_id=project_id,
-                            is_correct=was_correct
+                            is_correct=was_correct,
                         )
 
                 logger.info(
@@ -175,7 +183,9 @@ class PracticeService:
         """
         with self._get_db_session() as db:
             try:
-                query = db.query(PracticeRecord).filter(PracticeRecord.user_id == user_id)
+                query = db.query(PracticeRecord).filter(
+                    PracticeRecord.user_id == user_id
+                )
 
                 if project_id:
                     query = query.filter(PracticeRecord.project_id == project_id)
@@ -232,4 +242,3 @@ class PracticeService:
             raise
         finally:
             db.close()
-

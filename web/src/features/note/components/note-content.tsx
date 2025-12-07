@@ -49,4 +49,3 @@ export const NoteContent = ({ noteId, className }: NoteContentProps) => {
     })
     .render()
 }
-

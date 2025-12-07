@@ -210,4 +210,3 @@ async def delete_note(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete note",
         )
-

@@ -36,7 +36,7 @@ class StructuredFormatter(logging.Formatter):
 
 def _setup_logging() -> None:
     """Configure logging with structured JSON formatting.
-    
+
     Note: Azure Monitor OpenTelemetry is configured in main.py before this module is imported.
     This ensures proper initialization order and automatic collection of traces, metrics, logs, and exceptions.
     """

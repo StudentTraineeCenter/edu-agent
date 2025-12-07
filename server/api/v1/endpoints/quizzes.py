@@ -193,7 +193,7 @@ async def list_quiz_questions(
 @router.get(
     path="/{quiz_id}/export",
     summary="Export quiz to CSV",
-    description="Export a quiz to CSV format"
+    description="Export a quiz to CSV format",
 )
 async def export_quiz(
     quiz_id: str = Path(..., description="Quiz ID"),
@@ -206,9 +206,7 @@ async def export_quiz(
         return Response(
             content=csv_content,
             media_type="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename=quiz_{quiz_id}.csv"
-            }
+            headers={"Content-Disposition": f"attachment; filename=quiz_{quiz_id}.csv"},
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -216,5 +214,5 @@ async def export_quiz(
         logger.error("error exporting quiz: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to export quiz"
+            detail="Failed to export quiz",
         )

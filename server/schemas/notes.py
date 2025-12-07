@@ -53,4 +53,3 @@ class NoteListResponse(BaseModel):
     """Response model for listing notes."""
 
     data: List[NoteDto] = Field(description="List of notes")
-

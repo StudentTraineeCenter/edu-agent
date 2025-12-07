@@ -20,7 +20,7 @@ if os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING"):
 
         configure_azure_monitor(
             logger_name="edu_agent",  # Set namespace to avoid collecting SDK logs
-            enable_live_metrics=True
+            enable_live_metrics=True,
         )
     except ImportError:
         pass  # azure-monitor-opentelemetry not installed, continue without it

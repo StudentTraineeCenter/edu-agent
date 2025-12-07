@@ -27,7 +27,7 @@ class FlashcardProgressService:
         user_id: str,
         flashcard_id: str,
         group_id: str,
-        project_id: str
+        project_id: str,
     ) -> FlashcardProgress:
         """Get or create progress record for a flashcard.
 
@@ -46,7 +46,7 @@ class FlashcardProgressService:
             .filter(
                 and_(
                     FlashcardProgress.user_id == user_id,
-                    FlashcardProgress.flashcard_id == flashcard_id
+                    FlashcardProgress.flashcard_id == flashcard_id,
                 )
             )
             .first()
@@ -76,7 +76,7 @@ class FlashcardProgressService:
         flashcard_id: str,
         group_id: str,
         project_id: str,
-        is_correct: bool
+        is_correct: bool,
     ) -> FlashcardProgress:
         """Record an answer and update progress.
 
@@ -96,7 +96,7 @@ class FlashcardProgressService:
             user_id=user_id,
             flashcard_id=flashcard_id,
             group_id=group_id,
-            project_id=project_id
+            project_id=project_id,
         )
 
         if is_correct:
@@ -136,7 +136,9 @@ class FlashcardProgressService:
         accuracy = progress.correct_count / total if total > 0 else 0
 
         # Mastery conditions
-        if progress.current_streak >= 2 or (progress.correct_count >= 3 and accuracy >= 0.7):
+        if progress.current_streak >= 2 or (
+            progress.correct_count >= 3 and accuracy >= 0.7
+        ):
             progress.mastery_level = 2
             progress.is_mastered = True
         elif total > 0:
@@ -147,11 +149,7 @@ class FlashcardProgressService:
             progress.is_mastered = False
 
     def get_unmastered_flashcards(
-        self,
-        db: Session,
-        user_id: str,
-        group_id: str,
-        include_mastered: bool = False
+        self, db: Session, user_id: str, group_id: str, include_mastered: bool = False
     ) -> List[Flashcard]:
         """Get flashcards for study queue (un-mastered by default).
 
@@ -166,9 +164,7 @@ class FlashcardProgressService:
         """
         # Get all flashcards in the group
         all_flashcards = (
-            db.query(Flashcard)
-            .filter(Flashcard.group_id == group_id)
-            .all()
+            db.query(Flashcard).filter(Flashcard.group_id == group_id).all()
         )
 
         if include_mastered:
@@ -184,22 +180,17 @@ class FlashcardProgressService:
             .filter(
                 and_(
                     FlashcardProgress.user_id == user_id,
-                    FlashcardProgress.flashcard_id.in_(flashcard_ids)
+                    FlashcardProgress.flashcard_id.in_(flashcard_ids),
                 )
             )
             .all()
         )
 
         # Create a set of mastered flashcard IDs
-        mastered_ids = {
-            p.flashcard_id for p in progress_records if p.is_mastered
-        }
+        mastered_ids = {p.flashcard_id for p in progress_records if p.is_mastered}
 
         # Return un-mastered flashcards (those without progress or not mastered)
-        unmastered = [
-            f for f in all_flashcards
-            if f.id not in mastered_ids
-        ]
+        unmastered = [f for f in all_flashcards if f.id not in mastered_ids]
 
         logger.info(
             f"found {len(unmastered)} unmastered flashcards out of {len(all_flashcards)} "
@@ -208,12 +199,7 @@ class FlashcardProgressService:
 
         return unmastered
 
-    def get_progress_summary(
-        self,
-        db: Session,
-        user_id: str,
-        group_id: str
-    ) -> dict:
+    def get_progress_summary(self, db: Session, user_id: str, group_id: str) -> dict:
         """Get progress summary for a flashcard group.
 
         Args:
@@ -225,25 +211,19 @@ class FlashcardProgressService:
             Dictionary with summary stats
         """
         all_flashcards = (
-            db.query(Flashcard)
-            .filter(Flashcard.group_id == group_id)
-            .all()
+            db.query(Flashcard).filter(Flashcard.group_id == group_id).all()
         )
 
         flashcard_ids = [f.id for f in all_flashcards]
         if not flashcard_ids:
-            return {
-                "total": 0,
-                "mastered": 0,
-                "unmastered": 0
-            }
+            return {"total": 0, "mastered": 0, "unmastered": 0}
 
         progress_records = (
             db.query(FlashcardProgress)
             .filter(
                 and_(
                     FlashcardProgress.user_id == user_id,
-                    FlashcardProgress.flashcard_id.in_(flashcard_ids)
+                    FlashcardProgress.flashcard_id.in_(flashcard_ids),
                 )
             )
             .all()
@@ -255,7 +235,7 @@ class FlashcardProgressService:
         return {
             "total": len(all_flashcards),
             "mastered": mastered_count,
-            "unmastered": unmastered_count
+            "unmastered": unmastered_count,
         }
 
     @contextmanager
@@ -269,4 +249,3 @@ class FlashcardProgressService:
             raise
         finally:
             db.close()
-

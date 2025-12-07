@@ -20,14 +20,16 @@ class MindMapDto(BaseModel):
     project_id: str
     title: str
     description: Optional[str] = None
-    map_data: dict[str, Any] = Field(description="Structured mind map data (nodes, edges)")
+    map_data: dict[str, Any] = Field(
+        description="Structured mind map data (nodes, edges)"
+    )
     generated_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
 
+
 class MindMapListResponse(BaseModel):
     """Response model for listing mind maps."""
 
     data: list[MindMapDto]
-

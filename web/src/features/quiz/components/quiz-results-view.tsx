@@ -227,9 +227,12 @@ const CompletionActions = ({ quizId, projectId }: CompletionActionsProps) => {
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
   const resetQuiz = useAtomSet(resetQuizAtom)
-  const submitPendingPracticeRecords = useAtomSet(submitPendingPracticeRecordsAtom, {
-    mode: 'promise',
-  })
+  const submitPendingPracticeRecords = useAtomSet(
+    submitPendingPracticeRecordsAtom,
+    {
+      mode: 'promise',
+    },
+  )
 
   const hasPendingPracticeRecords =
     Option.isSome(stateResult) &&

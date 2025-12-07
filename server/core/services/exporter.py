@@ -15,10 +15,7 @@ logger = get_logger(__name__)
 class ExporterService:
     """Service for exporting study materials to CSV."""
 
-    def export_flashcard_group_to_csv(
-        self,
-        group_id: str
-    ) -> str:
+    def export_flashcard_group_to_csv(self, group_id: str) -> str:
         """Export a flashcard group to CSV.
 
         CSV Format:
@@ -32,9 +29,7 @@ class ExporterService:
         """
         with self._get_db_session() as db:
             group = (
-                db.query(FlashcardGroup)
-                .filter(FlashcardGroup.id == group_id)
-                .first()
+                db.query(FlashcardGroup).filter(FlashcardGroup.id == group_id).first()
             )
 
             if not group:
@@ -55,18 +50,13 @@ class ExporterService:
 
             # Write flashcards
             for flashcard in flashcards:
-                writer.writerow([
-                    flashcard.question,
-                    flashcard.answer,
-                    flashcard.difficulty_level
-                ])
+                writer.writerow(
+                    [flashcard.question, flashcard.answer, flashcard.difficulty_level]
+                )
 
             return output.getvalue()
 
-    def export_quiz_to_csv(
-        self,
-        quiz_id: str
-    ) -> str:
+    def export_quiz_to_csv(self, quiz_id: str) -> str:
         """Export a quiz to CSV.
 
         CSV Format:
@@ -95,29 +85,33 @@ class ExporterService:
             writer = csv.writer(output)
 
             # Write header
-            writer.writerow([
-                "question_text",
-                "option_a",
-                "option_b",
-                "option_c",
-                "option_d",
-                "correct_option",
-                "explanation",
-                "difficulty_level"
-            ])
+            writer.writerow(
+                [
+                    "question_text",
+                    "option_a",
+                    "option_b",
+                    "option_c",
+                    "option_d",
+                    "correct_option",
+                    "explanation",
+                    "difficulty_level",
+                ]
+            )
 
             # Write questions
             for question in questions:
-                writer.writerow([
-                    question.question_text,
-                    question.option_a,
-                    question.option_b,
-                    question.option_c,
-                    question.option_d,
-                    question.correct_option,
-                    question.explanation or "",
-                    question.difficulty_level
-                ])
+                writer.writerow(
+                    [
+                        question.question_text,
+                        question.option_a,
+                        question.option_b,
+                        question.option_c,
+                        question.option_d,
+                        question.correct_option,
+                        question.explanation or "",
+                        question.difficulty_level,
+                    ]
+                )
 
             return output.getvalue()
 
@@ -132,4 +126,3 @@ class ExporterService:
             raise
         finally:
             db.close()
-

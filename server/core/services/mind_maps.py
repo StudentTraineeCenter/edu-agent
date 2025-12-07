@@ -40,7 +40,9 @@ class MindMapEdge(BaseModel):
     id: str = Field(description="Unique identifier for the edge")
     source: str = Field(description="ID of the source node")
     target: str = Field(description="ID of the target node")
-    label: Optional[str] = Field(default=None, description="Optional label for the edge")
+    label: Optional[str] = Field(
+        default=None, description="Optional label for the edge"
+    )
 
 
 class MindMapGenerationRequest(BaseModel):
@@ -200,9 +202,7 @@ class MindMapService:
                 logger.error(f"error retrieving mind map id={mind_map_id}: {e}")
                 raise
 
-    def list_mind_maps(
-        self, project_id: str, user_id: str
-    ) -> List[MindMap]:
+    def list_mind_maps(self, project_id: str, user_id: str) -> List[MindMap]:
         """List all mind maps for a project.
 
         Args:
@@ -440,4 +440,3 @@ Generate a comprehensive, well-structured mind map in {language_code} that visua
             raise
         finally:
             db.close()
-

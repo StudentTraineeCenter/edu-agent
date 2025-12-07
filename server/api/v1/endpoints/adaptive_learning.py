@@ -26,7 +26,7 @@ class StudySessionResponse(BaseModel):
     response_model=StudySessionResponse,
     status_code=status.HTTP_200_OK,
     summary="Generate adaptive study session",
-    description="Generate a personalized study session based on performance and spaced repetition"
+    description="Generate a personalized study session based on performance and spaced repetition",
 )
 async def generate_study_session(
     project_id: str,
@@ -41,14 +41,14 @@ async def generate_study_session(
             user_id=current_user.id,
             project_id=project_id,
             session_length_minutes=session_length_minutes,
-            focus_topics=focus_topics
+            focus_topics=focus_topics,
         )
         return StudySessionResponse(**session)
     except Exception as e:
         logger.error(f"error generating study session: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate study session"
+            detail="Failed to generate study session",
         )
 
 
@@ -57,7 +57,7 @@ async def generate_study_session(
     response_model=List[StudySessionResponse],
     status_code=status.HTTP_200_OK,
     summary="List study sessions",
-    description="List all study sessions for a project"
+    description="List all study sessions for a project",
 )
 async def list_study_sessions(
     project_id: str,
@@ -68,36 +68,39 @@ async def list_study_sessions(
     """List study sessions for a project."""
     try:
         sessions = adaptive_service.list_study_sessions(
-            user_id=current_user.id,
-            project_id=project_id,
-            limit=limit
+            user_id=current_user.id, project_id=project_id, limit=limit
         )
-        
+
         # Get flashcard group IDs for each session
         result = []
         for session in sessions:
             session_with_group = adaptive_service.get_study_session_with_group(
-                session_id=session.id,
-                user_id=current_user.id
+                session_id=session.id, user_id=current_user.id
             )
-            flashcard_group_id = session_with_group["flashcard_group_id"] if session_with_group else None
-            
-            result.append(StudySessionResponse(
-                session_id=session.id,
-                flashcard_group_id=flashcard_group_id,
-                flashcards=session.session_data.get("flashcards", []),
-                estimated_time_minutes=session.estimated_time_minutes,
-                focus_topics=session.focus_topics or [],
-                learning_objectives=session.session_data.get("learning_objectives", []),
-                generated_at=session.generated_at.isoformat()
-            ))
-        
+            flashcard_group_id = (
+                session_with_group["flashcard_group_id"] if session_with_group else None
+            )
+
+            result.append(
+                StudySessionResponse(
+                    session_id=session.id,
+                    flashcard_group_id=flashcard_group_id,
+                    flashcards=session.session_data.get("flashcards", []),
+                    estimated_time_minutes=session.estimated_time_minutes,
+                    focus_topics=session.focus_topics or [],
+                    learning_objectives=session.session_data.get(
+                        "learning_objectives", []
+                    ),
+                    generated_at=session.generated_at.isoformat(),
+                )
+            )
+
         return result
     except Exception as e:
         logger.error(f"error listing study sessions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list study sessions"
+            detail="Failed to list study sessions",
         )
 
 
@@ -106,7 +109,7 @@ async def list_study_sessions(
     response_model=StudySessionResponse,
     status_code=status.HTTP_200_OK,
     summary="Get study session",
-    description="Get a study session by ID"
+    description="Get a study session by ID",
 )
 async def get_study_session(
     session_id: str,
@@ -116,28 +119,24 @@ async def get_study_session(
     """Get a study session by ID."""
     try:
         session = adaptive_service.get_study_session(
-            session_id=session_id,
-            user_id=current_user.id
+            session_id=session_id, user_id=current_user.id
         )
         if not session:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Study session not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Study session not found"
             )
-        
+
         # Get the associated flashcard group
         session_with_group = adaptive_service.get_study_session_with_group(
-            session_id=session_id,
-            user_id=current_user.id
+            session_id=session_id, user_id=current_user.id
         )
         if not session_with_group:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Study session not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Study session not found"
             )
 
         session = session_with_group["session"]
-        
+
         return StudySessionResponse(
             session_id=session.id,
             flashcard_group_id=session_with_group["flashcard_group_id"],
@@ -145,7 +144,7 @@ async def get_study_session(
             estimated_time_minutes=session.estimated_time_minutes,
             focus_topics=session.focus_topics or [],
             learning_objectives=session.session_data.get("learning_objectives", []),
-            generated_at=session.generated_at.isoformat()
+            generated_at=session.generated_at.isoformat(),
         )
     except HTTPException:
         raise
@@ -153,6 +152,5 @@ async def get_study_session(
         logger.error(f"error getting study session: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get study session"
+            detail="Failed to get study session",
         )
-

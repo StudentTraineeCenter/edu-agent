@@ -40,6 +40,7 @@ flashcard_progress_service = FlashcardProgressService()
 exporter_service = ExporterService()
 importer_service = ImporterService()
 
+
 def get_document_service():
     return document_service
 
@@ -90,13 +91,11 @@ def get_flashcard_progress_service():
 
 
 def get_adaptive_learning_service():
-    return AdaptiveLearningService(
-        practice_service=practice_service
-    )
+    return AdaptiveLearningService(practice_service=practice_service)
 
 
 def get_exporter_service():
-    return exporter_service   
+    return exporter_service
 
 
 def get_importer_service():

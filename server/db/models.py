@@ -315,7 +315,9 @@ class PracticeRecord(Base):
         String, ForeignKey("projects.id"), index=True
     )
 
-    item_type: Mapped[str] = mapped_column(String, index=True)  # "flashcard" or "quiz" - type of study resource
+    item_type: Mapped[str] = mapped_column(
+        String, index=True
+    )  # "flashcard" or "quiz" - type of study resource
     item_id: Mapped[str] = mapped_column(
         String, index=True
     )  # flashcard_id or quiz_question_id - ID of the study resource
@@ -352,7 +354,9 @@ class MindMap(Base):
     # Map content
     title: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    map_data: Mapped[dict] = mapped_column(JSON)  # Structured mind map data (nodes, edges)
+    map_data: Mapped[dict] = mapped_column(
+        JSON
+    )  # Structured mind map data (nodes, edges)
 
     # Timestamps
     generated_at: Mapped[datetime] = mapped_column(
@@ -373,18 +377,28 @@ class FlashcardProgress(Base):
         String, primary_key=True, default=lambda: str(uuid4())
     )
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
-    flashcard_id: Mapped[str] = mapped_column(String, ForeignKey("flashcards.id"), index=True)
-    group_id: Mapped[str] = mapped_column(String, ForeignKey("flashcard_groups.id"), index=True)
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"), index=True)
+    flashcard_id: Mapped[str] = mapped_column(
+        String, ForeignKey("flashcards.id"), index=True
+    )
+    group_id: Mapped[str] = mapped_column(
+        String, ForeignKey("flashcard_groups.id"), index=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id"), index=True
+    )
 
     # Simple mastery tracking
     correct_count: Mapped[int] = mapped_column(Integer, default=0)
     incorrect_count: Mapped[int] = mapped_column(Integer, default=0)
     current_streak: Mapped[int] = mapped_column(Integer, default=0)
-    mastery_level: Mapped[int] = mapped_column(Integer, default=0)  # 0=unseen, 1=learning, 2=mastered
+    mastery_level: Mapped[int] = mapped_column(
+        Integer, default=0
+    )  # 0=unseen, 1=learning, 2=mastered
     is_mastered: Mapped[bool] = mapped_column(Boolean, default=False)
     last_result: Mapped[bool] = mapped_column(Boolean, nullable=True)
-    last_practiced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_practiced_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -411,18 +425,20 @@ class StudySession(Base):
     )
 
     # Session metadata
-    session_data: Mapped[dict] = mapped_column(JSON)  # Contains flashcards, focus_topics, learning_objectives
+    session_data: Mapped[dict] = mapped_column(
+        JSON
+    )  # Contains flashcards, focus_topics, learning_objectives
     estimated_time_minutes: Mapped[int] = mapped_column(Integer)
     session_length_minutes: Mapped[int] = mapped_column(Integer)  # Requested length
-    focus_topics: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)  # Optional focus topics
+    focus_topics: Mapped[Optional[list[str]]] = mapped_column(
+        JSON, nullable=True
+    )  # Optional focus topics
 
     # Timestamps
     generated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

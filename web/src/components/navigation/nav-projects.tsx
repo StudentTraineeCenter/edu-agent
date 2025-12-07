@@ -90,7 +90,10 @@ export function NavProjects() {
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SidebarMenu>
-        <SidebarMenuButton tooltip="New project" onClick={() => openCreateProjectDialog()}>
+        <SidebarMenuButton
+          tooltip="New project"
+          onClick={() => openCreateProjectDialog()}
+        >
           <PlusIcon className="size-4 opacity-70" />
           <span>New project</span>
         </SidebarMenuButton>

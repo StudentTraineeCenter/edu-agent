@@ -322,14 +322,19 @@ class DocumentService:
                     raise ValueError(f"Document {document_id} not found")
 
                 # Construct blob paths from project_id and document_id
-                file_extension = document.file_type if document.file_type != "unknown" else ""
+                file_extension = (
+                    document.file_type if document.file_type != "unknown" else ""
+                )
                 if file_extension:
                     blob_name = f"{document.project_id}/{document_id}.{file_extension}"
                 else:
                     blob_name = f"{document.project_id}/{document_id}"
 
                 # Determine container: output if processed, input if not yet processed
-                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
+                if (
+                    document.status == DocumentStatus.PROCESSED
+                    or document.status == DocumentStatus.INDEXED
+                ):
                     # Processed: original file is in output container
                     container_name = app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME
                 else:
@@ -347,7 +352,9 @@ class DocumentService:
                         account_key = part.split("=", 1)[1]
 
                 if not account_name or not account_key:
-                    raise ValueError("Could not parse storage account name/key from connection string")
+                    raise ValueError(
+                        "Could not parse storage account name/key from connection string"
+                    )
 
                 # Generate SAS token
                 sas_token = generate_blob_sas(
@@ -396,14 +403,19 @@ class DocumentService:
                     raise ValueError(f"Document {document_id} not found")
 
                 # Construct blob paths from project_id and document_id
-                file_extension = document.file_type if document.file_type != "unknown" else ""
+                file_extension = (
+                    document.file_type if document.file_type != "unknown" else ""
+                )
                 if file_extension:
                     blob_name = f"{document.project_id}/{document_id}.{file_extension}"
                 else:
                     blob_name = f"{document.project_id}/{document_id}"
 
                 # Determine container: output if processed, input if not yet processed
-                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
+                if (
+                    document.status == DocumentStatus.PROCESSED
+                    or document.status == DocumentStatus.INDEXED
+                ):
                     # Processed: original file is in output container
                     container_name = app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME
                 else:
@@ -455,9 +467,13 @@ class DocumentService:
                     raise ValueError(f"Document {document_id} not found")
 
                 # Construct blob paths from project_id and document_id
-                file_extension = document.file_type if document.file_type != "unknown" else ""
+                file_extension = (
+                    document.file_type if document.file_type != "unknown" else ""
+                )
                 if file_extension:
-                    original_blob_name = f"{document.project_id}/{document_id}.{file_extension}"
+                    original_blob_name = (
+                        f"{document.project_id}/{document_id}.{file_extension}"
+                    )
                 else:
                     original_blob_name = f"{document.project_id}/{document_id}"
 
@@ -489,14 +505,17 @@ class DocumentService:
                         )
 
                 # Delete contents.txt blob from output container if document was processed
-                if document.status == DocumentStatus.PROCESSED or document.status == DocumentStatus.INDEXED:
+                if (
+                    document.status == DocumentStatus.PROCESSED
+                    or document.status == DocumentStatus.INDEXED
+                ):
                     try:
-                        contents_blob_name = f"{document.project_id}/{document_id}.contents.txt"
-                        contents_blob_client = (
-                            self.blob_service_client.get_blob_client(
-                                container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
-                                blob=contents_blob_name,
-                            )
+                        contents_blob_name = (
+                            f"{document.project_id}/{document_id}.contents.txt"
+                        )
+                        contents_blob_client = self.blob_service_client.get_blob_client(
+                            container=app_config.AZURE_STORAGE_OUTPUT_CONTAINER_NAME,
+                            blob=contents_blob_name,
                         )
                         contents_blob_client.delete_blob()
                         logger.info(
@@ -529,28 +548,30 @@ class DocumentService:
         async_url = app_config.DATABASE_URL.replace(
             "postgresql+psycopg2://", "postgresql+asyncpg://"
         )
-        
+
         # Remove unsupported query parameters - asyncpg handles SSL differently
         # Parse URL to remove query parameters that asyncpg doesn't support
         parsed = urlparse(async_url)
         query_params = parse_qs(parsed.query)
-        
+
         # Remove parameters that asyncpg doesn't support
         # asyncpg will use SSL by default for secure connections
-        query_params.pop('sslmode', None)
-        query_params.pop('channel_binding', None)
-        
+        query_params.pop("sslmode", None)
+        query_params.pop("channel_binding", None)
+
         # Rebuild URL without unsupported parameters
         new_query = urlencode(query_params, doseq=True)
-        async_url = urlunparse((
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            parsed.params,
-            new_query,
-            parsed.fragment
-        ))
-        
+        async_url = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment,
+            )
+        )
+
         pg_engine = PGEngine.from_connection_string(url=async_url)
 
         return await PGVectorStore.create(

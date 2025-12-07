@@ -19,17 +19,17 @@ _key_vault_client: Optional[SecretClient] = None
 def _get_key_vault_client() -> Optional[SecretClient]:
     """Get or create Key Vault client if URI is configured."""
     global _key_vault_client, _key_vault_credential
-    
+
     if not _KEY_VAULT_URI:
         return None
-    
+
     if _key_vault_client is None:
         if _key_vault_credential is None:
             _key_vault_credential = DefaultAzureCredential()
         _key_vault_client = SecretClient(
             vault_url=_KEY_VAULT_URI, credential=_key_vault_credential
         )
-    
+
     return _key_vault_client
 
 
@@ -38,7 +38,7 @@ def _get_secret_from_key_vault(key_vault_uri: str, secret_name: str) -> Optional
     client = _get_key_vault_client()
     if not client:
         return None
-    
+
     try:
         secret = client.get_secret(secret_name)
         return secret.value

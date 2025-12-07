@@ -60,7 +60,7 @@ def get_current_user(
         # Supabase tokens include user_metadata and app_metadata
         user_metadata = payload.get("user_metadata", {})
         app_metadata = payload.get("app_metadata", {})
-        
+
         # Get name from user_metadata or email
         name = user_metadata.get("name") or user_metadata.get("full_name")
         if not name and email:

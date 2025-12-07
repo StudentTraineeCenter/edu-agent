@@ -24,7 +24,9 @@ v1_router.include_router(
 )
 v1_router.include_router(router=quizzes_router, prefix="/quizzes", tags=["quizzes"])
 v1_router.include_router(router=notes_router, prefix="/notes", tags=["notes"])
-v1_router.include_router(router=practice_router, prefix="/practice-records", tags=["practice-records"])
+v1_router.include_router(
+    router=practice_router, prefix="/practice-records", tags=["practice-records"]
+)
 v1_router.include_router(router=auth_router, prefix="/auth", tags=["auth"])
 v1_router.include_router(router=usage_router, prefix="/usage", tags=["usage"])
 v1_router.include_router(router=mind_maps_router, tags=["mind-maps"])

@@ -72,9 +72,7 @@ async def create_mind_map_scoped(
 async def list_mind_maps(runtime: ToolRuntime[CustomAgentContext]) -> str:
     ctx = runtime.context
     svc = MindMapService(search_interface=ctx.search)
-    mind_maps = await asyncio.to_thread(
-        svc.list_mind_maps, ctx.project_id, ctx.user_id
-    )
+    mind_maps = await asyncio.to_thread(svc.list_mind_maps, ctx.project_id, ctx.user_id)
 
     mind_maps_dto = [MindMapDto.model_validate(m) for m in mind_maps]
     result = {
@@ -107,4 +105,3 @@ tools = [
     list_mind_maps,
     get_mind_map,
 ]
-

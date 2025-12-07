@@ -171,7 +171,9 @@ class FlashcardService:
                     db.query(FlashcardGroup)
                     .filter(
                         FlashcardGroup.project_id == project_id,
-                        FlashcardGroup.study_session_id.is_(None)  # Exclude study session groups
+                        FlashcardGroup.study_session_id.is_(
+                            None
+                        ),  # Exclude study session groups
                     )
                     .order_by(FlashcardGroup.created_at.desc())
                     .all()

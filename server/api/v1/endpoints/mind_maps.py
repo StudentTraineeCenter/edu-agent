@@ -95,9 +95,7 @@ async def get_mind_map(
 ):
     """Get a specific mind map by ID."""
     try:
-        logger.info(
-            f"getting mind map id={mind_map_id}, user_id={current_user.id}"
-        )
+        logger.info(f"getting mind map id={mind_map_id}, user_id={current_user.id}")
 
         mind_map = mind_map_service.get_mind_map(
             mind_map_id=mind_map_id,
@@ -119,4 +117,3 @@ async def get_mind_map(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get mind map",
         )
-

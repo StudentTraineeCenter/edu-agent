@@ -14,7 +14,11 @@ export const SupabaseContext = React.createContext<SupabaseContextType>({
   loading: true,
 })
 
-export const SupabaseProvider = ({ children }: { children: React.ReactNode }) => {
+export const SupabaseProvider = ({
+  children,
+}: {
+  children: React.ReactNode
+}) => {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,4 +49,3 @@ export const SupabaseProvider = ({ children }: { children: React.ReactNode }) =>
     </SupabaseContext.Provider>
   )
 }
-

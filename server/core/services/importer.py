@@ -22,7 +22,7 @@ class ImporterService:
         project_id: str,
         csv_content: str,
         group_name: str,
-        group_description: str | None = None
+        group_description: str | None = None,
     ) -> str:
         """Import flashcards from CSV.
 
@@ -44,11 +44,15 @@ class ImporterService:
 
             flashcards_data = []
             for row in reader:
-                flashcards_data.append({
-                    "question": row.get("question", "").strip(),
-                    "answer": row.get("answer", "").strip(),
-                    "difficulty_level": row.get("difficulty_level", "medium").strip().lower()
-                })
+                flashcards_data.append(
+                    {
+                        "question": row.get("question", "").strip(),
+                        "answer": row.get("answer", "").strip(),
+                        "difficulty_level": row.get("difficulty_level", "medium")
+                        .strip()
+                        .lower(),
+                    }
+                )
 
             if not flashcards_data:
                 raise ValueError("No flashcards found in CSV")
@@ -66,7 +70,7 @@ class ImporterService:
                 name=group_name,
                 description=group_description,
                 created_at=datetime.now(),
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
             db.add(group)
             db.flush()
@@ -80,14 +84,16 @@ class ImporterService:
                     question=data["question"],
                     answer=data["answer"],
                     difficulty_level=data["difficulty_level"],
-                    created_at=datetime.now()
+                    created_at=datetime.now(),
                 )
                 db.add(flashcard)
 
             db.commit()
             db.refresh(group)
 
-            logger.info(f"imported {len(flashcards_data)} flashcards to group {group.id}")
+            logger.info(
+                f"imported {len(flashcards_data)} flashcards to group {group.id}"
+            )
             return str(group.id)
 
     def import_quiz_from_csv(
@@ -95,7 +101,7 @@ class ImporterService:
         project_id: str,
         csv_content: str,
         quiz_name: str,
-        quiz_description: str | None = None
+        quiz_description: str | None = None,
     ) -> str:
         """Import quiz from CSV.
 
@@ -117,16 +123,20 @@ class ImporterService:
 
             questions_data = []
             for row in reader:
-                questions_data.append({
-                    "question_text": row.get("question_text", "").strip(),
-                    "option_a": row.get("option_a", "").strip(),
-                    "option_b": row.get("option_b", "").strip(),
-                    "option_c": row.get("option_c", "").strip(),
-                    "option_d": row.get("option_d", "").strip(),
-                    "correct_option": row.get("correct_option", "").strip().lower(),
-                    "explanation": row.get("explanation", "").strip(),
-                    "difficulty_level": row.get("difficulty_level", "medium").strip().lower()
-                })
+                questions_data.append(
+                    {
+                        "question_text": row.get("question_text", "").strip(),
+                        "option_a": row.get("option_a", "").strip(),
+                        "option_b": row.get("option_b", "").strip(),
+                        "option_c": row.get("option_c", "").strip(),
+                        "option_d": row.get("option_d", "").strip(),
+                        "correct_option": row.get("correct_option", "").strip().lower(),
+                        "explanation": row.get("explanation", "").strip(),
+                        "difficulty_level": row.get("difficulty_level", "medium")
+                        .strip()
+                        .lower(),
+                    }
+                )
 
             if not questions_data:
                 raise ValueError("No questions found in CSV")
@@ -135,7 +145,9 @@ class ImporterService:
             valid_options = {"a", "b", "c", "d"}
             for data in questions_data:
                 if data["correct_option"] not in valid_options:
-                    raise ValueError(f"Invalid correct_option: {data['correct_option']}")
+                    raise ValueError(
+                        f"Invalid correct_option: {data['correct_option']}"
+                    )
 
             # Validate difficulty levels
             valid_difficulties = {"easy", "medium", "hard"}
@@ -150,7 +162,7 @@ class ImporterService:
                 name=quiz_name,
                 description=quiz_description,
                 created_at=datetime.now(),
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
             db.add(quiz)
             db.flush()
@@ -169,7 +181,7 @@ class ImporterService:
                     correct_option=data["correct_option"],
                     explanation=data["explanation"] or None,
                     difficulty_level=data["difficulty_level"],
-                    created_at=datetime.now()
+                    created_at=datetime.now(),
                 )
                 db.add(question)
 
@@ -190,4 +202,3 @@ class ImporterService:
             raise
         finally:
             db.close()
-

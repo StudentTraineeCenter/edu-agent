@@ -25,9 +25,13 @@ class CreatePracticeRecordRequest(BaseModel):
     """Request model for creating a practice record."""
 
     item_type: str = Field(
-        ..., pattern="^(flashcard|quiz)$", description="Type of study resource: flashcard or quiz"
+        ...,
+        pattern="^(flashcard|quiz)$",
+        description="Type of study resource: flashcard or quiz",
     )
-    item_id: str = Field(..., description="ID of the study resource (flashcard or quiz question)")
+    item_id: str = Field(
+        ..., description="ID of the study resource (flashcard or quiz question)"
+    )
     topic: str = Field(..., max_length=500, description="Topic extracted from question")
     user_answer: Optional[str] = Field(
         None, description="User's answer (only for quizzes, null for flashcards)"
@@ -41,7 +45,7 @@ class CreatePracticeRecordRequest(BaseModel):
         None,
         ge=0,
         le=5,
-        description="Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled."
+        description="Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled.",
     )
 
 
@@ -49,7 +53,10 @@ class CreatePracticeRecordBatchRequest(BaseModel):
     """Request model for creating multiple practice records."""
 
     practice_records: List[CreatePracticeRecordRequest] = Field(
-        ..., min_items=1, max_items=100, description="List of practice records to create"
+        ...,
+        min_items=1,
+        max_items=100,
+        description="List of practice records to create",
     )
 
 
@@ -64,4 +71,3 @@ class PracticeRecordListResponse(BaseModel):
     """Response model for listing practice records."""
 
     data: List[PracticeRecordDto] = Field(description="List of practice records")
-
