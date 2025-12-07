@@ -1,7 +1,6 @@
 import { Progress } from '@/components/ui/progress'
-import { useAtomValue, Result } from '@effect-atom/atom-react'
-import { flashcardDetailStateAtom, filteredFlashcardsAtom } from '@/data-acess/flashcard-detail-state'
-import { flashcardsAtom } from '@/data-acess/flashcard'
+import { useAtomValue } from '@effect-atom/atom-react'
+import { flashcardDetailStateAtom } from '@/features/flashcard/state/flashcard-detail-state'
 import { Option } from 'effect'
 import { useMemo } from 'react'
 
@@ -13,37 +12,39 @@ export const FlashcardProgress = ({
   flashcardGroupId,
 }: FlashcardProgressProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
-  const filteredFlashcardsResult = useAtomValue(filteredFlashcardsAtom(flashcardGroupId))
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
-  const currentCardIdx = state?.currentCardIndex ?? 0
 
-  const totalCount = useMemo(() => {
-    // Use filtered flashcards if available (for cycle mode)
-    if (Result.isSuccess(filteredFlashcardsResult)) {
-      return filteredFlashcardsResult.value.length
-    }
-    if (Result.isSuccess(flashcardsResult)) {
-      return flashcardsResult.value.data.length
-    }
-    return 0
-  }, [flashcardsResult, filteredFlashcardsResult])
+  if (!state) {
+    return null
+  }
+
+  // Use initialCardIds to get the true total (unique cards at start)
+  // If initialCardIds is empty (old state), fall back to current queue + attempted
+  const initialQueueSize =
+    state.initialCardIds.size ||
+    state.queue.length +
+      state.sessionCorrectIds.size +
+      state.sessionWrongIds.size
+
+  // Count both correct and incorrect as "completed" (attempted)
+  const completedInSession =
+    state.sessionCorrectIds.size + state.sessionWrongIds.size
 
   const progressPercentage = useMemo(() => {
-    if (!state || !totalCount) return 0
-    return ((currentCardIdx + 1) / totalCount) * 100
-  }, [totalCount, state, currentCardIdx])
+    if (!initialQueueSize) return 0
+    return (completedInSession / initialQueueSize) * 100
+  }, [completedInSession, initialQueueSize])
 
-  const roundInfo = state?.mode === 'cycle-until-correct' && state.currentRound > 1
-    ? `Round ${state.currentRound} - `
-    : ''
+  if (initialQueueSize === 0) {
+    return null
+  }
 
   return (
     <>
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {roundInfo}Card {currentCardIdx + 1} of {totalCount}
+          {completedInSession} of {initialQueueSize} completed
         </span>
         <span>{Math.round(progressPercentage)}% complete</span>
       </div>

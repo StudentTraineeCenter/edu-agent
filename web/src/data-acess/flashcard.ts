@@ -70,24 +70,6 @@ export const deleteFlashcardGroupAtom = runtime.fn(
   }),
 )
 
-export const toggleSpacedRepetitionAtom = runtime.fn(
-  Effect.fn(function* (input: {
-    flashcardGroupId: string
-    enabled: boolean
-    projectId: string
-  }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch(
-      input.flashcardGroupId,
-      input.enabled,
-    )
-
-    registry.refresh(flashcardGroupAtom(input.flashcardGroupId))
-    registry.refresh(flashcardGroupsAtom(input.projectId))
-  }),
-)
-
 export const exportFlashcardGroupAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string }) {
     const client = yield* makeApiClient

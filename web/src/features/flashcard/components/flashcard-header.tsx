@@ -6,29 +6,14 @@ import {
   BreadcrumbItem,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { flashcardGroupAtom } from '@/data-acess/flashcard'
-import {
-  flashcardDetailStateAtom,
-  setModeAtom,
-  shuffleFlashcardsAtom,
-  type FlashcardMode,
-} from '@/data-acess/flashcard-detail-state'
+import { initializeQueueAtom } from '@/features/flashcard/state/flashcard-detail-state'
 import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Settings2, Shuffle } from 'lucide-react'
+import { ArrowLeft, Shuffle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { Option } from 'effect'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string
@@ -76,29 +61,13 @@ export const FlashcardHeader = ({
   projectId,
 }: FlashcardHeaderProps) => {
   const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
-  const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const setMode = useAtomSet(setModeAtom)
-  const shuffleFlashcards = useAtomSet(shuffleFlashcardsAtom, {
+  const initializeQueue = useAtomSet(initializeQueueAtom, {
     mode: 'promise',
   })
 
-  const state = Option.isSome(stateResult) ? stateResult.value : null
-  const currentMode = state?.mode ?? 'normal'
-
   const handleShuffle = async () => {
-    await shuffleFlashcards({ flashcardGroupId })
+    await initializeQueue({ flashcardGroupId, includeMastered: false })
   }
-
-  const modes: Array<{ value: FlashcardMode; label: string }> = [
-    {
-      value: 'normal',
-      label: 'Normal',
-    },
-    {
-      value: 'cycle-until-correct',
-      label: 'Cycle Until Correct',
-    },
-  ]
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -131,32 +100,6 @@ export const FlashcardHeader = ({
           <Shuffle className="h-4 w-4" />
           <span className="hidden sm:inline">Shuffle</span>
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Settings2 className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {modes.find((m) => m.value === currentMode)?.label || 'Mode'}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Practice Mode</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup
-              value={currentMode}
-              onValueChange={(value) =>
-                setMode({ flashcardGroupId, mode: value as FlashcardMode })
-              }
-            >
-              {modes.map((mode) => (
-                <DropdownMenuRadioItem key={mode.value} value={mode.value}>
-                  {mode.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   )

@@ -16,13 +16,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { useAtomSet } from '@effect-atom/atom-react'
 import {
   deleteFlashcardGroupAtom,
-  toggleSpacedRepetitionAtom,
   exportFlashcardGroupAtom,
   importFlashcardGroupAtom,
-  flashcardGroupAtom,
 } from '@/data-acess/flashcard'
 import { deleteNoteAtom } from '@/data-acess/note'
 import {
@@ -32,8 +30,7 @@ import {
 } from '@/data-acess/quiz'
 import { StudyResource } from '@/data-acess/study-resources'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
-import { DownloadIcon, UploadIcon, RepeatIcon } from 'lucide-react'
-import { Result } from '@effect-atom/atom-react'
+import { DownloadIcon, UploadIcon } from 'lucide-react'
 import { useState, useRef } from 'react'
 
 type Props = {
@@ -76,10 +73,6 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
 
   return StudyResource.$match(studyResource, {
     FlashcardGroup: ({ data: flashcardGroup }) => {
-      const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroup.id))
-      const toggleSpacedRepetition = useAtomSet(toggleSpacedRepetitionAtom, {
-        mode: 'promise',
-      })
       const exportGroup = useAtomSet(exportFlashcardGroupAtom, {
         mode: 'promise',
       })
@@ -88,10 +81,6 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
       })
       const fileInputRef = useRef<HTMLInputElement>(null)
       const [isExporting, setIsExporting] = useState(false)
-
-      const spacedRepetitionEnabled =
-        Result.isSuccess(groupResult) &&
-        groupResult.value.flashcard_group?.spaced_repetition_enabled === true
 
       const handleDelete = async (e: React.MouseEvent) => {
         e.preventDefault()
@@ -111,17 +100,6 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
             projectId: flashcardGroup.project_id ?? '',
           })
         }
-      }
-
-      const handleToggleSpacedRepetition = async (e: React.MouseEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-
-        await toggleSpacedRepetition({
-          flashcardGroupId: flashcardGroup.id,
-          enabled: !spacedRepetitionEnabled,
-          projectId: flashcardGroup.project_id ?? '',
-        })
       }
 
       const handleExport = async (e: React.MouseEvent) => {
@@ -198,14 +176,6 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleToggleSpacedRepetition}>
-                  <RepeatIcon className="size-4" />
-                  <span>
-                    {spacedRepetitionEnabled
-                      ? 'Disable Spaced Repetition'
-                      : 'Enable Spaced Repetition'}
-                  </span>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
                   <DownloadIcon className="size-4" />
                   <span>Export CSV</span>

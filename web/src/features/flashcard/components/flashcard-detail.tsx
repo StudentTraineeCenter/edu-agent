@@ -1,12 +1,14 @@
 import {
   flashcardDetailStateAtom,
   resetAtom,
-  setShowAnswerAtom,
   submitPendingPracticeRecordsAtom,
   gotItRightAtom,
   gotItWrongAtom,
-} from '@/data-acess/flashcard-detail-state'
-import { flashcardsAtom } from '@/data-acess/flashcard'
+  initializeQueueAtom,
+  currentFlashcardAtom,
+  resetWrongAtom,
+  setShowAnswerAtom,
+} from '@/features/flashcard/state/flashcard-detail-state'
 import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import React, { useEffect, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
@@ -23,10 +25,12 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
 
   const navigate = useNavigate()
 
-  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
+  const currentCard = useAtomValue(currentFlashcardAtom(flashcardGroupId))
 
   const reset = useAtomSet(resetAtom)
+  const initializeQueue = useAtomSet(initializeQueueAtom)
+  const resetWrong = useAtomSet(resetWrongAtom)
   const submitPendingPracticeRecords = useAtomSet(
     submitPendingPracticeRecordsAtom,
     {
@@ -51,9 +55,17 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
 
   const handleRetry = () => {
     reset({ flashcardGroupId })
+    initializeQueue({ flashcardGroupId, includeMastered: false })
   }
 
-  // Keyboard shortcuts: R for right, W for wrong, Space to toggle answer
+  const handleRetryWrong = (wrongIds: string[]) => {
+    resetWrong({
+      flashcardGroupId,
+      wrongCardIds: new Set(wrongIds),
+    })
+  }
+
+  // Keyboard shortcuts: Spacebar for toggle answer, R for "Got it", W for "Not yet"
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Ignore if user is typing in an input/textarea
@@ -62,19 +74,9 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
         return
       }
 
-      // Get current state and flashcards
+      // Get current state
       const currentState = Option.isSome(stateResult) ? stateResult.value : null
-      if (!currentState) return
-
-      // Get current card from Result
-      const currentCard =
-        flashcardsResult._tag === 'Success'
-          ? flashcardsResult.value.data?.[currentState.currentCardIndex]
-          : null
-
-      if (!currentCard) return
-
-      const isCardMarked = currentState.markedCardIds.has(currentCard.id)
+      if (!currentState || !currentCard) return
 
       // Spacebar toggles show/hide answer
       if (event.code === 'Space' || event.key === ' ') {
@@ -82,9 +84,6 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
         setShowAnswer({ flashcardGroupId, show: !currentState.showAnswer })
         return
       }
-
-      // Only handle right/wrong shortcuts when answer is shown and card is not marked
-      if (!currentState.showAnswer || isCardMarked) return
 
       if (event.key === 'r' || event.key === 'R') {
         event.preventDefault()
@@ -100,16 +99,23 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
   }, [
     projectId,
     stateResult,
-    flashcardsResult,
+    currentCard,
     flashcardGroupId,
     setShowAnswer,
     gotItRight,
     gotItWrong,
   ])
 
+  // Initialize queue when component mounts or group changes
+  // Wait a bit to ensure flashcards are loaded first
   useEffect(() => {
     reset({ flashcardGroupId })
-  }, [flashcardGroupId, reset])
+    // Small delay to ensure flashcardsAtom has started loading
+    const timer = setTimeout(() => {
+      initializeQueue({ flashcardGroupId, includeMastered: false })
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [flashcardGroupId, reset, initializeQueue])
 
   if (!projectId) return null
 
@@ -120,6 +126,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
         projectId={projectId}
         onSubmit={handleSubmitPendingPracticeRecords}
         onRetry={handleRetry}
+        onRetryWrong={handleRetryWrong}
         onClose={handleClose}
       />
     </div>

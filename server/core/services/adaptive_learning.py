@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from core.logger import get_logger
 from core.services.practice import PracticeService
-from core.services.spaced_repetition import SpacedRepetitionService
 from db.models import Flashcard, FlashcardGroup, PracticeRecord, Quiz, QuizQuestion, StudySession
 from uuid import uuid4
 from db.session import SessionLocal
@@ -22,17 +21,14 @@ class AdaptiveLearningService:
 
     def __init__(
         self,
-        practice_service: PracticeService,
-        spaced_repetition_service: SpacedRepetitionService
+        practice_service: PracticeService
     ):
         """Initialize adaptive learning service.
 
         Args:
             practice_service: Service for accessing practice records
-            spaced_repetition_service: Service for spaced repetition
         """
         self.practice_service = practice_service
-        self.sr_service = spaced_repetition_service
 
     async def generate_study_session(
         self,
@@ -84,26 +80,7 @@ class AdaptiveLearningService:
             # Prioritize flashcards
             prioritized_flashcards = []
 
-            # 1. Due for review (spaced repetition)
-            for group in flashcard_groups:
-                if group.spaced_repetition_enabled:
-                    due_flashcards = self.sr_service.get_due_flashcards(
-                        db=db,
-                        user_id=user_id,
-                        group_id=group.id,
-                        limit=20
-                    )
-                    prioritized_flashcards.extend([
-                        {
-                            "flashcard_id": f.id,
-                            "group_id": group.id,
-                            "priority": "high",
-                            "reason": "due_for_review"
-                        }
-                        for f in due_flashcards
-                    ])
-
-            # 2. Weak topics
+            # 1. Weak topics
             weak_topics = [
                 topic for topic, stats in topic_analysis.items()
                 if stats["accuracy"] < 70
@@ -128,7 +105,7 @@ class AdaptiveLearningService:
                                     "reason": "weak_topic"
                                 })
 
-            # 3. Fill remaining slots with new/unpracticed items
+            # 2. Fill remaining slots with new/unpracticed items
             practiced_flashcard_ids = {pr.item_id for pr in practice_records if pr.item_type == "flashcard"}
 
             for group in flashcard_groups:
@@ -178,7 +155,6 @@ class AdaptiveLearningService:
                 project_id=project_id,
                 name=f"Study Session - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                 description="Personalized study session based on your performance",
-                spaced_repetition_enabled=False,
                 study_session_id=session.id,
                 created_at=datetime.now(),
                 updated_at=datetime.now()

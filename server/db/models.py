@@ -191,7 +191,6 @@ class FlashcardGroup(Base):
     project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    spaced_repetition_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     study_session_id: Mapped[Optional[str]] = mapped_column(
         String, ForeignKey("study_sessions.id"), nullable=True, index=True
     )  # If set, this group belongs to a study session and should be hidden from regular lists
@@ -368,8 +367,8 @@ class MindMap(Base):
     project = relationship("Project")
 
 
-class FlashcardSpacedRepetition(Base):
-    __tablename__ = "flashcard_spaced_repetition"
+class FlashcardProgress(Base):
+    __tablename__ = "flashcard_progress"
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
@@ -378,12 +377,14 @@ class FlashcardSpacedRepetition(Base):
     group_id: Mapped[str] = mapped_column(String, ForeignKey("flashcard_groups.id"), index=True)
     project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"), index=True)
 
-    # SM-2 algorithm state
-    ease_factor: Mapped[float] = mapped_column(Float, default=2.5)
-    interval_days: Mapped[int] = mapped_column(Integer, default=1)
-    repetition_count: Mapped[int] = mapped_column(Integer, default=0)
-    last_reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
-    next_review_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Simple mastery tracking
+    correct_count: Mapped[int] = mapped_column(Integer, default=0)
+    incorrect_count: Mapped[int] = mapped_column(Integer, default=0)
+    current_streak: Mapped[int] = mapped_column(Integer, default=0)
+    mastery_level: Mapped[int] = mapped_column(Integer, default=0)  # 0=unseen, 1=learning, 2=mastered
+    is_mastered: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_result: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    last_practiced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

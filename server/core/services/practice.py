@@ -29,7 +29,6 @@ class PracticeService:
         user_answer: str | None,
         correct_answer: str,
         was_correct: bool,
-        quality_rating: int | None = None,
     ) -> PracticeRecord:
         """Create a single practice record.
 
@@ -42,7 +41,6 @@ class PracticeService:
             user_answer: User's answer (can be None for flashcards)
             correct_answer: The correct answer
             was_correct: Whether the user's answer was correct
-            quality_rating: Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled.
 
         Returns:
             Created PracticeRecord model instance
@@ -71,23 +69,22 @@ class PracticeService:
                 db.commit()
                 db.refresh(practice_record)
 
-                # If flashcard with spaced repetition enabled, update SR state
-                if study_resource_type == "flashcard" and quality_rating is not None:
-                    from core.services.spaced_repetition import SpacedRepetitionService
-                    from db.models import Flashcard, FlashcardGroup
+                # If flashcard, update progress
+                if study_resource_type == "flashcard":
+                    from core.services.flashcard_progress import FlashcardProgressService
+                    from db.models import Flashcard
 
-                    sr_service = SpacedRepetitionService()
+                    progress_service = FlashcardProgressService()
                     flashcard = db.query(Flashcard).filter(Flashcard.id == study_resource_id).first()
                     if flashcard:
-                        group = db.query(FlashcardGroup).filter(FlashcardGroup.id == flashcard.group_id).first()
-                        if group and group.spaced_repetition_enabled:
-                            sr_service.update_after_practice(
-                                db=db,
-                                user_id=user_id,
-                                flashcard_id=study_resource_id,
-                                quality=quality_rating,
-                                was_correct=was_correct
-                            )
+                        progress_service.record_answer(
+                            db=db,
+                            user_id=user_id,
+                            flashcard_id=study_resource_id,
+                            group_id=flashcard.group_id,
+                            project_id=project_id,
+                            is_correct=was_correct
+                        )
 
                 logger.info(
                     f"created practice record id={practice_record.id} for user_id={user_id}, item_type={study_resource_type}, item_id={study_resource_id}"

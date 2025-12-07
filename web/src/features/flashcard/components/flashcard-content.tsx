@@ -1,8 +1,7 @@
-import { flashcardsAtom } from '@/data-acess/flashcard'
 import {
   flashcardDetailStateAtom,
-  filteredFlashcardsAtom,
-} from '@/data-acess/flashcard-detail-state'
+  currentFlashcardAtom,
+} from '@/features/flashcard/state/flashcard-detail-state'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
 import { Option } from 'effect'
@@ -16,6 +15,7 @@ type FlashcardContentProps = {
   projectId: string
   onSubmit: () => void
   onRetry: () => void
+  onRetryWrong: (wrongIds: string[]) => void
   onClose: () => void
 }
 
@@ -24,74 +24,68 @@ export const FlashcardContent = ({
   projectId,
   onSubmit,
   onRetry,
+  onRetryWrong,
   onClose,
 }: FlashcardContentProps) => {
-  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const filteredFlashcardsResult = useAtomValue(
-    filteredFlashcardsAtom(flashcardGroupId),
-  )
+  const currentCard = useAtomValue(currentFlashcardAtom(flashcardGroupId))
 
-  return Result.builder(flashcardsResult)
-    .onInitialOrWaiting(() => (
+  const state = Option.isSome(stateResult) ? stateResult.value : null
+
+  if (!state) {
+    return (
       <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
         <Loader2Icon className="size-4 animate-spin" />
         <span>Loading flashcards...</span>
       </div>
-    ))
-    .onFailure(() => (
-      <div className="flex flex-1 items-center justify-center gap-2 text-destructive">
-        <span>Failed to load flashcards</span>
+    )
+  }
+
+  // Session is complete when queue is empty
+  if (state.queue.length === 0 || state.isCompleted) {
+    return (
+      <FlashcardCompletionScreen
+        onSubmit={onSubmit}
+        onRetry={onRetry}
+        onRetryWrong={onRetryWrong}
+        onClose={onClose}
+        flashcardGroupId={flashcardGroupId}
+      />
+    )
+  }
+
+  if (!currentCard) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-muted-foreground">No flashcards available</p>
       </div>
-    ))
-    .onSuccess((result) => {
-      const state = Option.isSome(stateResult) ? stateResult.value : null
-      if (!state) return null
+    )
+  }
 
-      // Use filtered flashcards based on mode
-      const flashcards = Result.isSuccess(filteredFlashcardsResult)
-        ? filteredFlashcardsResult.value
-        : (result.data ?? [])
+  return (
+    <div className="flex flex-col space-y-12 flex-1 min-h-0 overflow-auto p-4">
+      <FlashcardProgress flashcardGroupId={flashcardGroupId} />
 
-      const currentCard = flashcards[state.currentCardIndex]
-
-      if (!currentCard || flashcards.length === 0) {
-        return (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-muted-foreground">No flashcards available</p>
-          </div>
-        )
-      }
-
-      const allCardsMarked = state.markedCardIds.size === flashcards.length
-
-      if (state.isCompleted || allCardsMarked) {
-        return (
-          <FlashcardCompletionScreen
-            onSubmit={onSubmit}
-            onRetry={onRetry}
-            onClose={onClose}
-            flashcardGroupId={flashcardGroupId}
-          />
-        )
-      }
-
-      return (
-        <div className="flex flex-col space-y-12 flex-1 min-h-0 overflow-auto p-4">
-          <FlashcardProgress flashcardGroupId={flashcardGroupId} />
-
+      {Result.builder(currentCard)
+        .onSuccess((card) => (
           <FlashcardCard
             flashcardGroupId={flashcardGroupId}
-            question={currentCard.question}
-            answer={currentCard.answer}
+            question={card?.question ?? ''}
+            answer={card?.answer ?? ''}
           />
+        ))
+        .onInitialOrWaiting(() => (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2Icon className="size-4 animate-spin" />
+            <span>Loading flashcard...</span>
+          </div>
+        ))
+        .render()}
 
-          <FlashcardControls
-            flashcardGroupId={flashcardGroupId}
-            projectId={projectId}
-          />
-        </div>
-      )
-    })
-    .render()
+      <FlashcardControls
+        flashcardGroupId={flashcardGroupId}
+        projectId={projectId}
+      />
+    </div>
+  )
 }

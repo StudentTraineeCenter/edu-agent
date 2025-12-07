@@ -12,7 +12,7 @@ from core.services.notes import NoteService
 from core.services.practice import PracticeService
 from core.services.projects import ProjectService
 from core.services.quizzes import QuizService
-from core.services.spaced_repetition import SpacedRepetitionService
+from core.services.flashcard_progress import FlashcardProgressService
 from core.services.usage import UsageService
 from db.models import User
 from fastapi import Depends
@@ -36,7 +36,7 @@ quiz_service = QuizService(search_interface=search_interface)
 note_service = NoteService(search_interface=search_interface)
 mind_map_service = MindMapService(search_interface=search_interface)
 practice_service = PracticeService()
-spaced_repetition_service = SpacedRepetitionService()
+flashcard_progress_service = FlashcardProgressService()
 exporter_service = ExporterService()
 importer_service = ImporterService()
 
@@ -85,14 +85,13 @@ def get_mind_map_service():
     return mind_map_service
 
 
-def get_spaced_repetition_service():
-    return spaced_repetition_service
+def get_flashcard_progress_service():
+    return flashcard_progress_service
 
 
 def get_adaptive_learning_service():
     return AdaptiveLearningService(
-        practice_service=practice_service,
-        spaced_repetition_service=spaced_repetition_service
+        practice_service=practice_service
     )
 
 
