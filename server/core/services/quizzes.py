@@ -7,12 +7,12 @@ from typing import AsyncGenerator, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
 from core.logger import get_logger
@@ -896,9 +896,6 @@ class QuizService:
                 f"found {len(document_content)} chars of content in project_id={project_id}"
             )
 
-            # Create prompt template
-            prompt_template = self._create_quiz_prompt_template()
-
             # Build difficulty instructions (length is already resolved to count)
             difficulty_instruction = ""
             if difficulty == "easy":
@@ -907,8 +904,9 @@ class QuizService:
                 difficulty_instruction = " Create challenging questions that test deep understanding, analysis, and application of concepts."
             # "medium" or None uses default behavior
 
-            # Build the prompt
-            prompt = prompt_template.format(
+            # Build the prompt using Jinja2 template
+            prompt = render_prompt(
+                "quiz_prompt",
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
@@ -979,61 +977,6 @@ class QuizService:
             )
             return ""
 
-    def _create_quiz_prompt_template(self) -> PromptTemplate:
-        """Create the prompt template for quiz generation.
-
-        Returns:
-            PromptTemplate instance
-        """
-        template = """You are an expert educational content creator specializing in assessment design. Your goal is to create quizzes that accurately measure student understanding and promote learning through well-designed questions and explanations.
-
-Document Content:
-{document_content}
-
-User Instructions: {user_prompt}
-
-CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
-- Quiz name and description
-- All questions
-- All answer options (A, B, C, D)
-- All explanations
-Never use any language other than {language_code}. If the document content is in a different language, translate all relevant information to {language_code}.
-
-Educational Guidelines for quiz creation:
-1. Name: Generate a concise, descriptive name (2-6 words) in {language_code} that captures the main topic or theme being assessed
-2. Description: Generate a clear description (1-2 sentences) in {language_code} explaining what knowledge and skills the quiz will evaluate
-3. Learning-focused questions: Create questions that test understanding, application, analysis, and synthesis - not just factual recall
-4. Difficulty distribution: Include a balanced mix of difficulty levels:
-   - Easy: Basic recall and understanding of key concepts
-   - Medium: Application of concepts to new situations
-   - Hard: Analysis, evaluation, and synthesis requiring deep understanding
-5. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
-6. Question clarity: Make questions clear, unambiguous, and focused on a single concept or skill
-7. Answer options: Provide exactly 4 plausible options (A, B, C, D) with only one clearly correct answer
-8. Distractor quality: Make incorrect options (distractors) plausible enough to test real understanding, but clearly wrong to students who have mastered the material
-9. Explanations: Provide detailed, educational explanations for the correct answer that help students understand:
-   - Why the correct answer is right
-   - Why the incorrect options are wrong
-   - The underlying concept or principle
-   - How to approach similar questions in the future
-10. Educational value: Focus on the most pedagogically important content that will help students assess and improve their understanding
-11. Fair assessment: Ensure questions are fair, test actual knowledge from the documents, and align with the learning objectives
-12. Progressive difficulty: Structure questions to progress from foundational to more complex concepts when appropriate
-
-{format_instructions}
-
-Generate exactly {count} high-quality quiz questions in {language_code} that are relevant to the document content, follow the user's instructions, and effectively assess student understanding."""
-
-        return PromptTemplate(
-            template=template,
-            input_variables=[
-                "document_content",
-                "count",
-                "user_prompt",
-                "language_code",
-                "format_instructions",
-            ],
-        )
 
     @contextmanager
     def _get_db_session(self):

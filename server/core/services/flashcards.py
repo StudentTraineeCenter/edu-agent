@@ -7,12 +7,12 @@ from typing import AsyncGenerator, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
 from core.logger import get_logger
@@ -751,9 +751,6 @@ class FlashcardService:
                 f"found {len(document_content)} chars of content in project_id={project_id}"
             )
 
-            # Create prompt template
-            prompt_template = self._create_flashcard_group_prompt_template()
-
             # Build difficulty instructions (length is already resolved to count)
             difficulty_instruction = ""
             if difficulty == "easy":
@@ -762,8 +759,9 @@ class FlashcardService:
                 difficulty_instruction = " Create challenging flashcards that test deep understanding, analysis, and application of concepts."
             # "medium" or None uses default behavior
 
-            # Build the prompt
-            prompt = prompt_template.format(
+            # Build the prompt using Jinja2 template
+            prompt = render_prompt(
+                "flashcard_group_prompt",
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
@@ -834,52 +832,6 @@ class FlashcardService:
             )
             return ""
 
-    def _create_flashcard_group_prompt_template(self) -> PromptTemplate:
-        """Create the prompt template for flashcard group generation.
-
-        Returns:
-            PromptTemplate instance
-        """
-        template = """You are an expert educational content creator specializing in creating effective learning materials. Your goal is to help students master the course material through well-designed flashcards that promote deep understanding.
-
-Document Content:
-{document_content}
-
-User Instructions: {user_prompt}
-
-CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
-- Group name and description
-- All flashcard questions
-- All flashcard answers
-- Any explanations or additional context
-Never use any language other than {language_code}. If the document content is in a different language, translate all relevant information to {language_code}.
-
-Educational Guidelines for flashcard creation:
-1. Name: Generate a concise, descriptive name (2-6 words) that captures the main topic or theme in {language_code}
-2. Description: Generate a clear description (1-2 sentences) in {language_code} explaining what knowledge the flashcards will help students master
-3. Learning-focused questions: Create flashcards that test understanding, application, and critical thinking - not just rote memorization
-4. Difficulty distribution: Include a balanced mix of difficulty levels (easy: foundational concepts, medium: application, hard: analysis/synthesis)
-5. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
-6. Question quality: Make questions clear, specific, and thought-provoking - they should require understanding, not just recall
-7. Answer quality: Provide comprehensive but concise answers that explain the "why" behind the concept, not just the "what"
-8. Educational value: Focus on the most pedagogically important content that will help students truly understand the material
-9. Progressive learning: Structure flashcards to build from basic concepts to more complex applications
-10. Active recall: Design questions that require active retrieval and application of knowledge
-
-{format_instructions}
-
-Generate exactly {count} high-quality flashcards in {language_code} that are relevant to the document content, follow the user's instructions, and promote deep learning."""
-
-        return PromptTemplate(
-            template=template,
-            input_variables=[
-                "document_content",
-                "count",
-                "user_prompt",
-                "language_code",
-                "format_instructions",
-            ],
-        )
 
     @contextmanager
     def _get_db_session(self):

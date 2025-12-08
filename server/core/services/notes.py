@@ -7,11 +7,11 @@ from typing import AsyncGenerator, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
 from core.logger import get_logger
@@ -409,9 +409,6 @@ class NoteService:
                 f"found {len(document_content)} chars of content in project_id={project_id}"
             )
 
-            # Create prompt template
-            prompt_template = self._create_note_prompt_template()
-
             # Build length instruction with concrete targets
             length_instruction = ""
             if length == "less":
@@ -420,8 +417,9 @@ class NoteService:
                 length_instruction = " Create a comprehensive, detailed note (target: 2000-3000 words) with extensive coverage, multiple examples, detailed explanations, and thorough context."
             # "normal" or None uses default behavior (target: 1000-1500 words)
 
-            # Build the prompt
-            prompt = prompt_template.format(
+            # Build the prompt using Jinja2 template
+            prompt = render_prompt(
+                "note_prompt",
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
@@ -491,60 +489,6 @@ class NoteService:
             )
             return ""
 
-    def _create_note_prompt_template(self) -> PromptTemplate:
-        """Create the prompt template for note generation.
-
-        Returns:
-            PromptTemplate instance
-        """
-        template = """You are an expert educational content creator specializing in creating comprehensive study notes. Your goal is to help students master course material through well-structured, clear, and comprehensive markdown documents.
-
-Document Content:
-{document_content}
-
-User Instructions: {user_prompt}
-
-CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
-- Note title and description
-- All markdown content
-- All headers, lists, code blocks, and explanations
-Never use any language other than {language_code}. If the document content is in a different language, translate all relevant information to {language_code}.
-
-Educational Guidelines for note creation:
-1. Title: Generate a concise, descriptive title (2-6 words) in {language_code} that captures the main topic or theme
-2. Description: Generate a clear description (1-2 sentences) in {language_code} explaining what knowledge the note covers
-3. Structure: Create well-organized markdown with:
-   - Clear hierarchical headings (##, ###, ####)
-   - Bullet points and numbered lists where appropriate
-   - Code blocks with syntax highlighting when relevant
-   - Tables for structured data
-   - Emphasis (bold, italic) for key concepts
-4. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
-5. Clarity: Write clearly and concisely, using simple language when possible while maintaining accuracy
-6. Examples: Include relevant examples and use cases to illustrate concepts
-7. Organization: Structure content logically, progressing from basic concepts to more advanced topics
-8. Educational value: Focus on the most pedagogically important content that will help students truly understand the material
-9. Markdown formatting: Use proper markdown syntax:
-   - Headers: ## for main sections, ### for subsections
-   - Lists: Use - for unordered lists, 1. for ordered lists
-   - Code: Use ```language``` for code blocks with appropriate language tags
-   - Emphasis: Use **bold** for key terms, *italic* for emphasis
-   - Links: Use [text](url) format when referencing external resources
-10. Completeness: Ensure the note provides a comprehensive overview of the topic while remaining focused and readable
-
-{format_instructions}
-
-Generate a high-quality, well-structured markdown note in {language_code} that is relevant to the document content, follows the user's instructions, and promotes deep learning."""
-
-        return PromptTemplate(
-            template=template,
-            input_variables=[
-                "document_content",
-                "user_prompt",
-                "language_code",
-                "format_instructions",
-            ],
-        )
 
     @contextmanager
     def _get_db_session(self):

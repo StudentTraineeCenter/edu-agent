@@ -7,11 +7,11 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
 from core.logger import get_logger
@@ -355,11 +355,9 @@ class MindMapService:
         try:
             logger.info(f"generating mind map content for project_id={project_id}")
 
-            # Create prompt template
-            prompt_template = self._create_mind_map_prompt_template()
-
-            # Build the prompt
-            prompt = prompt_template.format(
+            # Build the prompt using Jinja2 template
+            prompt = render_prompt(
+                "mind_map_prompt",
                 document_content=document_content[
                     :12000
                 ],  # Limit content to avoid token limits
@@ -451,82 +449,6 @@ class MindMapService:
             )
             return ""
 
-    def _create_mind_map_prompt_template(self) -> PromptTemplate:
-        """Create the prompt template for mind map generation.
-
-        Returns:
-            PromptTemplate instance
-        """
-        template = """You are an expert educational AI assistant specializing in creating mind maps from educational content. Your goal is to analyze document content and create a structured, hierarchical mind map that visualizes key concepts, relationships, and connections.
-
-Document Content:
-{document_content}
-
-User Request: {user_prompt}
-
-CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {language_code} language. This includes:
-- Mind map title and description
-- All node labels
-- All edge labels (if any)
-- All text content
-Never use any language other than {language_code}.
-
-Guidelines for mind map creation:
-1. Title: Generate a concise, descriptive title (3-8 words) in {language_code} that summarizes the main topic
-2. Description: Generate a clear description (2-3 sentences) in {language_code} explaining what the mind map covers
-3. Structure: Create a hierarchical structure with:
-   - A central/root node (main topic)
-   - Primary branches (major concepts, typically 3-7 nodes)
-   - Secondary branches (sub-concepts, details)
-   - Tertiary branches if needed (specific details, examples)
-4. Nodes: Each node should have:
-   - A unique ID (e.g., "node-1", "node-2", etc.)
-   - A clear, concise label in {language_code} (1-5 words typically)
-   - Position coordinates (x, y) - arrange in a radial or hierarchical layout
-   - Optional data field for additional information
-5. Edges: Connect related nodes with:
-   - A unique ID (e.g., "edge-1", "edge-2", etc.)
-   - Source and target node IDs
-   - Optional label for the relationship type
-6. Layout: Position nodes in a logical, readable layout:
-   - Central node at approximately (0, 0) or center
-   - Primary nodes arranged around the center (radial or hierarchical)
-   - Secondary nodes positioned near their parent nodes
-   - Use spacing: primary nodes ~200-300 units from center, secondary ~100-150 units from parent
-7. Content Coverage: Ensure the mind map covers:
-   - Main concepts and themes
-   - Key definitions and terms
-   - Important relationships and connections
-   - Major categories or classifications
-   - Critical details and examples
-8. Balance: Create a balanced structure (not too sparse, not too dense)
-   - Aim for 10-30 nodes total
-   - 3-7 primary branches from center
-   - 2-5 secondary nodes per primary branch
-9. Clarity: Use clear, concise labels that are self-explanatory
-10. Relationships: Show meaningful connections between related concepts
-
-Position Guidelines:
-- Center node: position around (0, 0) or (400, 300) for a 800x600 canvas
-- Primary nodes: Position in a circle or semi-circle around center
-  - For 4 nodes: positions like (0, -200), (200, 0), (0, 200), (-200, 0)
-  - For 6 nodes: positions in a hexagon pattern
-- Secondary nodes: Position near their parent, offset by ~150-200 units
-- Use consistent spacing and avoid overlapping
-
-{format_instructions}
-
-Generate a comprehensive, well-structured mind map in {language_code} that visualizes the key concepts and relationships from the document content."""
-
-        return PromptTemplate(
-            template=template,
-            input_variables=[
-                "document_content",
-                "user_prompt",
-                "language_code",
-                "format_instructions",
-            ],
-        )
 
     @contextmanager
     def _get_db_session(self):
