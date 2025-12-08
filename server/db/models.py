@@ -28,10 +28,10 @@ class User(Base):
     )
 
     # Relationships
-    projects = relationship("Project", back_populates="owner")
-    documents = relationship("Document", back_populates="owner")
-    chats = relationship("Chat", back_populates="user")
-    usage = relationship("UserUsage", back_populates="user", uselist=False)
+    projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="owner", cascade="all, delete-orphan")
+    chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
+    usage = relationship("UserUsage", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -39,7 +39,9 @@ class Project(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE")
+    )
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     language_code: Mapped[str] = mapped_column(String, default="en")
@@ -48,8 +50,8 @@ class Project(Base):
     )
 
     owner = relationship("User", back_populates="projects")
-    documents = relationship("Document", back_populates="project")
-    chats = relationship("Chat", back_populates="project")
+    documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
+    chats = relationship("Chat", back_populates="project", cascade="all, delete-orphan")
 
 
 class Document(Base):
@@ -57,9 +59,11 @@ class Document(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE")
+    )
     project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), nullable=True
+        String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True
     )
 
     # File information
@@ -106,7 +110,9 @@ class DocumentSegment(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    document_id: Mapped[str] = mapped_column(String, ForeignKey("documents.id"))
+    document_id: Mapped[str] = mapped_column(
+        String, ForeignKey("documents.id", ondelete="CASCADE")
+    )
 
     # Content
     content: Mapped[str] = mapped_column(Text)
@@ -160,8 +166,12 @@ class Chat(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"))
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE")
+    )
 
     # Chat metadata
     title: Mapped[str] = mapped_column(
@@ -189,11 +199,13 @@ class FlashcardGroup(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     study_session_id: Mapped[Optional[str]] = mapped_column(
-        String, ForeignKey("study_sessions.id"), nullable=True, index=True
+        String, ForeignKey("study_sessions.id", ondelete="CASCADE"), nullable=True, index=True
     )  # If set, this group belongs to a study session and should be hidden from regular lists
 
     created_at: Mapped[datetime] = mapped_column(
@@ -215,8 +227,12 @@ class Flashcard(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    group_id: Mapped[str] = mapped_column(String, ForeignKey("flashcard_groups.id"))
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    group_id: Mapped[str] = mapped_column(
+        String, ForeignKey("flashcard_groups.id", ondelete="CASCADE")
+    )
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
 
     question: Mapped[str] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text)
@@ -238,7 +254,9 @@ class Quiz(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
 
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
@@ -262,8 +280,12 @@ class QuizQuestion(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    quiz_id: Mapped[str] = mapped_column(String, ForeignKey("quizzes.id"))
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    quiz_id: Mapped[str] = mapped_column(
+        String, ForeignKey("quizzes.id", ondelete="CASCADE")
+    )
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
 
     question_text: Mapped[str] = mapped_column(Text)
     option_a: Mapped[str] = mapped_column(Text)
@@ -290,7 +312,9 @@ class Note(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    project_id: Mapped[str] = mapped_column(String, ForeignKey("projects.id"))
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE")
+    )
     title: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     content: Mapped[str] = mapped_column(Text)  # Markdown content
@@ -311,9 +335,11 @@ class PracticeRecord(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), index=True
+        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
 
     item_type: Mapped[str] = mapped_column(
@@ -347,9 +373,11 @@ class MindMap(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), index=True
+        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
 
     # Map content
@@ -377,15 +405,17 @@ class FlashcardProgress(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     flashcard_id: Mapped[str] = mapped_column(
-        String, ForeignKey("flashcards.id"), index=True
+        String, ForeignKey("flashcards.id", ondelete="CASCADE"), index=True
     )
     group_id: Mapped[str] = mapped_column(
-        String, ForeignKey("flashcard_groups.id"), index=True
+        String, ForeignKey("flashcard_groups.id", ondelete="CASCADE"), index=True
     )
     project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), index=True
+        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
 
     # Simple mastery tracking
@@ -420,9 +450,11 @@ class StudySession(Base):
     id: Mapped[str] = mapped_column(
         String, primary_key=True, default=lambda: str(uuid4())
     )
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id"), index=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id"), index=True
+        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
     )
 
     # Session metadata
@@ -455,7 +487,7 @@ class UserUsage(Base):
         String, primary_key=True, default=lambda: str(uuid4())
     )
     user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id"), index=True, unique=True
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True, unique=True
     )
 
     # Daily usage counters (reset daily)
