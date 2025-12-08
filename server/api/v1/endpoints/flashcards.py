@@ -15,12 +15,16 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import Response, StreamingResponse
 from schemas.flashcards import (
     CreateFlashcardGroupRequest,
+    CreateFlashcardRequest,
     FlashcardDto,
     FlashcardGroupDto,
     FlashcardGroupListResponse,
     FlashcardGroupResponse,
     FlashcardListResponse,
     FlashcardProgressUpdate,
+    FlashcardResponse,
+    ReorderFlashcardsRequest,
+    UpdateFlashcardRequest,
 )
 
 logger = get_logger(__name__)
@@ -299,6 +303,173 @@ async def get_study_queue(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get study queue",
+        )
+
+
+@router.post(
+    path="/{group_id}/flashcards",
+    response_model=FlashcardResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create flashcard",
+    description="Create a new flashcard in a group",
+)
+async def create_flashcard(
+    group_id: str = Path(..., description="Flashcard group ID"),
+    body: CreateFlashcardRequest = Body(...),
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new flashcard."""
+    try:
+        logger.info("creating flashcard for group_id=%s", group_id)
+
+        # Get group to get project_id
+        group = flashcard_service.get_flashcard_group(group_id)
+        if not group:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Flashcard group not found",
+            )
+
+        flashcard = flashcard_service.create_flashcard(
+            group_id=group_id,
+            project_id=group.project_id,
+            question=body.question,
+            answer=body.answer,
+            difficulty_level=body.difficulty_level,
+            position=body.position,
+        )
+
+        return FlashcardResponse(
+            flashcard=FlashcardDto(**flashcard.__dict__),
+            message="Flashcard created successfully",
+        )
+
+    except ValueError as e:
+        logger.error("error creating flashcard: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error creating flashcard: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create flashcard",
+        )
+
+
+@router.put(
+    path="/flashcards/{flashcard_id}",
+    response_model=FlashcardResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update flashcard",
+    description="Update an existing flashcard",
+)
+async def update_flashcard(
+    flashcard_id: str = Path(..., description="Flashcard ID"),
+    body: UpdateFlashcardRequest = Body(...),
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Update an existing flashcard."""
+    try:
+        logger.info("updating flashcard_id=%s", flashcard_id)
+
+        flashcard = flashcard_service.update_flashcard(
+            flashcard_id=flashcard_id,
+            question=body.question,
+            answer=body.answer,
+            difficulty_level=body.difficulty_level,
+        )
+
+        if not flashcard:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Flashcard not found",
+            )
+
+        return FlashcardResponse(
+            flashcard=FlashcardDto(**flashcard.__dict__),
+            message="Flashcard updated successfully",
+        )
+
+    except Exception as e:
+        logger.error("error updating flashcard: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update flashcard",
+        )
+
+
+@router.patch(
+    path="/{group_id}/reorder",
+    response_model=FlashcardListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reorder flashcards",
+    description="Reorder flashcards in a group",
+)
+async def reorder_flashcards(
+    group_id: str = Path(..., description="Flashcard group ID"),
+    body: ReorderFlashcardsRequest = Body(...),
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Reorder flashcards in a group."""
+    try:
+        logger.info("reordering flashcards for group_id=%s", group_id)
+
+        flashcards = flashcard_service.reorder_flashcards(
+            group_id=group_id,
+            flashcard_ids=body.flashcard_ids,
+        )
+
+        return FlashcardListResponse(
+            data=[FlashcardDto(**flashcard.__dict__) for flashcard in flashcards],
+        )
+
+    except ValueError as e:
+        logger.error("error reordering flashcards: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error reordering flashcards: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reorder flashcards",
+        )
+
+
+@router.delete(
+    path="/flashcards/{flashcard_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete flashcard",
+    description="Delete a flashcard",
+)
+async def delete_flashcard(
+    flashcard_id: str = Path(..., description="Flashcard ID"),
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Delete a flashcard."""
+    try:
+        logger.info("deleting flashcard_id=%s", flashcard_id)
+
+        success = flashcard_service.delete_flashcard(flashcard_id)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Flashcard not found",
+            )
+
+    except Exception as e:
+        logger.error("error deleting flashcard: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete flashcard",
         )
 
 

@@ -45,6 +45,11 @@ const FlashcardDetailRoute = lazy(() =>
     default: m.FlashcardDetailRoute,
   })),
 )
+const FlashcardEditRoute = lazy(() =>
+  import('./flashcard-edit-route').then((m) => ({
+    default: m.FlashcardEditRoute,
+  })),
+)
 const NoteDetailRoute = lazy(() =>
   import('./note-detail-route').then((m) => ({
     default: m.NoteDetailRoute,
@@ -199,6 +204,16 @@ export const flashcardDetailRoute = createRoute({
   ),
 })
 
+export const flashcardEditRoute = createRoute({
+  path: '/p/$projectId/f/$flashcardGroupId/edit',
+  getParentRoute: () => dashboardRoute,
+  component: () => (
+    <Suspense fallback={<LoadingPage />}>
+      <FlashcardEditRoute />
+    </Suspense>
+  ),
+})
+
 export const quizDetailRoute = createRoute({
   path: '/p/$projectId/q/$quizId',
   getParentRoute: () => dashboardRoute,
@@ -256,6 +271,7 @@ export const routeTree = rootRoute.addChildren([
     chatDetailRoute,
     documentDetailRoute,
     flashcardDetailRoute,
+    flashcardEditRoute,
     quizDetailRoute,
     noteDetailRoute,
     mindMapDetailRoute,

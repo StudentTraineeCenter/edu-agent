@@ -507,6 +507,7 @@ export class FlashcardDto extends S.Class<FlashcardDto>('FlashcardDto')({
   question: S.String,
   answer: S.String,
   difficulty_level: S.String,
+  position: S.Int,
   created_at: S.String,
 }) {}
 
@@ -522,6 +523,45 @@ export class FlashcardListResponse extends S.Class<FlashcardListResponse>(
   data: S.Array(FlashcardDto),
 }) {}
 
+/**
+ * Request model for creating a flashcard.
+ */
+export class CreateFlashcardRequest extends S.Class<CreateFlashcardRequest>(
+  'CreateFlashcardRequest',
+)({
+  /**
+   * Flashcard question
+   */
+  question: S.String.pipe(S.minLength(1)),
+  /**
+   * Flashcard answer
+   */
+  answer: S.String.pipe(S.minLength(1)),
+  /**
+   * Difficulty level
+   */
+  difficulty_level: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true, default: () => 'medium' as const },
+  ),
+  /**
+   * Position for ordering within group
+   */
+  position: S.optionalWith(S.Int.pipe(S.greaterThanOrEqualTo(0)), {
+    nullable: true,
+  }),
+}) {}
+
+/**
+ * Response model for flashcard operations.
+ */
+export class FlashcardResponse extends S.Class<FlashcardResponse>(
+  'FlashcardResponse',
+)({
+  flashcard: FlashcardDto,
+  message: S.String,
+}) {}
+
 export class GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams extends S.Struct(
   {
     /**
@@ -533,6 +573,41 @@ export class GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams extends S.Struc
     }),
   },
 ) {}
+
+/**
+ * Request model for updating a flashcard.
+ */
+export class UpdateFlashcardRequest extends S.Class<UpdateFlashcardRequest>(
+  'UpdateFlashcardRequest',
+)({
+  /**
+   * Flashcard question
+   */
+  question: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Flashcard answer
+   */
+  answer: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Difficulty level
+   */
+  difficulty_level: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true },
+  ),
+}) {}
+
+/**
+ * Request model for reordering flashcards.
+ */
+export class ReorderFlashcardsRequest extends S.Class<ReorderFlashcardsRequest>(
+  'ReorderFlashcardsRequest',
+)({
+  /**
+   * List of flashcard IDs in the desired order
+   */
+  flashcard_ids: S.Array(S.String),
+}) {}
 
 export class ExportFlashcardGroupV1FlashcardsGroupIdExportGet200 extends S.Struct(
   {},
@@ -1301,11 +1376,57 @@ export const make = (
           }),
         ),
       ),
+    createFlashcardV1FlashcardsGroupIdFlashcardsPost: (groupId, options) =>
+      HttpClientRequest.post(`/v1/flashcards/${groupId}/flashcards`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (groupId, options) =>
       HttpClientRequest.get(`/v1/flashcards/${groupId}/study-queue`).pipe(
         HttpClientRequest.setUrlParams({
           include_mastered: options?.['include_mastered'] as any,
         }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateFlashcardV1FlashcardsFlashcardsFlashcardIdPut: (
+      flashcardId,
+      options,
+    ) =>
+      HttpClientRequest.put(`/v1/flashcards/flashcards/${flashcardId}`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteFlashcardV1FlashcardsFlashcardsFlashcardIdDelete: (flashcardId) =>
+      HttpClientRequest.del(`/v1/flashcards/flashcards/${flashcardId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    reorderFlashcardsV1FlashcardsGroupIdReorderPatch: (groupId, options) =>
+      HttpClientRequest.patch(`/v1/flashcards/${groupId}/reorder`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(FlashcardListResponse),
@@ -1925,6 +2046,18 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Create a new flashcard in a group
+   */
+  readonly createFlashcardV1FlashcardsGroupIdFlashcardsPost: (
+    groupId: string,
+    options: typeof CreateFlashcardRequest.Encoded,
+  ) => Effect.Effect<
+    typeof FlashcardResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * Get flashcards for study session. Returns un-mastered cards by default, with option to include mastered cards.
    */
   readonly getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (
@@ -1932,6 +2065,41 @@ export interface Client {
     options?:
       | typeof GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams.Encoded
       | undefined,
+  ) => Effect.Effect<
+    typeof FlashcardListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Update an existing flashcard
+   */
+  readonly updateFlashcardV1FlashcardsFlashcardsFlashcardIdPut: (
+    flashcardId: string,
+    options: typeof UpdateFlashcardRequest.Encoded,
+  ) => Effect.Effect<
+    typeof FlashcardResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a flashcard
+   */
+  readonly deleteFlashcardV1FlashcardsFlashcardsFlashcardIdDelete: (
+    flashcardId: string,
+  ) => Effect.Effect<
+    void,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Reorder flashcards in a group
+   */
+  readonly reorderFlashcardsV1FlashcardsGroupIdReorderPatch: (
+    groupId: string,
+    options: typeof ReorderFlashcardsRequest.Encoded,
   ) => Effect.Effect<
     typeof FlashcardListResponse.Type,
     | HttpClientError.HttpClientError

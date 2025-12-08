@@ -26,6 +26,7 @@ class FlashcardDto(BaseModel):
     question: str
     answer: str
     difficulty_level: str
+    position: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -58,6 +59,21 @@ class UpdateFlashcardGroupRequest(BaseModel):
     )
 
 
+class CreateFlashcardRequest(BaseModel):
+    """Request model for creating a flashcard."""
+
+    question: str = Field(min_length=1, description="Flashcard question")
+    answer: str = Field(min_length=1, description="Flashcard answer")
+    difficulty_level: str = Field(
+        default="medium",
+        pattern="^(easy|medium|hard)$",
+        description="Difficulty level",
+    )
+    position: Optional[int] = Field(
+        None, ge=0, description="Position for ordering within group"
+    )
+
+
 class UpdateFlashcardRequest(BaseModel):
     """Request model for updating a flashcard."""
 
@@ -67,6 +83,14 @@ class UpdateFlashcardRequest(BaseModel):
     answer: Optional[str] = Field(None, min_length=1, description="Flashcard answer")
     difficulty_level: Optional[str] = Field(
         None, pattern="^(easy|medium|hard)$", description="Difficulty level"
+    )
+
+
+class ReorderFlashcardsRequest(BaseModel):
+    """Request model for reordering flashcards."""
+
+    flashcard_ids: List[str] = Field(
+        description="List of flashcard IDs in the desired order"
     )
 
 

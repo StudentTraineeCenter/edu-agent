@@ -3,7 +3,12 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import { CreateFlashcardGroupRequest } from '@/integrations/api/client'
+import {
+  CreateFlashcardGroupRequest,
+  CreateFlashcardRequest,
+  UpdateFlashcardRequest,
+  ReorderFlashcardsRequest,
+} from '@/integrations/api/client'
 
 export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   Atom.make(
@@ -184,5 +189,89 @@ export const importFlashcardGroupAtom = runtime.fn(
 
     registry.refresh(flashcardGroupsAtom(input.projectId))
     return response
+  }),
+)
+
+export const createFlashcardAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    question: string
+    answer: string
+    difficultyLevel?: string
+    position?: number
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp = yield* client.createFlashcardV1FlashcardsGroupIdFlashcardsPost(
+      input.flashcardGroupId,
+      {
+        question: input.question,
+        answer: input.answer,
+        difficulty_level: input.difficultyLevel || 'medium',
+        position: input.position,
+      },
+    )
+
+    registry.refresh(flashcardsAtom(input.flashcardGroupId))
+    return resp.flashcard
+  }),
+)
+
+export const updateFlashcardAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardId: string
+    flashcardGroupId: string
+    question?: string
+    answer?: string
+    difficultyLevel?: string
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp =
+      yield* client.updateFlashcardV1FlashcardsFlashcardsFlashcardIdPut(
+        input.flashcardId,
+        {
+          question: input.question,
+          answer: input.answer,
+          difficulty_level: input.difficultyLevel,
+        },
+      )
+
+    registry.refresh(flashcardsAtom(input.flashcardGroupId))
+    return resp.flashcard
+  }),
+)
+
+export const reorderFlashcardsAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardGroupId: string
+    flashcardIds: string[]
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp = yield* client.reorderFlashcardsV1FlashcardsGroupIdReorderPatch(
+      input.flashcardGroupId,
+      {
+        flashcard_ids: input.flashcardIds,
+      },
+    )
+
+    registry.refresh(flashcardsAtom(input.flashcardGroupId))
+    return resp.data
+  }),
+)
+
+export const deleteFlashcardAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    flashcardId: string
+    flashcardGroupId: string
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.deleteFlashcardV1FlashcardsFlashcardsFlashcardIdDelete(
+      input.flashcardId,
+    )
+
+    registry.refresh(flashcardsAtom(input.flashcardGroupId))
   }),
 )

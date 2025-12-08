@@ -10,6 +10,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from core.agents.search import SearchInterface
@@ -129,7 +130,7 @@ class FlashcardService:
                 logger.info(f"created flashcard_group_id={flashcard_group.id}")
 
                 # Save flashcards to database
-                for flashcard_item in flashcards_data:
+                for position, flashcard_item in enumerate(flashcards_data):
                     flashcard = Flashcard(
                         id=str(uuid.uuid4()),
                         group_id=flashcard_group.id,
@@ -137,6 +138,7 @@ class FlashcardService:
                         question=flashcard_item.question,
                         answer=flashcard_item.answer,
                         difficulty_level=flashcard_item.difficulty_level,
+                        position=position,
                         created_at=datetime.now(),
                     )
                     db.add(flashcard)
@@ -239,7 +241,7 @@ class FlashcardService:
                 db.flush()  # Flush to get group.id
 
                 # Save flashcards to database
-                for flashcard_item in flashcards_data:
+                for position, flashcard_item in enumerate(flashcards_data):
                     flashcard = Flashcard(
                         id=str(uuid.uuid4()),
                         group_id=flashcard_group.id,
@@ -247,6 +249,7 @@ class FlashcardService:
                         question=flashcard_item.question,
                         answer=flashcard_item.answer,
                         difficulty_level=flashcard_item.difficulty_level,
+                        position=position,
                         created_at=datetime.now(),
                     )
                     db.add(flashcard)
@@ -354,7 +357,7 @@ class FlashcardService:
                 flashcards = (
                     db.query(Flashcard)
                     .filter(Flashcard.group_id == group_id)
-                    .order_by(Flashcard.created_at.asc())
+                    .order_by(Flashcard.position.asc(), Flashcard.created_at.asc())
                     .all()
                 )
 
@@ -441,6 +444,219 @@ class FlashcardService:
                 return group
             except Exception as e:
                 logger.error(f"error updating flashcard group group_id={group_id}: {e}")
+                raise
+
+    def create_flashcard(
+        self,
+        group_id: str,
+        project_id: str,
+        question: str,
+        answer: str,
+        difficulty_level: str = "medium",
+        position: Optional[int] = None,
+    ) -> Flashcard:
+        """Create a new flashcard.
+
+        Args:
+            group_id: The flashcard group ID
+            project_id: The project ID
+            question: The flashcard question
+            answer: The flashcard answer
+            difficulty_level: Difficulty level (easy, medium, hard)
+            position: Optional position for ordering. If None, appends to end.
+
+        Returns:
+            Created Flashcard model instance
+
+        Raises:
+            ValueError: If group not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"creating flashcard for group_id={group_id}")
+
+                # Verify group exists
+                group = (
+                    db.query(FlashcardGroup)
+                    .filter(FlashcardGroup.id == group_id)
+                    .first()
+                )
+                if not group:
+                    raise ValueError(f"Flashcard group {group_id} not found")
+
+                # If position not provided, get the max position and add 1
+                if position is None:
+                    max_position = (
+                        db.query(func.max(Flashcard.position))
+                        .filter(Flashcard.group_id == group_id)
+                        .scalar()
+                    )
+                    position = (max_position or -1) + 1
+
+                flashcard = Flashcard(
+                    group_id=group_id,
+                    project_id=project_id,
+                    question=question,
+                    answer=answer,
+                    difficulty_level=difficulty_level,
+                    position=position,
+                )
+
+                db.add(flashcard)
+                db.commit()
+                db.refresh(flashcard)
+
+                logger.info(f"created flashcard_id={flashcard.id}")
+                return flashcard
+            except ValueError:
+                raise
+            except Exception as e:
+                logger.error(f"error creating flashcard for group_id={group_id}: {e}")
+                raise
+
+    def update_flashcard(
+        self,
+        flashcard_id: str,
+        question: Optional[str] = None,
+        answer: Optional[str] = None,
+        difficulty_level: Optional[str] = None,
+    ) -> Optional[Flashcard]:
+        """Update an existing flashcard.
+
+        Args:
+            flashcard_id: The flashcard ID
+            question: Optional new question
+            answer: Optional new answer
+            difficulty_level: Optional new difficulty level
+
+        Returns:
+            Updated Flashcard model instance or None if not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"updating flashcard_id={flashcard_id}")
+
+                flashcard = (
+                    db.query(Flashcard)
+                    .filter(Flashcard.id == flashcard_id)
+                    .first()
+                )
+                if not flashcard:
+                    logger.warning(f"flashcard_id={flashcard_id} not found")
+                    return None
+
+                if question is not None:
+                    flashcard.question = question
+                if answer is not None:
+                    flashcard.answer = answer
+                if difficulty_level is not None:
+                    flashcard.difficulty_level = difficulty_level
+
+                db.commit()
+                db.refresh(flashcard)
+
+                logger.info(f"updated flashcard_id={flashcard_id}")
+                return flashcard
+            except Exception as e:
+                logger.error(f"error updating flashcard flashcard_id={flashcard_id}: {e}")
+                raise
+
+    def reorder_flashcards(
+        self, group_id: str, flashcard_ids: List[str]
+    ) -> List[Flashcard]:
+        """Reorder flashcards in a group.
+
+        Args:
+            group_id: The flashcard group ID
+            flashcard_ids: List of flashcard IDs in the desired order
+
+        Returns:
+            List of updated Flashcard model instances
+
+        Raises:
+            ValueError: If group not found or flashcard IDs don't match group
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(
+                    f"reordering flashcards for group_id={group_id}, count={len(flashcard_ids)}"
+                )
+
+                # Verify group exists
+                group = (
+                    db.query(FlashcardGroup)
+                    .filter(FlashcardGroup.id == group_id)
+                    .first()
+                )
+                if not group:
+                    raise ValueError(f"Flashcard group {group_id} not found")
+
+                # Get all flashcards in the group
+                flashcards = (
+                    db.query(Flashcard)
+                    .filter(Flashcard.group_id == group_id)
+                    .all()
+                )
+                flashcard_dict = {f.id: f for f in flashcards}
+
+                # Verify all provided IDs exist and belong to the group
+                for flashcard_id in flashcard_ids:
+                    if flashcard_id not in flashcard_dict:
+                        raise ValueError(
+                            f"Flashcard {flashcard_id} not found in group {group_id}"
+                        )
+
+                # Update positions based on the order in flashcard_ids
+                updated_flashcards = []
+                for position, flashcard_id in enumerate(flashcard_ids):
+                    flashcard = flashcard_dict[flashcard_id]
+                    flashcard.position = position
+                    updated_flashcards.append(flashcard)
+
+                db.commit()
+                for flashcard in updated_flashcards:
+                    db.refresh(flashcard)
+
+                logger.info(f"reordered {len(updated_flashcards)} flashcards")
+                return updated_flashcards
+            except ValueError:
+                raise
+            except Exception as e:
+                logger.error(
+                    f"error reordering flashcards for group_id={group_id}: {e}"
+                )
+                raise
+
+    def delete_flashcard(self, flashcard_id: str) -> bool:
+        """Delete a flashcard.
+
+        Args:
+            flashcard_id: The flashcard ID
+
+        Returns:
+            True if deleted successfully, False if not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"deleting flashcard_id={flashcard_id}")
+
+                flashcard = (
+                    db.query(Flashcard)
+                    .filter(Flashcard.id == flashcard_id)
+                    .first()
+                )
+
+                if not flashcard:
+                    logger.warning(f"flashcard_id={flashcard_id} not found")
+                    return False
+
+                db.delete(flashcard)
+                db.commit()
+
+                logger.info(f"deleted flashcard_id={flashcard_id}")
+                return True
+            except Exception as e:
+                logger.error(f"error deleting flashcard flashcard_id={flashcard_id}: {e}")
                 raise
 
     async def _generate_flashcard_group_content(

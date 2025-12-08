@@ -239,6 +239,9 @@ class Flashcard(Base):
     difficulty_level: Mapped[str] = mapped_column(
         String, default="medium"
     )  # easy, medium, hard
+    position: Mapped[int] = mapped_column(
+        Integer, default=0, index=True
+    )  # Position for ordering within group
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

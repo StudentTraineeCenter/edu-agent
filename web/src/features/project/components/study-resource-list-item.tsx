@@ -8,6 +8,7 @@ import {
   MoreVerticalIcon,
   TrashIcon,
   NetworkIcon,
+  PencilIcon,
   type LucideIcon,
 } from 'lucide-react'
 import {
@@ -176,6 +177,18 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/dashboard/p/$projectId/f/$flashcardGroupId/edit"
+                    params={{
+                      projectId: flashcardGroup.project_id ?? '',
+                      flashcardGroupId: flashcardGroup.id,
+                    }}
+                  >
+                    <PencilIcon className="size-4" />
+                    <span>Edit</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
                   <DownloadIcon className="size-4" />
                   <span>Export CSV</span>
