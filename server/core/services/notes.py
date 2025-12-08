@@ -3,7 +3,7 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
@@ -121,6 +121,109 @@ class NoteService:
             except Exception as e:
                 logger.error(f"error creating note for project_id={project_id}: {e}")
                 raise
+
+    async def create_note_with_content_stream(
+        self,
+        project_id: str,
+        user_prompt: Optional[str] = None,
+    ) -> AsyncGenerator[dict, None]:
+        """Create a note with streaming progress updates.
+
+        Args:
+            project_id: The project ID
+            user_prompt: Optional user instructions for generation (topic)
+
+        Yields:
+            Progress update dictionaries with status and message
+        """
+        try:
+            yield {"status": "searching", "message": "Searching documents..."}
+
+            with self._get_db_session() as db:
+                # Get project language code
+                project = db.query(Project).filter(Project.id == project_id).first()
+                if not project:
+                    yield {
+                        "status": "done",
+                        "message": "Error: Project not found",
+                        "error": f"Project {project_id} not found",
+                    }
+                    return
+
+                language_code = project.language_code
+
+                # Extract topic from user_prompt if provided
+                topic = None
+                if user_prompt:
+                    topic = user_prompt
+
+                yield {"status": "structuring", "message": "Structuring content..."}
+
+                # Get project documents content
+                document_content = await self._get_project_documents_content(
+                    project_id, topic=topic
+                )
+                if not document_content:
+                    if topic:
+                        error_msg = f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
+                    else:
+                        error_msg = "No documents found in project. Please upload documents first."
+                    yield {
+                        "status": "done",
+                        "message": "Error: No documents found",
+                        "error": error_msg,
+                    }
+                    return
+
+                yield {"status": "writing", "message": "Writing note..."}
+
+                # Generate content
+                generated_content = await self._generate_note_content(
+                    db=db,
+                    project_id=project_id,
+                    user_prompt=user_prompt,
+                )
+
+                title = generated_content.title
+                description = generated_content.description
+                content = generated_content.content
+
+                # Create note in database
+                note = Note(
+                    id=str(uuid.uuid4()),
+                    project_id=project_id,
+                    title=title,
+                    description=description,
+                    content=content,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(note)
+                db.commit()
+                db.refresh(note)
+
+                logger.info(f"created note_id={note.id}")
+
+                yield {
+                    "status": "done",
+                    "message": "Note created successfully",
+                    "note_id": str(note.id),
+                }
+
+        except ValueError as e:
+            logger.error(f"error creating note: {e}")
+            yield {
+                "status": "done",
+                "message": "Error creating note",
+                "error": str(e),
+            }
+        except Exception as e:
+            logger.error(f"error creating note: {e}", exc_info=True)
+            yield {
+                "status": "done",
+                "message": "Error creating note",
+                "error": "Failed to create note. Please try again.",
+            }
 
     def get_notes(self, project_id: str) -> List[Note]:
         """Get all notes for a project.

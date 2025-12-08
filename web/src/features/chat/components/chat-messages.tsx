@@ -10,7 +10,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
-import { MessageSquareIcon } from 'lucide-react'
+import { MessageSquareIcon, Loader2Icon } from 'lucide-react'
 import { Response } from '@/components/ai-elements/response'
 import {
   Sources,
@@ -30,10 +30,15 @@ import type {
   SourceDto,
   ToolCallDto,
 } from '@/integrations/api/client'
+import { chatStreamStatusAtom } from '@/data-acess/chat'
+import { useAtomValue } from '@effect-atom/atom-react'
 
 type Props = {
   messages: ReadonlyArray<ChatMessageDto>
   projectId: string
+  chatId: string
+  isStreaming?: boolean
+  hasAssistantResponse?: boolean
 }
 
 type MessageToolsProps = {
@@ -125,16 +130,25 @@ type AssistantMessageProps = {
   projectId: string
 }
 
-const AssistantMessage = ({ message, projectId }: AssistantMessageProps) => (
-  <Message from="assistant">
-    <MessageContent>
-      <MessageTools tools={message.tools ?? []} />
-      <Response>{message.content}</Response>
-      <MessageSources sources={message.sources ?? []} projectId={projectId} />
-    </MessageContent>
-    <MessageAvatar name="AI" src="https://github.com/openai.png" />
-  </Message>
-)
+const AssistantMessage = ({ message, projectId }: AssistantMessageProps) => {
+  const hasContent = message.content && message.content.trim().length > 0
+  const hasTools = message.tools && message.tools.length > 0
+  const hasSources = message.sources && message.sources.length > 0
+
+  // Don't render empty assistant messages
+  if (!hasContent && !hasTools && !hasSources) return null
+
+  return (
+    <Message from="assistant">
+      <MessageContent>
+        <MessageTools tools={message.tools ?? []} />
+        <Response>{message.content}</Response>
+        <MessageSources sources={message.sources ?? []} projectId={projectId} />
+      </MessageContent>
+      <MessageAvatar name="AI" src="https://github.com/openai.png" />
+    </Message>
+  )
+}
 
 type ChatMessageItemProps = {
   message: ChatMessageDto
@@ -148,11 +162,52 @@ const ChatMessageItem = ({ message, projectId }: ChatMessageItemProps) => {
   return <AssistantMessage message={message} projectId={projectId} />
 }
 
-export const ChatMessages = ({ messages, projectId }: Props) => {
+const getStatusMessage = (status: string | null): string => {
+  if (!status) return 'EduAgent is thinking...'
+
+  const statusMessages: Record<string, string> = {
+    thinking: 'EduAgent is thinking...',
+    searching: 'EduAgent is searching documents...',
+    generating: 'EduAgent is generating response...',
+  }
+
+  return statusMessages[status] || 'EduAgent is thinking...'
+}
+
+type ThinkingMessageProps = {
+  chatId: string
+}
+
+const ThinkingMessage = ({ chatId }: ThinkingMessageProps) => {
+  const streamStatus = useAtomValue(chatStreamStatusAtom(chatId))
+  const statusMessage = getStatusMessage(streamStatus)
+
+  return (
+    <Message from="assistant">
+      <MessageContent>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2Icon className="size-4 animate-spin" />
+          <span>{statusMessage}</span>
+        </div>
+      </MessageContent>
+      <MessageAvatar name="AI" src="https://github.com/openai.png" />
+    </Message>
+  )
+}
+
+export const ChatMessages = ({
+  messages,
+  projectId,
+  chatId,
+  isStreaming,
+  hasAssistantResponse,
+}: Props) => {
+  const showThinkingIndicator = isStreaming && !hasAssistantResponse
+
   return (
     <Conversation className="flex-1 min-h-0 max-h-full w-full">
       <ConversationContent className="max-w-5xl mx-auto">
-        {messages.length === 0 && (
+        {messages.length === 0 && !showThinkingIndicator && (
           <ConversationEmptyState
             icon={<MessageSquareIcon className="size-6" />}
             title="Start a conversation"
@@ -167,6 +222,8 @@ export const ChatMessages = ({ messages, projectId }: Props) => {
             projectId={projectId}
           />
         ))}
+
+        {showThinkingIndicator && <ThinkingMessage chatId={chatId} />}
       </ConversationContent>
       <ConversationScrollButton />
     </Conversation>

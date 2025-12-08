@@ -53,3 +53,12 @@ class NoteListResponse(BaseModel):
     """Response model for listing notes."""
 
     data: List[NoteDto] = Field(description="List of notes")
+
+
+class NoteProgressUpdate(BaseModel):
+    """Progress update for note generation streaming."""
+
+    status: str = Field(description="Progress status: searching, structuring, writing, done")
+    message: str = Field(description="Human-readable progress message")
+    note_id: Optional[str] = Field(None, description="Note ID when done")
+    error: Optional[str] = Field(None, description="Error message if failed")

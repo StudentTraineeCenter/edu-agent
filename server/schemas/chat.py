@@ -120,6 +120,9 @@ class StreamingChatMessage(BaseModel):
     id: str = Field(description="Unique ID of the message")
     chunk: str = Field(description="Text chunk of the response")
     done: bool = Field(description="Whether this is the final chunk")
+    status: Optional[str] = Field(
+        default=None, description="Status message: thinking, searching, generating"
+    )
     sources: Optional[List[SourceDto]] = Field(
         default=None, description="Source documents (only included in final chunk)"
     )

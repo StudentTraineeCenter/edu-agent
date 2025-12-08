@@ -3,11 +3,64 @@ from core.logger import get_logger
 from core.services.mind_maps import MindMapService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
-from schemas.mind_maps import CreateMindMapRequest, MindMapDto, MindMapListResponse
+from fastapi.responses import StreamingResponse
+from schemas.mind_maps import (
+    CreateMindMapRequest,
+    MindMapDto,
+    MindMapListResponse,
+    MindMapProgressUpdate,
+)
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    "/projects/{project_id}/mind-maps/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Generate mind map with streaming progress",
+    description="Generate a new mind map from project documents with streaming progress updates",
+)
+async def generate_mind_map_stream(
+    project_id: str = Path(..., description="Project ID"),
+    body: CreateMindMapRequest = CreateMindMapRequest(),
+    mind_map_service: MindMapService = Depends(get_mind_map_service),
+    current_user: User = Depends(get_user),
+):
+    """Generate a new mind map with streaming progress updates."""
+    async def generate_stream():
+        """Generate streaming progress updates"""
+        try:
+            async for progress_update in mind_map_service.generate_mind_map_stream(
+                user_id=current_user.id,
+                project_id=project_id,
+                user_prompt=body.user_prompt,
+            ):
+                progress = MindMapProgressUpdate(**progress_update)
+                progress_json = progress.model_dump_json()
+                sse_data = f"data: {progress_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            logger.error("error in streaming mind map creation: %s", e, exc_info=True)
+            error_progress = MindMapProgressUpdate(
+                status="done",
+                message="Error creating mind map",
+                error=str(e),
+            )
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @router.post(

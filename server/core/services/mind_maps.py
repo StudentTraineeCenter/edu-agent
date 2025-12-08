@@ -3,7 +3,7 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
@@ -173,6 +173,105 @@ class MindMapService:
                     f"error generating mind map for user_id={user_id}, project_id={project_id}: {e}"
                 )
                 raise
+
+    async def generate_mind_map_stream(
+        self, user_id: str, project_id: str, user_prompt: Optional[str] = None
+    ) -> AsyncGenerator[dict, None]:
+        """Generate a mind map with streaming progress updates.
+
+        Args:
+            user_id: The user's unique identifier
+            project_id: The project ID
+            user_prompt: Optional user instructions (topic or focus area)
+
+        Yields:
+            Progress update dictionaries with status and message
+        """
+        try:
+            yield {"status": "searching", "message": "Searching documents..."}
+
+            with self._get_db_session() as db:
+                project = db.query(Project).filter(Project.id == project_id).first()
+                if not project:
+                    yield {
+                        "status": "done",
+                        "message": "Error: Project not found",
+                        "error": f"Project {project_id} not found",
+                    }
+                    return
+
+                language_code = project.language_code
+
+                # Extract topic from user_prompt if provided
+                topic = None
+                if user_prompt:
+                    topic = user_prompt
+
+                yield {"status": "mapping", "message": "Mapping concepts..."}
+
+                # Get project documents content
+                document_content = await self._get_project_documents_content(
+                    project_id, topic=topic
+                )
+                if not document_content:
+                    if topic:
+                        error_msg = f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
+                    else:
+                        error_msg = "No documents found in project. Please upload documents first."
+                    yield {
+                        "status": "done",
+                        "message": "Error: No documents found",
+                        "error": error_msg,
+                    }
+                    return
+
+                yield {"status": "building", "message": "Building connections..."}
+
+                # Generate mind map using AI
+                map_result = await self._generate_mind_map_content(
+                    db=db,
+                    project_id=project_id,
+                    document_content=document_content,
+                    user_prompt=user_prompt,
+                    language_code=language_code,
+                )
+
+                # Create new mind map
+                mind_map = MindMap(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    project_id=project_id,
+                    title=map_result.title,
+                    description=map_result.description,
+                    map_data=map_result.map_data,
+                    generated_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(mind_map)
+                db.commit()
+                db.refresh(mind_map)
+                logger.info(f"created mind map id={mind_map.id}")
+
+                yield {
+                    "status": "done",
+                    "message": "Mind map created successfully",
+                    "mind_map_id": str(mind_map.id),
+                }
+
+        except ValueError as e:
+            logger.error(f"error generating mind map: {e}")
+            yield {
+                "status": "done",
+                "message": "Error creating mind map",
+                "error": str(e),
+            }
+        except Exception as e:
+            logger.error(f"error generating mind map: {e}", exc_info=True)
+            yield {
+                "status": "done",
+                "message": "Error creating mind map",
+                "error": "Failed to create mind map. Please try again.",
+            }
 
     def get_mind_map(self, mind_map_id: str, user_id: str) -> Optional[MindMap]:
         """Get a mind map by ID.

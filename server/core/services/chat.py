@@ -30,6 +30,7 @@ class MessageChunk(BaseModel):
 
     chunk: str
     done: bool
+    status: Optional[str] = None  # Status message: thinking, searching, generating
     sources: List[ChatMessageSource] = []
     tools: List[ChatMessageToolCall] = []
     id: Optional[str] = None
@@ -350,6 +351,7 @@ class ChatService:
         buffer_parts: list[str] = []
         gathered_sources: list[ChatMessageSource] = []
         tool_calls: dict[str, ChatMessageToolCall] = {}
+        has_started_generating = False
 
         chat_history.append({"role": "user", "content": query})
 
@@ -360,6 +362,10 @@ class ChatService:
             search=self.search_interface,
             language=language_code,
         )
+
+        # Send initial "thinking" status
+        yield MessageChunk(chunk="", done=False, status="thinking")
+        await asyncio.sleep(0.001)
 
         # --- process stream chunks ----------------------------------------------
         async for chunk in agent.astream(
@@ -379,12 +385,23 @@ class ChatService:
                     "sources", []
                 )
 
+                # Send "searching" status when RAG is fetching documents
+                if chunk_key == "fetch_and_set_sources.before_model" and model_sources:
+                    yield MessageChunk(chunk="", done=False, status="searching")
+                    await asyncio.sleep(0.001)
+
                 for source in model_sources:
                     if not any(s.id == source.id for s in gathered_sources):
                         gathered_sources.append(source)
 
             # Handle model chunks (AI responses)
             if "model" in chunk:
+                # Send "generating" status when first content arrives
+                if not has_started_generating:
+                    yield MessageChunk(chunk="", done=False, status="generating")
+                    await asyncio.sleep(0.001)
+                    has_started_generating = True
+
                 msgs: list[BaseMessage] = chunk["model"].get("messages", [])
                 for msg in msgs:
                     # Extract content if available

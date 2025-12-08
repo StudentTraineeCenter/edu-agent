@@ -3,9 +3,11 @@ from core.logger import get_logger
 from core.services.notes import NoteService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi.responses import StreamingResponse
 from schemas.notes import (
     NoteDto,
     NoteListResponse,
+    NoteProgressUpdate,
     NoteResponse,
     CreateNoteRequest,
     UpdateNoteRequest,
@@ -14,6 +16,52 @@ from schemas.notes import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    path="/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Create note with streaming progress",
+    description="Create a new note with AI-generated markdown content and stream progress updates",
+)
+async def create_note_stream(
+    project_id: str,
+    body: CreateNoteRequest,
+    note_service: NoteService = Depends(get_note_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new note with streaming progress updates."""
+    async def generate_stream():
+        """Generate streaming progress updates"""
+        try:
+            async for progress_update in note_service.create_note_with_content_stream(
+                project_id=project_id,
+                user_prompt=body.user_prompt,
+            ):
+                progress = NoteProgressUpdate(**progress_update)
+                progress_json = progress.model_dump_json()
+                sse_data = f"data: {progress_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            logger.error("error in streaming note creation: %s", e, exc_info=True)
+            error_progress = NoteProgressUpdate(
+                status="done",
+                message="Error creating note",
+                error=str(e),
+            )
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @router.post(

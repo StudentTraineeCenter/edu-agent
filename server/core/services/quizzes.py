@@ -3,7 +3,7 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
@@ -191,6 +191,133 @@ class QuizService:
             except Exception as e:
                 logger.error(f"error creating quiz for project_id={project_id}: {e}")
                 raise
+
+    async def create_quiz_with_questions_stream(
+        self,
+        project_id: str,
+        count: int = 30,
+        user_prompt: Optional[str] = None,
+    ) -> AsyncGenerator[dict, None]:
+        """Create a quiz with streaming progress updates.
+
+        Args:
+            project_id: The project ID
+            count: Number of questions to generate
+            user_prompt: Optional user instructions for generation
+
+        Yields:
+            Progress update dictionaries with status and message
+        """
+        try:
+            yield {"status": "searching", "message": "Searching documents..."}
+
+            with self._get_db_session() as db:
+                # Get project language code
+                project = db.query(Project).filter(Project.id == project_id).first()
+                if not project:
+                    yield {
+                        "status": "done",
+                        "message": "Error: Project not found",
+                        "error": f"Project {project_id} not found",
+                    }
+                    return
+
+                language_code = project.language_code
+
+                # Extract topic from user_prompt if provided
+                topic = None
+                if user_prompt:
+                    topic = user_prompt
+
+                yield {"status": "analyzing", "message": "Analyzing content..."}
+
+                # Get project documents content
+                document_content = await self._get_project_documents_content(
+                    project_id, topic=topic
+                )
+                if not document_content:
+                    if topic:
+                        error_msg = f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
+                    else:
+                        error_msg = "No documents found in project. Please upload documents first."
+                    yield {
+                        "status": "done",
+                        "message": "Error: No documents found",
+                        "error": error_msg,
+                    }
+                    return
+
+                yield {
+                    "status": "generating",
+                    "message": f"Generating {count} questions...",
+                }
+
+                # Generate content
+                generated_content = await self._generate_quiz_content(
+                    db=db,
+                    project_id=project_id,
+                    count=count,
+                    user_prompt=user_prompt,
+                )
+
+                name = generated_content.name
+                description = generated_content.description
+                questions_data = generated_content.questions
+
+                # Create quiz in database
+                quiz = Quiz(
+                    id=str(uuid.uuid4()),
+                    project_id=project_id,
+                    name=name,
+                    description=description,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(quiz)
+                db.flush()  # Flush to get quiz.id
+
+                # Save questions to database
+                for question_item in questions_data:
+                    question = QuizQuestion(
+                        id=str(uuid.uuid4()),
+                        quiz_id=quiz.id,
+                        project_id=project_id,
+                        question_text=question_item.question_text,
+                        option_a=question_item.option_a,
+                        option_b=question_item.option_b,
+                        option_c=question_item.option_c,
+                        option_d=question_item.option_d,
+                        correct_option=question_item.correct_option,
+                        explanation=question_item.explanation,
+                        difficulty_level=question_item.difficulty_level,
+                        created_at=datetime.now(),
+                    )
+                    db.add(question)
+
+                db.commit()
+
+                logger.info(f"generated {len(questions_data)} quiz questions")
+
+                yield {
+                    "status": "done",
+                    "message": "Quiz created successfully",
+                    "quiz_id": str(quiz.id),
+                }
+
+        except ValueError as e:
+            logger.error(f"error creating quiz: {e}")
+            yield {
+                "status": "done",
+                "message": "Error creating quiz",
+                "error": str(e),
+            }
+        except Exception as e:
+            logger.error(f"error creating quiz: {e}", exc_info=True)
+            yield {
+                "status": "done",
+                "message": "Error creating quiz",
+                "error": "Failed to create quiz. Please try again.",
+            }
 
     def get_quizzes(self, project_id: str) -> List[Quiz]:
         """Get all quizzes for a project.

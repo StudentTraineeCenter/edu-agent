@@ -94,3 +94,12 @@ class FlashcardListResponse(BaseModel):
     """Response model for listing flashcards."""
 
     data: List[FlashcardDto] = Field(description="List of flashcards")
+
+
+class FlashcardProgressUpdate(BaseModel):
+    """Progress update for flashcard generation streaming."""
+
+    status: str = Field(description="Progress status: searching, analyzing, generating, done")
+    message: str = Field(description="Human-readable progress message")
+    group_id: Optional[str] = Field(None, description="Flashcard group ID when done")
+    error: Optional[str] = Field(None, description="Error message if failed")

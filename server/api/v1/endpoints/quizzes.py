@@ -4,11 +4,12 @@ from core.services.exporter import ExporterService
 from core.services.quizzes import QuizService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Path, status
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from schemas.quizzes import (
     CreateQuizRequest,
     QuizDto,
     QuizListResponse,
+    QuizProgressUpdate,
     QuizQuestionDto,
     QuizQuestionListResponse,
     QuizResponse,
@@ -17,6 +18,55 @@ from schemas.quizzes import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    path="/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Create quiz with streaming progress",
+    description="Create a new quiz with AI-generated questions and stream progress updates",
+)
+async def create_quiz_stream(
+    project_id: str,
+    body: CreateQuizRequest,
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new quiz with streaming progress updates."""
+    import json
+
+    async def generate_stream():
+        """Generate streaming progress updates"""
+        try:
+            async for progress_update in quiz_service.create_quiz_with_questions_stream(
+                project_id=project_id,
+                count=body.question_count,
+                user_prompt=body.user_prompt,
+            ):
+                progress = QuizProgressUpdate(**progress_update)
+                progress_json = progress.model_dump_json()
+                sse_data = f"data: {progress_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            logger.error("error in streaming quiz creation: %s", e, exc_info=True)
+            error_progress = QuizProgressUpdate(
+                status="done",
+                message="Error creating quiz",
+                error=str(e),
+            )
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @router.post(

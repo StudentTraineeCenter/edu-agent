@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { create } from 'zustand'
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { UploadIcon, FileIcon, XIcon, Loader2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { uploadDocumentAtom } from '@/data-acess/document'
 import { useAtom } from '@effect-atom/atom-react'
@@ -33,6 +34,7 @@ export const useUploadDocumentDialog = create<UploadDocumentDialogStore>(
 export function UploadDocumentDialog() {
   const { isOpen, projectId, close } = useUploadDocumentDialog()
   const [files, setFiles] = useState<File[]>([])
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   const [uploadDocumentResult, uploadDocument] = useAtom(uploadDocumentAtom, {
     mode: 'promise',
@@ -52,18 +54,55 @@ export function UploadDocumentDialog() {
   }
 
   const handleClose = () => {
-    close()
+    // Reset state when closing
     setFiles([])
+    close()
+  }
+
+  // Cleanup on unmount or when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFiles([])
+    }
+    return () => {
+      // Cleanup on unmount
+      setFiles([])
+    }
+  }, [isOpen])
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
   const handleUpload = async () => {
     if (files.length === 0 || !projectId) return
-    await uploadDocument({
-      projectId: projectId,
-      files,
-    })
-    handleClose()
+    setUploadProgress(0)
+    try {
+      await uploadDocument({
+        projectId: projectId,
+        files,
+      })
+      setUploadProgress(100)
+      setTimeout(() => {
+        handleClose()
+      }, 500)
+    } catch (error) {
+      console.error('Upload failed:', error)
+      setUploadProgress(0)
+      // Error is already handled by the atom
+    }
   }
+
+  // Reset progress when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadProgress(0)
+    }
+  }, [isOpen])
 
   if (!projectId) return null
 
@@ -121,7 +160,7 @@ export function UploadDocumentDialog() {
                         {file.name}
                       </p>
                       <p className="text-xs text-muted-foreground truncate w-full">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {formatFileSize(file.size)}
                       </p>
                     </div>
                     <Button
@@ -138,6 +177,23 @@ export function UploadDocumentDialog() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {uploadDocumentResult.waiting && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Uploading...</span>
+                <span className="text-muted-foreground">
+                  {uploadProgress > 0 ? `${uploadProgress}%` : 'Processing...'}
+                </span>
+              </div>
+              <Progress
+                value={
+                  uploadProgress || (uploadDocumentResult.waiting ? 50 : 0)
+                }
+                className="h-2"
+              />
             </div>
           )}
         </div>

@@ -12,7 +12,7 @@ from core.services.flashcard_progress import FlashcardProgressService
 from db.models import User
 from db.session import SessionLocal
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from schemas.flashcards import (
     CreateFlashcardGroupRequest,
     FlashcardDto,
@@ -20,11 +20,59 @@ from schemas.flashcards import (
     FlashcardGroupListResponse,
     FlashcardGroupResponse,
     FlashcardListResponse,
+    FlashcardProgressUpdate,
 )
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+@router.post(
+    path="/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Create flashcard group with streaming progress",
+    description="Create a new flashcard group with AI-generated flashcards and stream progress updates",
+)
+async def create_flashcard_group_stream(
+    project_id: str,
+    body: CreateFlashcardGroupRequest,
+    flashcard_service: FlashcardService = Depends(get_flashcard_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new flashcard group with streaming progress updates."""
+    async def generate_stream():
+        """Generate streaming progress updates"""
+        try:
+            async for progress_update in flashcard_service.create_flashcard_group_with_flashcards_stream(
+                project_id=project_id,
+                count=body.flashcard_count,
+                user_prompt=body.user_prompt,
+            ):
+                progress = FlashcardProgressUpdate(**progress_update)
+                progress_json = progress.model_dump_json()
+                sse_data = f"data: {progress_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            logger.error("error in streaming flashcard creation: %s", e, exc_info=True)
+            error_progress = FlashcardProgressUpdate(
+                status="done",
+                message="Error creating flashcards",
+                error=str(e),
+            )
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @router.post(

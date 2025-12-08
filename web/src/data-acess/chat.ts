@@ -159,9 +159,15 @@ const MessageChunk = Schema.Struct({
   id: Schema.String,
   chunk: Schema.String,
   done: Schema.Boolean,
+  status: Schema.NullOr(Schema.String),
   sources: Schema.NullOr(Schema.Array(SourceDto)),
   tools: Schema.NullOr(Schema.Array(ToolCallDto)),
 })
+
+// Atom to track current streaming status for a chat
+export const chatStreamStatusAtom = Atom.family((_chatId: string) =>
+  Atom.make<string | null>(null),
+)
 
 export const streamMessageAtom = Atom.fn(
   Effect.fn(function* (
@@ -235,6 +241,11 @@ export const streamMessageAtom = Atom.fn(
       Stream.tap((chunk) =>
         Effect.gen(function* () {
           const messageId = chunk.id
+
+          // Update stream status if provided
+          if (chunk.status) {
+            get.set(chatStreamStatusAtom(input.chatId), chunk.status)
+          }
 
           const chat = yield* get.result(chatAtom(input.chatId))
           const messages = Array.from(chat.messages ?? [])
@@ -326,11 +337,26 @@ export const streamMessageAtom = Atom.fn(
               )
             }
           }
+
+          // If stream is done, fetch fresh data and update atomically
+          if (chunk.done) {
+            yield* Effect.sync(() => {
+              get.set(chatStreamStatusAtom(input.chatId), null)
+            })
+            // Fetch fresh data in background without triggering loading state
+            const client = yield* makeApiClient
+            const freshChat = yield* client.getChatV1ChatsChatIdGet(
+              input.chatId,
+            )
+            // Update atom with fresh data once fetched
+            get.set(chatAtom(input.chatId), freshChat)
+          }
         }),
       ),
     )
     yield* Stream.runCollect(respStream)
 
+    // Refresh usage only
     get.refresh(usageAtom)
   }),
 ).pipe(Atom.keepAlive)

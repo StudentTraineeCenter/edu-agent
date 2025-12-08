@@ -80,3 +80,12 @@ class QuizQuestionListResponse(BaseModel):
     """Response model for listing quiz questions."""
 
     data: List[QuizQuestionDto] = Field(description="List of quiz questions")
+
+
+class QuizProgressUpdate(BaseModel):
+    """Progress update for quiz generation streaming."""
+
+    status: str = Field(description="Progress status: searching, analyzing, generating, done")
+    message: str = Field(description="Human-readable progress message")
+    quiz_id: Optional[str] = Field(None, description="Quiz ID when done")
+    error: Optional[str] = Field(None, description="Error message if failed")

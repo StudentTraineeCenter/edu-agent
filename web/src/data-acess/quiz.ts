@@ -1,6 +1,7 @@
-import { makeApiClient } from '@/integrations/api/http'
-import { Effect } from 'effect'
+import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
+import { Effect, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
+import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
 import { CreateQuizRequest } from '@/integrations/api/client'
 
@@ -34,6 +35,87 @@ export const quizQuestionsAtom = Atom.family((quizId: string) =>
     }),
   ).pipe(Atom.keepAlive),
 )
+
+const QuizProgressUpdate = Schema.Struct({
+  status: Schema.String,
+  message: Schema.String,
+  quiz_id: Schema.NullishOr(Schema.String),
+  error: Schema.NullishOr(Schema.String),
+})
+
+export const quizProgressAtom = Atom.make<{
+  status: string
+  message: string
+  error?: string
+} | null>(null)
+
+export const createQuizStreamAtom = Atom.fn(
+  Effect.fn(function* (
+    input: {
+      projectId: string
+      questionCount?: number
+      userPrompt?: string
+    },
+    get: Atom.FnContext,
+  ) {
+    const registry = yield* Registry.AtomRegistry
+    const httpClient = yield* makeHttpClient
+    const body = HttpBody.unsafeJson(
+      new CreateQuizRequest({
+        question_count: input.questionCount,
+        user_prompt: input.userPrompt,
+      }),
+    )
+    const resp = yield* httpClient.post(
+      `/v1/quizzes/stream?project_id=${input.projectId}`,
+      { body },
+    )
+
+    const decoder = new TextDecoder()
+    const respStream = resp.stream.pipe(
+      Stream.map((value) => decoder.decode(value, { stream: true })),
+      Stream.map((chunk) => {
+        const chunkLines = chunk.split('\n')
+        const res = chunkLines
+          .map((line) =>
+            line.startsWith('data: ') ? line.replace('data: ', '') : '',
+          )
+          .filter((line) => line !== '')
+          .join('\n')
+        return res
+      }),
+      Stream.filter((chunk) => chunk !== ''),
+      Stream.flatMap((chunk) => {
+        const lines = chunk.trim().split('\n')
+        return Stream.fromIterable(lines).pipe(
+          Stream.filter((line) => line.trim() !== ''),
+          Stream.flatMap((line) =>
+            Schema.decodeUnknown(Schema.parseJson(QuizProgressUpdate))(line),
+          ),
+        )
+      }),
+      Stream.tap((progress) =>
+        Effect.sync(() => {
+          registry.set(quizProgressAtom, {
+            status: progress.status,
+            message: progress.message,
+            error: progress.error ?? undefined,
+          })
+        }),
+      ),
+    )
+
+    yield* Stream.runCollect(respStream)
+
+    // Refresh quizzes list after completion
+    if (input.projectId) {
+      registry.refresh(quizzesAtom(input.projectId))
+    }
+
+    // Clear progress when done
+    registry.set(quizProgressAtom, null)
+  }),
+).pipe(Atom.keepAlive)
 
 export const createQuizAtom = runtime.fn(
   Effect.fn(function* (input: {

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -13,14 +13,24 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Loader2Icon } from 'lucide-react'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
+import { useAtomValue, useAtom } from '@effect-atom/atom-react'
 import { indexedDocumentsAtom } from '@/data-acess/document'
 import { Result } from '@effect-atom/atom-react'
 import type { DocumentDto } from '@/integrations/api/client'
-import { createNoteAtom } from '@/data-acess/note'
-import { createQuizAtom } from '@/data-acess/quiz'
-import { createFlashcardGroupAtom } from '@/data-acess/flashcard'
-import { generateMindMapAtom } from '@/data-acess/mind-map'
+import { createNoteStreamAtom, noteProgressAtom } from '@/data-acess/note'
+import { createQuizStreamAtom, quizProgressAtom } from '@/data-acess/quiz'
+import {
+  createFlashcardGroupStreamAtom,
+  flashcardProgressAtom,
+} from '@/data-acess/flashcard'
+import {
+  generateMindMapStreamAtom,
+  mindMapProgressAtom,
+} from '@/data-acess/mind-map'
+import {
+  GenerationProgress,
+  type ProgressStage,
+} from '@/components/generation-progress'
 
 type GenerationDialogStore = {
   isOpen: boolean
@@ -48,12 +58,44 @@ export function GenerationDialog() {
   const [selectedType, setSelectedType] = useState<GenerationType>('note')
 
   const documentsResult = useAtomValue(indexedDocumentsAtom(projectId || ''))
-  const createNote = useAtomSet(createNoteAtom, { mode: 'promise' })
-  const createQuiz = useAtomSet(createQuizAtom, { mode: 'promise' })
-  const createFlashcardGroup = useAtomSet(createFlashcardGroupAtom, {
-    mode: 'promise',
-  })
-  const generateMindMap = useAtomSet(generateMindMapAtom, { mode: 'promise' })
+
+  // Streaming atoms
+  const [createNoteStreamResult, createNoteStream] = useAtom(
+    createNoteStreamAtom,
+    {
+      mode: 'promise',
+    },
+  )
+  const [createQuizStreamResult, createQuizStream] = useAtom(
+    createQuizStreamAtom,
+    {
+      mode: 'promise',
+    },
+  )
+  const [createFlashcardStreamResult, createFlashcardStream] = useAtom(
+    createFlashcardGroupStreamAtom,
+    { mode: 'promise' },
+  )
+  const [generateMindMapStreamResult, generateMindMapStream] = useAtom(
+    generateMindMapStreamAtom,
+    { mode: 'promise' },
+  )
+
+  // Progress atoms
+  const noteProgress = useAtomValue(noteProgressAtom)
+  const quizProgress = useAtomValue(quizProgressAtom)
+  const flashcardProgress = useAtomValue(flashcardProgressAtom)
+  const mindMapProgress = useAtomValue(mindMapProgressAtom)
+
+  // Get current progress based on selected type
+  const currentProgress =
+    selectedType === 'note'
+      ? noteProgress
+      : selectedType === 'quiz'
+        ? quizProgress
+        : selectedType === 'flashcard'
+          ? flashcardProgress
+          : mindMapProgress
 
   const handleToggleDocument = (documentId: string) => {
     setSelectedDocumentIds((prev) => {
@@ -78,48 +120,61 @@ export function GenerationDialog() {
     setSelectedDocumentIds(new Set())
   }
 
+  // Update isGenerating based on streaming state
+  useEffect(() => {
+    const isStreaming =
+      createNoteStreamResult.waiting ||
+      createQuizStreamResult.waiting ||
+      createFlashcardStreamResult.waiting ||
+      generateMindMapStreamResult.waiting
+
+    setIsGenerating(isStreaming)
+  }, [
+    createNoteStreamResult.waiting,
+    createQuizStreamResult.waiting,
+    createFlashcardStreamResult.waiting,
+    generateMindMapStreamResult.waiting,
+  ])
+
   const handleGenerate = async () => {
     if (!projectId || !prompt.trim()) return
-
-    setIsGenerating(true)
 
     try {
       switch (selectedType) {
         case 'note':
-          await createNote({
+          await createNoteStream({
             projectId,
             userPrompt: prompt.trim() || undefined,
           })
           break
         case 'quiz':
-          await createQuiz({
+          await createQuizStream({
             projectId,
             questionCount: 30,
             userPrompt: prompt.trim() || undefined,
           })
           break
         case 'flashcard':
-          await createFlashcardGroup({
+          await createFlashcardStream({
             projectId,
             flashcardCount: 30,
             userPrompt: prompt.trim() || undefined,
           })
           break
         case 'mindmap':
-          await generateMindMap({
+          await generateMindMapStream({
             projectId,
             userPrompt: prompt.trim() || undefined,
           })
           break
       }
 
-      // Close dialog and reset state
-      handleClose()
+      // Close dialog and reset state after a short delay to show completion
+      setTimeout(() => {
+        handleClose()
+      }, 500)
     } catch (error) {
       console.error('Generation failed:', error)
-      // TODO: Show error toast/notification
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -273,6 +328,16 @@ export function GenerationDialog() {
             </div>
           </div>
         </div>
+
+        {currentProgress && (
+          <div className="shrink-0 px-4">
+            <GenerationProgress
+              status={currentProgress.status as ProgressStage}
+              message={currentProgress.message}
+              error={currentProgress.error}
+            />
+          </div>
+        )}
 
         <DialogFooter className="gap-2 shrink-0">
           <Button
