@@ -29,6 +29,7 @@ async def generate_mind_map_stream(
     current_user: User = Depends(get_user),
 ):
     """Generate a new mind map with streaming progress updates."""
+
     async def generate_stream():
         """Generate streaming progress updates"""
         try:

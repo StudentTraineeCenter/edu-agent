@@ -25,34 +25,41 @@ async def capture_sources_from_rag(request, handler):
     """Capture sources when RAG search tool is used."""
     # Execute the tool
     result = await handler(request)
-    
+
     # Check if this was a search_project_documents call
-    if request.tool.name == "search_project_documents" and isinstance(result, ToolMessage):
+    if request.tool.name == "search_project_documents" and isinstance(
+        result, ToolMessage
+    ):
         try:
             # Parse the content to extract sources
-            content = json.loads(result.content) if isinstance(result.content, str) else result.content
+            content = (
+                json.loads(result.content)
+                if isinstance(result.content, str)
+                else result.content
+            )
             sources = content.get("sources", [])
-            
+
             # Store sources in state
             if sources:
                 request.state["sources"] = sources
-            
+
             # Return just the content string to the agent
             result.content = content.get("content", result.content)
         except:
             pass
-    
+
     return result
 
 
 # Cache system prompts by language for performance
 _prompt_cache = {}
 
+
 @dynamic_prompt
 async def dynamic_system_prompt(request: ModelRequest) -> str:
     """Generate dynamic system prompt."""
     language = request.runtime.context.language or "English"
-    
+
     # Return cached prompt if available
     if language in _prompt_cache:
         return _prompt_cache[language]
@@ -92,7 +99,7 @@ CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All expl
 - When generating study resources (flashcards, quizzes, notes, mind maps), ensure ALL content is in {language}
 - When students ask questions, help them understand the "why" behind concepts, not just the "what"
 </rules>"""
-    
+
     _prompt_cache[language] = prompt
     return prompt
 

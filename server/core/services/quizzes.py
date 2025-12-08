@@ -517,7 +517,9 @@ class QuizService:
                 logger.info(f"updated quiz question_id={question_id}")
                 return question
             except Exception as e:
-                logger.error(f"error updating quiz question question_id={question_id}: {e}")
+                logger.error(
+                    f"error updating quiz question question_id={question_id}: {e}"
+                )
                 raise
 
     def reorder_quiz_questions(
@@ -548,9 +550,7 @@ class QuizService:
 
                 # Get all questions in the quiz
                 questions = (
-                    db.query(QuizQuestion)
-                    .filter(QuizQuestion.quiz_id == quiz_id)
-                    .all()
+                    db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).all()
                 )
                 question_dict = {q.id: q for q in questions}
 
@@ -611,7 +611,9 @@ class QuizService:
                 logger.info(f"deleted quiz question_id={question_id}")
                 return True
             except Exception as e:
-                logger.error(f"error deleting quiz question question_id={question_id}: {e}")
+                logger.error(
+                    f"error deleting quiz question question_id={question_id}: {e}"
+                )
                 raise
 
     def get_quiz(self, quiz_id: str) -> Quiz:

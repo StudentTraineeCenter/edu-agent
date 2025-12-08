@@ -28,10 +28,16 @@ class User(Base):
     )
 
     # Relationships
-    projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
-    documents = relationship("Document", back_populates="owner", cascade="all, delete-orphan")
+    projects = relationship(
+        "Project", back_populates="owner", cascade="all, delete-orphan"
+    )
+    documents = relationship(
+        "Document", back_populates="owner", cascade="all, delete-orphan"
+    )
     chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
-    usage = relationship("UserUsage", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    usage = relationship(
+        "UserUsage", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
 
 class Project(Base):
@@ -50,7 +56,9 @@ class Project(Base):
     )
 
     owner = relationship("User", back_populates="projects")
-    documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
+    documents = relationship(
+        "Document", back_populates="project", cascade="all, delete-orphan"
+    )
     chats = relationship("Chat", back_populates="project", cascade="all, delete-orphan")
 
 
@@ -205,7 +213,10 @@ class FlashcardGroup(Base):
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     study_session_id: Mapped[Optional[str]] = mapped_column(
-        String, ForeignKey("study_sessions.id", ondelete="CASCADE"), nullable=True, index=True
+        String,
+        ForeignKey("study_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )  # If set, this group belongs to a study session and should be hidden from regular lists
 
     created_at: Mapped[datetime] = mapped_column(

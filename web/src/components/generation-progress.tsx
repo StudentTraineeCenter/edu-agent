@@ -79,4 +79,3 @@ export function GenerationProgress({
     </div>
   )
 }
-

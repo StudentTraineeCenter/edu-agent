@@ -142,7 +142,9 @@ class QuizQuestionResponse(BaseModel):
 class QuizProgressUpdate(BaseModel):
     """Progress update for quiz generation streaming."""
 
-    status: str = Field(description="Progress status: searching, analyzing, generating, done")
+    status: str = Field(
+        description="Progress status: searching, analyzing, generating, done"
+    )
     message: str = Field(description="Human-readable progress message")
     quiz_id: Optional[str] = Field(None, description="Quiz ID when done")
     error: Optional[str] = Field(None, description="Error message if failed")

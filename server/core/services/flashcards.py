@@ -537,9 +537,7 @@ class FlashcardService:
                 logger.info(f"updating flashcard_id={flashcard_id}")
 
                 flashcard = (
-                    db.query(Flashcard)
-                    .filter(Flashcard.id == flashcard_id)
-                    .first()
+                    db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
                 )
                 if not flashcard:
                     logger.warning(f"flashcard_id={flashcard_id} not found")
@@ -558,7 +556,9 @@ class FlashcardService:
                 logger.info(f"updated flashcard_id={flashcard_id}")
                 return flashcard
             except Exception as e:
-                logger.error(f"error updating flashcard flashcard_id={flashcard_id}: {e}")
+                logger.error(
+                    f"error updating flashcard flashcard_id={flashcard_id}: {e}"
+                )
                 raise
 
     def reorder_flashcards(
@@ -593,9 +593,7 @@ class FlashcardService:
 
                 # Get all flashcards in the group
                 flashcards = (
-                    db.query(Flashcard)
-                    .filter(Flashcard.group_id == group_id)
-                    .all()
+                    db.query(Flashcard).filter(Flashcard.group_id == group_id).all()
                 )
                 flashcard_dict = {f.id: f for f in flashcards}
 
@@ -641,9 +639,7 @@ class FlashcardService:
                 logger.info(f"deleting flashcard_id={flashcard_id}")
 
                 flashcard = (
-                    db.query(Flashcard)
-                    .filter(Flashcard.id == flashcard_id)
-                    .first()
+                    db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
                 )
 
                 if not flashcard:
@@ -656,7 +652,9 @@ class FlashcardService:
                 logger.info(f"deleted flashcard_id={flashcard_id}")
                 return True
             except Exception as e:
-                logger.error(f"error deleting flashcard flashcard_id={flashcard_id}: {e}")
+                logger.error(
+                    f"error deleting flashcard flashcard_id={flashcard_id}: {e}"
+                )
                 raise
 
     async def _generate_flashcard_group_content(

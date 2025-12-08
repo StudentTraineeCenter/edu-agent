@@ -58,7 +58,9 @@ class NoteListResponse(BaseModel):
 class NoteProgressUpdate(BaseModel):
     """Progress update for note generation streaming."""
 
-    status: str = Field(description="Progress status: searching, structuring, writing, done")
+    status: str = Field(
+        description="Progress status: searching, structuring, writing, done"
+    )
     message: str = Field(description="Human-readable progress message")
     note_id: Optional[str] = Field(None, description="Note ID when done")
     error: Optional[str] = Field(None, description="Error message if failed")

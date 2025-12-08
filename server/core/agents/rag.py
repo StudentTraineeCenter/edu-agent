@@ -17,20 +17,15 @@ async def search_project_documents(
 ) -> dict:
     """Search project documents and return relevant content."""
     ctx = runtime.context
-    
+
     # Perform RAG search
     search_results = await ctx.search.search_documents(
-        query=query, 
-        project_id=ctx.project_id, 
-        top_k=5
+        query=query, project_id=ctx.project_id, top_k=5
     )
-    
+
     if not search_results:
-        return {
-            "content": "No relevant documents found.",
-            "sources": []
-        }
-    
+        return {"content": "No relevant documents found.", "sources": []}
+
     # Build sources
     sources = [
         ChatMessageSource(
@@ -44,16 +39,15 @@ async def search_project_documents(
         )
         for i, result in enumerate(search_results, 1)
     ]
-    
+
     # Format content for agent - give clean context without citation markers
     # The agent should use this information naturally, not copy-paste it
     context_blocks = [
-        f"From {source.title}:\n{source.content[:1500]}"
-        for source in sources
+        f"From {source.title}:\n{source.content[:1500]}" for source in sources
     ]
-    
+
     formatted_content = "\n\n---\n\n".join(context_blocks)
-    
+
     return {
         "content": f"Here is relevant information from the course documents:\n\n{formatted_content}\n\nPlease use this information to answer the student's question in a clear, educational way.",
         "sources": sources,  # This will be captured by middleware

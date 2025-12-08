@@ -31,6 +31,7 @@ async def create_note_stream(
     current_user: User = Depends(get_user),
 ):
     """Create a new note with streaming progress updates."""
+
     async def generate_stream():
         """Generate streaming progress updates"""
         try:

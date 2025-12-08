@@ -38,7 +38,9 @@ class MindMapListResponse(BaseModel):
 class MindMapProgressUpdate(BaseModel):
     """Progress update for mind map generation streaming."""
 
-    status: str = Field(description="Progress status: searching, mapping, building, done")
+    status: str = Field(
+        description="Progress status: searching, mapping, building, done"
+    )
     message: str = Field(description="Human-readable progress message")
     mind_map_id: Optional[str] = Field(None, description="Mind map ID when done")
     error: Optional[str] = Field(None, description="Error message if failed")

@@ -45,10 +45,13 @@ async def create_flashcard_group_stream(
     current_user: User = Depends(get_user),
 ):
     """Create a new flashcard group with streaming progress updates."""
+
     async def generate_stream():
         """Generate streaming progress updates"""
         try:
-            async for progress_update in flashcard_service.create_flashcard_group_with_flashcards_stream(
+            async for (
+                progress_update
+            ) in flashcard_service.create_flashcard_group_with_flashcards_stream(
                 project_id=project_id,
                 count=body.flashcard_count,
                 user_prompt=body.user_prompt,
