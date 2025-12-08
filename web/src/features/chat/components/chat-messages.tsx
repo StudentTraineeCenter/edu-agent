@@ -115,13 +115,11 @@ const MessageSources = ({ sources, projectId }: MessageSourcesProps) => {
 
 type UserMessageProps = {
   message: ChatMessageDto
-  photoUrl?: string
 }
 
-const UserMessage = ({ message, photoUrl }: UserMessageProps) => (
+const UserMessage = ({ message }: UserMessageProps) => (
   <Message from="user">
     <MessageContent>{message.content}</MessageContent>
-    <MessageAvatar name="User" src={photoUrl ?? ''} />
   </Message>
 )
 
@@ -140,10 +138,10 @@ const AssistantMessage = ({ message, projectId }: AssistantMessageProps) => {
 
   return (
     <Message from="assistant">
-      <MessageContent>
+      <MessageContent variant="flat">
+        <MessageSources sources={message.sources ?? []} projectId={projectId} />
         <MessageTools tools={message.tools ?? []} />
         <Response>{message.content}</Response>
-        <MessageSources sources={message.sources ?? []} projectId={projectId} />
       </MessageContent>
       <MessageAvatar name="AI" src="https://github.com/openai.png" />
     </Message>
@@ -184,7 +182,7 @@ const ThinkingMessage = ({ chatId }: ThinkingMessageProps) => {
 
   return (
     <Message from="assistant">
-      <MessageContent>
+      <MessageContent variant="flat">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2Icon className="size-4 animate-spin" />
           <span>{statusMessage}</span>

@@ -6,6 +6,7 @@ import { Result, useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { ChatInput } from './components/chat-input'
 import { ChatHeader } from './components/chat-header'
 import { ChatMessages } from './components/chat-messages'
+import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 
 type ChatContentProps = {
   chatId: string
@@ -54,6 +55,22 @@ const ChatContent = ({ chatId, projectId }: ChatContentProps) => {
     }
   }
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setPrompt(suggestion)
+    textareaRef.current?.focus()
+  }
+
+  const suggestions = [
+    'What are the latest trends in AI?',
+    'How does machine learning work?',
+    'Explain quantum computing',
+    'Best practices for React development',
+    'Tell me about TypeScript benefits',
+    'How to optimize database queries?',
+    'What is the difference between SQL and NoSQL?',
+    'Explain cloud computing basics',
+  ]
+
   return Result.builder(chatResult)
     .onInitialOrWaiting(() => (
       <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
@@ -79,13 +96,26 @@ const ChatContent = ({ chatId, projectId }: ChatContentProps) => {
         </div>
         <div className="shrink-0 bg-background w-full pb-4">
           <div className="max-w-5xl mx-auto">
-            <ChatInput
-              value={prompt}
-              onChange={setPrompt}
-              status={status}
-              onSubmit={handleSubmit}
-              textareaRef={textareaRef}
-            />
+            <div className="grid shrink-0 gap-4 pt-4">
+              <Suggestions className="px-4">
+                {suggestions.map((suggestion) => (
+                  <Suggestion
+                    key={suggestion}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    suggestion={suggestion}
+                  />
+                ))}
+              </Suggestions>
+              <div className="w-full px-4 pb-4">
+                <ChatInput
+                  value={prompt}
+                  onChange={setPrompt}
+                  status={status}
+                  onSubmit={handleSubmit}
+                  textareaRef={textareaRef}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </>

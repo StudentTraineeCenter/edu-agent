@@ -375,6 +375,13 @@ function SidebarContent({ className, ...props }: React.ComponentProps<'div'>) {
       data-sidebar="content"
       className={cn(
         'flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
+        '[&::-webkit-scrollbar]:w-2',
+        '[&::-webkit-scrollbar-track]:bg-transparent',
+        '[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20',
+        '[&::-webkit-scrollbar-thumb]:rounded-full',
+        '[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30',
+        'dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+        'dark:[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/40',
         className,
       )}
       {...props}
