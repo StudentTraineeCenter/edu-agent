@@ -17,6 +17,9 @@ export const DashboardPage = () => {
   const projectsResult = useAtomValue(projectsAtom)
   const openCreateProjectDialog = useCreateProjectDialog((state) => state.open)
 
+  const hasProjects =
+    Result.isSuccess(projectsResult) && projectsResult.value.length > 0
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -27,10 +30,12 @@ export const DashboardPage = () => {
               Manage your projects and organize your learning materials
             </p>
           </div>
-          <Button onClick={() => openCreateProjectDialog()}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
+          {hasProjects && (
+            <Button onClick={() => openCreateProjectDialog()}>
+              <PlusIcon className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          )}
         </div>
 
         {Result.builder(projectsResult)
