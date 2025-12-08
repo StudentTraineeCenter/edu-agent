@@ -55,10 +55,10 @@ class ProjectService:
                 db.commit()
                 db.refresh(project)
 
-                logger.info(f"created project project_id={project.id}")
+                logger.info_structured("created project", project_id=project.id, owner_id=owner_id)
                 return project
             except Exception as e:
-                logger.error(f"error creating project for owner_id={owner_id}: {e}")
+                logger.error_structured("error creating project", owner_id=owner_id, error=str(e), exc_info=True)
                 raise
 
     def get_project(self, project_id: str, owner_id: str) -> Project:
@@ -84,12 +84,12 @@ class ProjectService:
                 if not project:
                     raise NotFoundError(f"Project {project_id} not found")
 
-                logger.info(f"retrieved project project_id={project_id}")
+                logger.info_structured("retrieved project", project_id=project_id, owner_id=owner_id)
                 return project
             except NotFoundError:
                 raise
             except Exception as e:
-                logger.error(f"error getting project project_id={project_id}: {e}")
+                logger.error_structured("error getting project", project_id=project_id, owner_id=owner_id, error=str(e), exc_info=True)
                 raise
 
     def list_projects(self, owner_id: str) -> List[Project]:
@@ -109,10 +109,10 @@ class ProjectService:
                     .order_by(Project.created_at.desc())
                     .all()
                 )
-                logger.info(f"listed {len(projects)} projects for owner_id={owner_id}")
+                logger.info_structured("listed projects", count=len(projects), owner_id=owner_id)
                 return projects
             except Exception as e:
-                logger.error(f"error listing projects for owner_id={owner_id}: {e}")
+                logger.error_structured("error listing projects", owner_id=owner_id, error=str(e), exc_info=True)
                 raise
 
     def check_exists(self, owner_id: str, name: str) -> bool:
@@ -133,14 +133,10 @@ class ProjectService:
                     .first()
                 )
                 exists = project is not None
-                logger.info(
-                    f"checked project existence owner_id={owner_id}, name={name}, exists={exists}"
-                )
+                logger.info_structured("checked project existence", owner_id=owner_id, name=name, exists=exists)
                 return exists
             except Exception as e:
-                logger.error(
-                    f"error checking if project exists for owner_id={owner_id}, name={name}: {e}"
-                )
+                logger.error_structured("error checking if project exists", owner_id=owner_id, name=name, error=str(e), exc_info=True)
                 raise
 
     def update_project(
@@ -186,12 +182,12 @@ class ProjectService:
                 db.commit()
                 db.refresh(project)
 
-                logger.info(f"updated project project_id={project_id}")
+                logger.info_structured("updated project", project_id=project_id, owner_id=owner_id)
                 return project
             except NotFoundError:
                 raise
             except Exception as e:
-                logger.error(f"error updating project project_id={project_id}: {e}")
+                logger.error_structured("error updating project", project_id=project_id, owner_id=owner_id, error=str(e), exc_info=True)
                 raise
 
     def delete_project(self, project_id: str, owner_id: str) -> None:
@@ -217,11 +213,11 @@ class ProjectService:
                 db.delete(project)
                 db.commit()
 
-                logger.info(f"deleted project project_id={project_id}")
+                logger.info_structured("deleted project", project_id=project_id, owner_id=owner_id)
             except NotFoundError:
                 raise
             except Exception as e:
-                logger.error(f"error deleting project project_id={project_id}: {e}")
+                logger.error_structured("error deleting project", project_id=project_id, owner_id=owner_id, error=str(e), exc_info=True)
                 raise
 
     @contextmanager

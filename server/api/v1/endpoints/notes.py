@@ -46,7 +46,7 @@ async def create_note_stream(
                 yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error("error in streaming note creation: %s", e, exc_info=True)
+            logger.error_structured("error in streaming note creation", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
             error_progress = NoteProgressUpdate(
                 status="done",
                 message="Error creating note",
@@ -81,7 +81,7 @@ async def create_note(
 ):
     """Create a new note."""
     try:
-        logger.info("creating note for project_id=%s", project_id)
+        logger.info_structured("creating note", project_id=project_id, user_id=current_user.id)
 
         note_id = await note_service.create_note_with_content(
             project_id=project_id,
@@ -103,13 +103,13 @@ async def create_note(
         )
 
     except ValueError as e:
-        logger.error("error creating note: %s", e)
+        logger.error_structured("error creating note", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error creating note: %s", e)
+        logger.error_structured("error creating note", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create note",
@@ -130,7 +130,7 @@ async def list_notes(
 ):
     """List all notes for a project."""
     try:
-        logger.info("listing notes for project_id=%s", project_id)
+        logger.info_structured("listing notes", project_id=project_id, user_id=current_user.id)
 
         notes = note_service.get_notes(project_id)
 
@@ -139,7 +139,7 @@ async def list_notes(
         )
 
     except Exception as e:
-        logger.error("error listing notes: %s", e)
+        logger.error_structured("error listing notes", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list notes",
@@ -160,7 +160,7 @@ async def get_note(
 ):
     """Get a specific note."""
     try:
-        logger.info("getting note_id=%s", note_id)
+        logger.info_structured("getting note", note_id=note_id, user_id=current_user.id)
 
         note = note_service.get_note(note_id)
 
@@ -178,7 +178,7 @@ async def get_note(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error getting note: %s", e)
+        logger.error_structured("error getting note", note_id=note_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get note",
@@ -200,7 +200,7 @@ async def update_note(
 ):
     """Update a note."""
     try:
-        logger.info("updating note_id=%s", note_id)
+        logger.info_structured("updating note", note_id=note_id, user_id=current_user.id)
 
         note = note_service.update_note(
             note_id=note_id,
@@ -223,7 +223,7 @@ async def update_note(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error updating note: %s", e)
+        logger.error_structured("error updating note", note_id=note_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update note",
@@ -243,7 +243,7 @@ async def delete_note(
 ):
     """Delete a note."""
     try:
-        logger.info("deleting note_id=%s", note_id)
+        logger.info_structured("deleting note", note_id=note_id, user_id=current_user.id)
 
         success = note_service.delete_note(note_id)
 
@@ -256,7 +256,7 @@ async def delete_note(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error deleting note: %s", e)
+        logger.error_structured("error deleting note", note_id=note_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete note",

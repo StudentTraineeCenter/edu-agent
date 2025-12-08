@@ -12,7 +12,7 @@ def increment_usage(usage: Optional[UsageService], user_id: str, feature: str) -
     try:
         usage.check_and_increment(user_id, feature)
     except Exception as e:
-        logger.warning(f"Failed to increment usage for {feature}: {e}")
+        logger.warning_structured("failed to increment usage", feature=feature, user_id=user_id, error=str(e))
 
 
 def build_enhanced_prompt(

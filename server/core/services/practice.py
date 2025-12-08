@@ -94,16 +94,26 @@ class PracticeService:
                             is_correct=was_correct,
                         )
 
-                logger.info(
-                    f"created practice record id={practice_record.id} for user_id={user_id}, item_type={study_resource_type}, item_id={study_resource_id}"
+                logger.info_structured(
+                    "created practice record",
+                    practice_record_id=practice_record.id,
+                    user_id=user_id,
+                    item_type=study_resource_type,
+                    item_id=study_resource_id,
+                    project_id=project_id,
                 )
 
                 return practice_record
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(
-                    f"error creating practice record for user_id={user_id}, item_id={study_resource_id}: {e}"
+                logger.error_structured(
+                    "error creating practice record",
+                    user_id=user_id,
+                    item_id=study_resource_id,
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
                 )
                 raise
 
@@ -133,8 +143,12 @@ class PracticeService:
 
                     # Validate that the referenced study resource exists
                     if not self._validate_item(db, item_type, item_id):
-                        logger.warning(
-                            f"skipping practice record: study resource {item_id} of type {item_type} not found"
+                        logger.warning_structured(
+                            "skipping practice record: study resource not found",
+                            item_id=item_id,
+                            item_type=item_type,
+                            user_id=user_id,
+                            project_id=project_id,
                         )
                         continue
 
@@ -158,14 +172,21 @@ class PracticeService:
                 for record in created_records:
                     db.refresh(record)
 
-                logger.info(
-                    f"created {len(created_records)} practice records for user_id={user_id}, project_id={project_id}"
+                logger.info_structured(
+                    "created practice records",
+                    count=len(created_records),
+                    user_id=user_id,
+                    project_id=project_id,
                 )
 
                 return created_records
             except Exception as e:
-                logger.error(
-                    f"error creating practice records batch for user_id={user_id}, project_id={project_id}: {e}"
+                logger.error_structured(
+                    "error creating practice records batch",
+                    user_id=user_id,
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
                 )
                 raise
 
@@ -192,14 +213,21 @@ class PracticeService:
 
                 records = query.order_by(PracticeRecord.created_at.desc()).all()
 
-                logger.info(
-                    f"retrieved {len(records)} practice records for user_id={user_id}, project_id={project_id}"
+                logger.info_structured(
+                    "retrieved practice records",
+                    count=len(records),
+                    user_id=user_id,
+                    project_id=project_id,
                 )
 
                 return records
             except Exception as e:
-                logger.error(
-                    f"error retrieving practice records for user_id={user_id}, project_id={project_id}: {e}"
+                logger.error_structured(
+                    "error retrieving practice records",
+                    user_id=user_id,
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
                 )
                 raise
 
@@ -226,8 +254,12 @@ class PracticeService:
             else:
                 return False
         except Exception as e:
-            logger.error(
-                f"error validating study resource item_id={item_id}, item_type={item_type}: {e}"
+            logger.error_structured(
+                "error validating study resource",
+                item_id=item_id,
+                item_type=item_type,
+                error=str(e),
+                exc_info=True,
             )
             return False
 

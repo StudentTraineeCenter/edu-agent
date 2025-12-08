@@ -55,7 +55,7 @@ async def create_quiz_stream(
                 yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error("error in streaming quiz creation: %s", e, exc_info=True)
+            logger.error_structured("error in streaming quiz creation", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
             error_progress = QuizProgressUpdate(
                 status="done",
                 message="Error creating quiz",
@@ -90,7 +90,7 @@ async def create_quiz(
 ):
     """Create a new quiz."""
     try:
-        logger.info("creating quiz for project_id=%s", project_id)
+        logger.info_structured("creating quiz", project_id=project_id, user_id=current_user.id)
 
         quiz_id = await quiz_service.create_quiz_with_questions(
             project_id=project_id,
@@ -114,13 +114,13 @@ async def create_quiz(
         )
 
     except ValueError as e:
-        logger.error("error creating quiz: %s", e)
+        logger.error_structured("error creating quiz", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error creating quiz: %s", e)
+        logger.error_structured("error creating quiz", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create quiz",
@@ -140,7 +140,7 @@ async def list_quizzes(
 ):
     """List all quizzes for a project."""
     try:
-        logger.info("listing quizzes for project_id=%s", project_id)
+        logger.info_structured("listing quizzes", project_id=project_id)
 
         quizzes = quiz_service.get_quizzes(project_id)
 
@@ -149,7 +149,7 @@ async def list_quizzes(
         )
 
     except Exception as e:
-        logger.error("error listing quizzes: %s", e)
+        logger.error_structured("error listing quizzes", project_id=project_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list quizzes",
@@ -169,7 +169,7 @@ async def get_quiz(
 ):
     """Get a specific quiz."""
     try:
-        logger.info("getting quiz_id=%s", quiz_id)
+        logger.info_structured("getting quiz", quiz_id=quiz_id)
 
         quiz = quiz_service.get_quiz(quiz_id)
 
@@ -183,7 +183,7 @@ async def get_quiz(
         )
 
     except Exception as e:
-        logger.error("error getting quiz: %s", e)
+        logger.error_structured("error getting quiz", quiz_id=quiz_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get quiz",
@@ -202,7 +202,7 @@ async def delete_quiz(
 ):
     """Delete a quiz."""
     try:
-        logger.info("deleting quiz_id=%s", quiz_id)
+        logger.info_structured("deleting quiz", quiz_id=quiz_id)
 
         success = quiz_service.delete_quiz(quiz_id)
 
@@ -212,7 +212,7 @@ async def delete_quiz(
             )
 
     except Exception as e:
-        logger.error("error deleting quiz: %s", e)
+        logger.error_structured("error deleting quiz", quiz_id=quiz_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete quiz",
@@ -232,7 +232,7 @@ async def list_quiz_questions(
 ):
     """List all questions in a quiz."""
     try:
-        logger.info("listing quiz questions for quiz_id=%s", quiz_id)
+        logger.info_structured("listing quiz questions", quiz_id=quiz_id)
 
         questions = quiz_service.get_quiz_questions(quiz_id)
 
@@ -241,7 +241,7 @@ async def list_quiz_questions(
         )
 
     except Exception as e:
-        logger.error("error listing quiz questions: %s", e)
+        logger.error_structured("error listing quiz questions", quiz_id=quiz_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list quiz questions",
@@ -263,7 +263,7 @@ async def create_quiz_question(
 ):
     """Create a new quiz question."""
     try:
-        logger.info("creating quiz question for quiz_id=%s", quiz_id)
+        logger.info_structured("creating quiz question", quiz_id=quiz_id, user_id=current_user.id)
 
         # Get quiz to get project_id
         quiz = quiz_service.get_quiz(quiz_id)
@@ -293,13 +293,13 @@ async def create_quiz_question(
         )
 
     except ValueError as e:
-        logger.error("error creating quiz question: %s", e)
+        logger.error_structured("error creating quiz question", quiz_id=quiz_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error creating quiz question: %s", e)
+        logger.error_structured("error creating quiz question", quiz_id=quiz_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create quiz question",
@@ -322,7 +322,7 @@ async def update_quiz_question(
 ):
     """Update an existing quiz question."""
     try:
-        logger.info("updating quiz question_id=%s", question_id)
+        logger.info_structured("updating quiz question", question_id=question_id, quiz_id=quiz_id, user_id=current_user.id)
 
         question = quiz_service.update_quiz_question(
             question_id=question_id,
@@ -348,7 +348,7 @@ async def update_quiz_question(
         )
 
     except Exception as e:
-        logger.error("error updating quiz question: %s", e)
+        logger.error_structured("error updating quiz question", question_id=question_id, quiz_id=quiz_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update quiz question",
@@ -369,7 +369,7 @@ async def delete_quiz_question(
 ):
     """Delete a quiz question."""
     try:
-        logger.info("deleting quiz question_id=%s", question_id)
+        logger.info_structured("deleting quiz question", question_id=question_id, quiz_id=quiz_id, user_id=current_user.id)
 
         success = quiz_service.delete_quiz_question(question_id)
 
@@ -380,7 +380,7 @@ async def delete_quiz_question(
             )
 
     except Exception as e:
-        logger.error("error deleting quiz question: %s", e)
+        logger.error_structured("error deleting quiz question", question_id=question_id, quiz_id=quiz_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete quiz question",
@@ -402,7 +402,7 @@ async def reorder_quiz_questions(
 ):
     """Reorder quiz questions in a quiz."""
     try:
-        logger.info("reordering quiz questions for quiz_id=%s", quiz_id)
+        logger.info_structured("reordering quiz questions", quiz_id=quiz_id, user_id=current_user.id)
 
         questions = quiz_service.reorder_quiz_questions(
             quiz_id=quiz_id,
@@ -414,13 +414,13 @@ async def reorder_quiz_questions(
         )
 
     except ValueError as e:
-        logger.error("error reordering quiz questions: %s", e)
+        logger.error_structured("error reordering quiz questions", quiz_id=quiz_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error reordering quiz questions: %s", e)
+        logger.error_structured("error reordering quiz questions", quiz_id=quiz_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reorder quiz questions",
@@ -448,7 +448,7 @@ async def export_quiz(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        logger.error("error exporting quiz: %s", e)
+        logger.error_structured("error exporting quiz", quiz_id=quiz_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export quiz",

@@ -114,10 +114,15 @@ class FlashcardProgressService:
         db.commit()
         db.refresh(progress)
 
-        logger.info(
-            f"updated progress for flashcard_id={flashcard_id}, user_id={user_id}, "
-            f"is_correct={is_correct}, mastery_level={progress.mastery_level}, "
-            f"is_mastered={progress.is_mastered}"
+        logger.info_structured(
+            "updated progress",
+            flashcard_id=flashcard_id,
+            user_id=user_id,
+            is_correct=is_correct,
+            mastery_level=progress.mastery_level,
+            is_mastered=progress.is_mastered,
+            group_id=group_id,
+            project_id=project_id,
         )
 
         return progress
@@ -192,9 +197,12 @@ class FlashcardProgressService:
         # Return un-mastered flashcards (those without progress or not mastered)
         unmastered = [f for f in all_flashcards if f.id not in mastered_ids]
 
-        logger.info(
-            f"found {len(unmastered)} unmastered flashcards out of {len(all_flashcards)} "
-            f"for user_id={user_id}, group_id={group_id}"
+        logger.info_structured(
+            "found unmastered flashcards",
+            unmastered_count=len(unmastered),
+            total_count=len(all_flashcards),
+            user_id=user_id,
+            group_id=group_id,
         )
 
         return unmastered

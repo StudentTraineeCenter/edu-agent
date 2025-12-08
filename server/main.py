@@ -44,16 +44,16 @@ az_logger.setLevel(logging.ERROR)
 async def lifespan(app: FastAPI):
     """Lifespan event handler for FastAPI."""
     try:
-        logger.info("starting %s api", APP_NAME)
+        logger.info_structured("starting api", app_name=APP_NAME)
 
         # Azure Search infrastructure setup removed - using PostgreSQL vector search instead
 
         yield
     except Exception as e:
-        logger.error("error during startup: %s", e)
+        logger.error_structured("error during startup", error=str(e), exc_info=True)
         raise
     finally:
-        logger.info("shutting down %s api", APP_NAME)
+        logger.info_structured("shutting down api", app_name=APP_NAME)
 
 
 app = FastAPI(

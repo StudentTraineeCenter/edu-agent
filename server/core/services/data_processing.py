@@ -109,7 +109,7 @@ class DataProcessingService:
                     project_id=project_id,
                     owner_id=owner_id,
                 )
-                logger.info(f"created document record document_id={document_id}")
+                logger.info_structured("created document record", document_id=document_id, project_id=project_id)
 
                 # Step 2: Upload to blob storage
                 raw_blob_name = self._upload_to_blob_storage(
@@ -132,7 +132,7 @@ class DataProcessingService:
 
                 return document_id
             except Exception as e:
-                logger.error(f"error uploading document filename={filename}: {e}")
+                logger.error_structured("error uploading document", filename=filename, project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     async def process_document(
@@ -150,7 +150,7 @@ class DataProcessingService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"starting document processing document_id={document_id}")
+                logger.info_structured("starting document processing", document_id=document_id, project_id=project_id)
 
                 # Step 1: Extract text using Content Understanding (run in thread pool to avoid blocking)
                 analyzed_result = await asyncio.to_thread(
@@ -191,9 +191,9 @@ class DataProcessingService:
 
                 # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
-                logger.info(f"document successfully indexed document_id={document_id}")
+                logger.info_structured("document successfully indexed", document_id=document_id, project_id=project_id)
             except Exception as e:
-                logger.error(f"error processing document_id={document_id}: {e}")
+                logger.error_structured("error processing document", document_id=document_id, project_id=project_id, error=str(e), exc_info=True)
                 self._mark_document_failed(db=db, document_id=document_id)
                 raise
 
@@ -287,7 +287,7 @@ class DataProcessingService:
             container=app_config.AZURE_STORAGE_INPUT_CONTAINER_NAME, blob=blob_name
         )
         blob_client.upload_blob(data=file_content, overwrite=True)
-        logger.info(f"document uploaded to blob storage blob_name={blob_name}")
+        logger.info_structured("document uploaded to blob storage", blob_name=blob_name)
         return blob_name
 
     def _analyze_document(self, file_content: bytes) -> DocumentAnalysisResult:
@@ -354,7 +354,7 @@ class DataProcessingService:
         # Download from input and upload to output to copy the blob
         blob_data = input_blob_client.download_blob().readall()
         output_blob_client.upload_blob(blob_data, overwrite=True)
-        logger.info(f"copied original blob to output blob_name={original_blob_name}")
+        logger.info_structured("copied original blob to output", blob_name=original_blob_name)
 
         # Step 2: Create contents.txt file with processed content
         contents_blob_client = self.blob_service_client.get_blob_client(
@@ -404,7 +404,7 @@ class DataProcessingService:
             self._create_document_segments(
                 document_id=document_id, chunks=chunks, db=db
             )
-            logger.info(f"created {len(chunks)} document segments in database")
+            logger.info_structured("created document segments in database", count=len(chunks), document_id=document_id)
 
             # Generate embeddings for all segments
             await self._generate_embeddings_for_segments(document_id=document_id, db=db)

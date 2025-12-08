@@ -31,12 +31,12 @@ async def create_practice_record(
 ):
     """Create a new practice record."""
     try:
-        logger.info(
-            "creating practice record for project_id=%s, user_id=%s, item_type=%s, item_id=%s",
-            project_id,
-            current_user.id,
-            request.item_type,
-            request.item_id,
+        logger.info_structured(
+            "creating practice record",
+            project_id=project_id,
+            user_id=current_user.id,
+            item_type=request.item_type,
+            item_id=request.item_id,
         )
 
         practice_record = practice_service.create_practice_record(
@@ -68,10 +68,10 @@ async def create_practice_record(
         )
 
     except ValueError as e:
-        logger.error("validation error creating practice record: %s", e)
+        logger.error_structured("validation error creating practice record", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        logger.error("error creating practice record: %s", e)
+        logger.error_structured("error creating practice record", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create practice record",
@@ -93,11 +93,11 @@ async def create_practice_records_batch(
 ):
     """Create multiple practice records in a batch."""
     try:
-        logger.info(
-            "creating batch of %d practice records for project_id=%s, user_id=%s",
-            len(request.practice_records),
-            project_id,
-            current_user.id,
+        logger.info_structured(
+            "creating batch of practice records",
+            count=len(request.practice_records),
+            project_id=project_id,
+            user_id=current_user.id,
         )
 
         practice_records_data = [
@@ -137,10 +137,10 @@ async def create_practice_records_batch(
         )
 
     except ValueError as e:
-        logger.error("validation error creating practice records batch: %s", e)
+        logger.error_structured("validation error creating practice records batch", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        logger.error("error creating practice records batch: %s", e)
+        logger.error_structured("error creating practice records batch", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create practice records batch",
@@ -161,10 +161,10 @@ async def list_practice_records(
 ):
     """List practice records for the current user."""
     try:
-        logger.info(
-            "listing practice records for user_id=%s, project_id=%s",
-            current_user.id,
-            project_id,
+        logger.info_structured(
+            "listing practice records",
+            user_id=current_user.id,
+            project_id=project_id,
         )
 
         records = practice_service.get_user_practice_records(
@@ -190,7 +190,7 @@ async def list_practice_records(
         )
 
     except Exception as e:
-        logger.error("error listing practice records: %s", e)
+        logger.error_structured("error listing practice records", user_id=current_user.id, project_id=project_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list practice records",

@@ -44,7 +44,7 @@ async def generate_mind_map_stream(
                 yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error("error in streaming mind map creation: %s", e, exc_info=True)
+            logger.error_structured("error in streaming mind map creation", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
             error_progress = MindMapProgressUpdate(
                 status="done",
                 message="Error creating mind map",
@@ -79,9 +79,7 @@ async def generate_mind_map(
 ):
     """Generate a new mind map from project documents."""
     try:
-        logger.info(
-            f"generating mind map for project_id={project_id}, user_id={current_user.id}"
-        )
+        logger.info_structured("generating mind map", project_id=project_id, user_id=current_user.id)
 
         mind_map = await mind_map_service.generate_mind_map(
             user_id=current_user.id,
@@ -91,10 +89,10 @@ async def generate_mind_map(
 
         return MindMapDto.model_validate(mind_map)
     except ValueError as e:
-        logger.error(f"validation error generating mind map: {e}")
+        logger.error_structured("validation error generating mind map", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        logger.error(f"error generating mind map: {e}")
+        logger.error_structured("error generating mind map", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate mind map",
@@ -115,9 +113,7 @@ async def list_mind_maps(
 ):
     """List all mind maps for a project."""
     try:
-        logger.info(
-            f"listing mind maps for project_id={project_id}, user_id={current_user.id}"
-        )
+        logger.info_structured("listing mind maps", project_id=project_id, user_id=current_user.id)
 
         mind_maps = mind_map_service.list_mind_maps(
             project_id=project_id,
@@ -128,7 +124,7 @@ async def list_mind_maps(
             data=[MindMapDto.model_validate(mind_map) for mind_map in mind_maps],
         )
     except Exception as e:
-        logger.error(f"error listing mind maps: {e}")
+        logger.error_structured("error listing mind maps", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list mind maps",
@@ -149,7 +145,7 @@ async def get_mind_map(
 ):
     """Get a specific mind map by ID."""
     try:
-        logger.info(f"getting mind map id={mind_map_id}, user_id={current_user.id}")
+        logger.info_structured("getting mind map", mind_map_id=mind_map_id, user_id=current_user.id)
 
         mind_map = mind_map_service.get_mind_map(
             mind_map_id=mind_map_id,
@@ -166,7 +162,7 @@ async def get_mind_map(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"error getting mind map: {e}")
+        logger.error_structured("error getting mind map", mind_map_id=mind_map_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get mind map",

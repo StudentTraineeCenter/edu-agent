@@ -106,10 +106,10 @@ class ChatService:
                 db.add(chat)
                 db.commit()
                 db.refresh(chat)
-                logger.info(f"created chat chat_id={chat.id}")
+                logger.info_structured("created chat", chat_id=chat.id, project_id=project_id, user_id=user_id)
                 return chat
             except Exception as e:
-                logger.error(f"error creating chat for project_id={project_id}: {e}")
+                logger.error_structured("error creating chat", project_id=project_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def get_chat(self, chat_id: str, user_id: str) -> Optional[Chat]:
@@ -130,10 +130,10 @@ class ChatService:
                     .first()
                 )
                 if chat:
-                    logger.info(f"retrieved chat chat_id={chat_id}")
+                    logger.info_structured("retrieved chat", chat_id=chat_id, user_id=user_id)
                 return chat
             except Exception as e:
-                logger.error(f"error getting chat chat_id={chat_id}: {e}")
+                logger.error_structured("error getting chat", chat_id=chat_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def list_chats(self, project_id: str, user_id: str) -> List[Chat]:
@@ -157,10 +157,10 @@ class ChatService:
                     .order_by(Chat.created_at.desc())
                     .all()
                 )
-                logger.info(f"listed {len(chats)} chats for project_id={project_id}")
+                logger.info_structured("listed chats", count=len(chats), project_id=project_id, user_id=user_id)
                 return chats
             except Exception as e:
-                logger.error(f"error listing chats for project_id={project_id}: {e}")
+                logger.error_structured("error listing chats", project_id=project_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def update_chat(self, chat_id: str, user_id: str, title: Optional[str]) -> Chat:
@@ -191,12 +191,12 @@ class ChatService:
                 db.commit()
                 db.refresh(chat)
 
-                logger.info(f"updated chat chat_id={chat_id}")
+                logger.info_structured("updated chat", chat_id=chat_id, user_id=user_id)
                 return chat
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error updating chat chat_id={chat_id}: {e}")
+                logger.error_structured("error updating chat", chat_id=chat_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def delete_chat(self, chat_id: str, user_id: str) -> None:
@@ -222,11 +222,11 @@ class ChatService:
                 db.delete(chat)
                 db.commit()
 
-                logger.info(f"deleted chat chat_id={chat_id}")
+                logger.info_structured("deleted chat", chat_id=chat_id, user_id=user_id)
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error deleting chat chat_id={chat_id}: {e}")
+                logger.error_structured("error deleting chat", chat_id=chat_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     async def send_streaming_message(
@@ -296,7 +296,7 @@ class ChatService:
                                 message, chunk_data.response
                             )
                             chat.title = generated_title
-                            logger.info(f"generated chat title: {generated_title}")
+                            logger.info_structured("generated chat title", chat_id=chat_id, title=generated_title)
 
                         chat.updated_at = datetime.now()
                         db.commit()
@@ -521,7 +521,7 @@ Only respond with the title, nothing else. Do not use quotes."""
 
             return title
         except Exception as e:
-            logger.error(f"error generating chat title: {e}")
+            logger.error_structured("error generating chat title", chat_id=chat_id, error=str(e), exc_info=True)
             return "New Chat"
 
     @contextmanager

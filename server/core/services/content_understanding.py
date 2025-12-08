@@ -1,10 +1,11 @@
 import json
-import logging
 import time
 from pathlib import Path
 
 import requests
 from requests.models import Response
+
+from core.logger import get_logger
 
 _DEFAULT_API_VERSION = "2025-05-01-preview"
 _DEFAULT_TIMEOUT_SECONDS = 30
@@ -37,7 +38,7 @@ class AzureContentUnderstandingClient:
 
         self._endpoint = endpoint.rstrip("/")
         self._api_version = api_version
-        self._logger = logging.getLogger(__name__)
+        self._logger = get_logger(__name__)
         self._headers = self._get_headers(
             subscription_key, token_provider(), x_ms_useragent
         )
@@ -230,7 +231,7 @@ class AzureContentUnderstandingClient:
             timeout=self._timeout,
         )
         response.raise_for_status()
-        self._logger.info(f"Analyzer {analyzer_id} create request accepted.")
+        self._logger.info_structured("analyzer create request accepted", analyzer_id=analyzer_id)
         return response
 
     def delete_analyzer(self, analyzer_id: str):
@@ -251,7 +252,7 @@ class AzureContentUnderstandingClient:
             timeout=self._timeout,
         )
         response.raise_for_status()
-        self._logger.info(f"Analyzer {analyzer_id} deleted.")
+        self._logger.info_structured("analyzer deleted", analyzer_id=analyzer_id)
         return response
 
     def begin_create_classifier(self, classifier_id: str, classifier_schema: dict):
@@ -279,7 +280,7 @@ class AzureContentUnderstandingClient:
             timeout=self._timeout,
         )
         response.raise_for_status()
-        self._logger.info(f"Classifier {classifier_id} create request accepted.")
+        self._logger.info_structured("classifier create request accepted", classifier_id=classifier_id)
         return response
 
     def delete_classifier(self, classifier_id: str):
@@ -302,7 +303,7 @@ class AzureContentUnderstandingClient:
             timeout=self._timeout,
         )
         response.raise_for_status()
-        self._logger.info(f"Classifier {classifier_id} deleted successfully.")
+        self._logger.info_structured("classifier deleted successfully", classifier_id=classifier_id)
         return response
 
     def begin_analyze_data(self, analyzer_id: str, data: bytes | dict, **kwargs):
@@ -341,7 +342,7 @@ class AzureContentUnderstandingClient:
             )
 
         response.raise_for_status()
-        self._logger.info(f"Analyzing file data with analyzer: {analyzer_id}")
+        self._logger.info_structured("analyzing file data", analyzer_id=analyzer_id)
         return response
 
     def begin_analyze_file(self, analyzer_id: str, file_location: str):
@@ -397,7 +398,7 @@ class AzureContentUnderstandingClient:
         )
 
         response.raise_for_status()
-        self._logger.info(f"Processing file data with classifier: {classifier_id}")
+        self._logger.info_structured("processing file data", classifier_id=classifier_id)
         return response
 
     def begin_classify_file(self, classifier_id: str, file_location: str):
@@ -511,7 +512,7 @@ class AzureContentUnderstandingClient:
                 )
                 return response.json()
             elif status == "failed":
-                self._logger.error(f"Request failed. Reason: {response.json()}")
+                self._logger.error_structured("request failed", reason=str(response.json()), status_code=response.status_code)
                 raise RuntimeError("Request failed.")
             else:
                 self._logger.info(

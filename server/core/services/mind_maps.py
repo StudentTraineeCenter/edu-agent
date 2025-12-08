@@ -163,7 +163,7 @@ class MindMapService:
                 db.add(mind_map)
                 db.commit()
                 db.refresh(mind_map)
-                logger.info(f"created mind map id={mind_map.id}")
+                logger.info_structured("created mind map", mind_map_id=mind_map.id, project_id=project_id)
                 return mind_map
 
             except ValueError:
@@ -250,7 +250,7 @@ class MindMapService:
                 db.add(mind_map)
                 db.commit()
                 db.refresh(mind_map)
-                logger.info(f"created mind map id={mind_map.id}")
+                logger.info_structured("created mind map", mind_map_id=mind_map.id, project_id=project_id)
 
                 yield {
                     "status": "done",
@@ -259,14 +259,14 @@ class MindMapService:
                 }
 
         except ValueError as e:
-            logger.error(f"error generating mind map: {e}")
+            logger.error_structured("error generating mind map", project_id=project_id, user_id=user_id, error=str(e))
             yield {
                 "status": "done",
                 "message": "Error creating mind map",
                 "error": str(e),
             }
         except Exception as e:
-            logger.error(f"error generating mind map: {e}", exc_info=True)
+            logger.error_structured("error generating mind map", project_id=project_id, user_id=user_id, error=str(e), exc_info=True)
             yield {
                 "status": "done",
                 "message": "Error creating mind map",
@@ -292,13 +292,13 @@ class MindMapService:
                 )
 
                 if mind_map:
-                    logger.info(f"retrieved mind map id={mind_map.id}")
+                    logger.info_structured("retrieved mind map", mind_map_id=mind_map.id, user_id=user_id)
                 else:
-                    logger.info(f"no mind map found for id={mind_map_id}")
+                    logger.info_structured("no mind map found", mind_map_id=mind_map_id, user_id=user_id)
 
                 return mind_map
             except Exception as e:
-                logger.error(f"error retrieving mind map id={mind_map_id}: {e}")
+                logger.error_structured("error retrieving mind map", mind_map_id=mind_map_id, user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def list_mind_maps(self, project_id: str, user_id: str) -> List[MindMap]:
@@ -353,7 +353,7 @@ class MindMapService:
             MindMapGenerationResult containing title, description, and map data
         """
         try:
-            logger.info(f"generating mind map content for project_id={project_id}")
+            logger.info_structured("generating mind map content", project_id=project_id, user_id=user_id)
 
             # Build the prompt using Jinja2 template
             prompt = render_prompt(

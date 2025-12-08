@@ -114,7 +114,7 @@ class UsageService:
             except UsageLimitExceeded:
                 raise
             except Exception as e:
-                logger.error(f"error incrementing usage for user_id={user_id}: {e}")
+                logger.error_structured("error incrementing usage", user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def get_usage(self, user_id: str) -> UsageStats:
@@ -150,7 +150,7 @@ class UsageService:
                     ),
                 )
             except Exception as e:
-                logger.error(f"error getting usage for user_id={user_id}: {e}")
+                logger.error_structured("error getting usage", user_id=user_id, error=str(e), exc_info=True)
                 raise
 
     def _get_or_create_usage(self, db: Session, user_id: str) -> UserUsage:
@@ -177,10 +177,10 @@ class UsageService:
                 db.add(usage)
                 db.commit()
                 db.refresh(usage)
-                logger.info(f"created usage record for user_id={user_id}")
+                logger.info_structured("created usage record", user_id=user_id)
             return usage
         except Exception as e:
-            logger.error(f"error getting or creating usage for user_id={user_id}: {e}")
+            logger.error_structured("error getting or creating usage", user_id=user_id, error=str(e), exc_info=True)
             raise
 
     def _reset_daily_counters_if_needed(

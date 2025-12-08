@@ -188,7 +188,7 @@ class ImporterService:
             db.commit()
             db.refresh(quiz)
 
-            logger.info(f"imported {len(questions_data)} questions to quiz {quiz.id}")
+            logger.info_structured("imported questions to quiz", count=len(questions_data), quiz_id=quiz.id)
             return str(quiz.id)
 
     @contextmanager

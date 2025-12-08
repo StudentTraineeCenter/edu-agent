@@ -154,9 +154,7 @@ class QuizService:
             try:
                 # Resolve length to actual count
                 resolved_count = self._resolve_question_count(count, length)
-                logger.info(
-                    f"creating quiz with count={resolved_count} questions for project_id={project_id} (length={length})"
-                )
+                logger.info_structured("creating quiz", count=resolved_count, project_id=project_id, length=length)
 
                 # Generate all content using LangChain directly
                 generated_content = await self._generate_quiz_content(
@@ -172,9 +170,7 @@ class QuizService:
                 description = generated_content.description
                 questions_data = generated_content.questions
 
-                logger.info(
-                    f"creating quiz name='{name[:100]}...' for project_id={project_id}"
-                )
+                logger.info_structured("creating quiz", name=name[:100] if name else None, project_id=project_id)
 
                 quiz = Quiz(
                     id=str(uuid.uuid4()),
@@ -187,7 +183,7 @@ class QuizService:
 
                 db.add(quiz)
 
-                logger.info(f"created quiz_id={quiz.id}")
+                logger.info_structured("created quiz", quiz_id=quiz.id, project_id=project_id)
 
                 # Save quiz questions to database
                 for question_item in questions_data:
@@ -209,13 +205,13 @@ class QuizService:
 
                 db.commit()
 
-                logger.info(f"generated {len(questions_data)} quiz questions")
+                logger.info_structured("generated quiz questions", count=len(questions_data), quiz_id=quiz.id, project_id=project_id)
 
                 return str(quiz.id)
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error creating quiz for project_id={project_id}: {e}")
+                logger.error_structured("error creating quiz", project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     async def create_quiz_with_questions_stream(
@@ -328,7 +324,7 @@ class QuizService:
 
                 db.commit()
 
-                logger.info(f"generated {len(questions_data)} quiz questions")
+                logger.info_structured("generated quiz questions", count=len(questions_data), quiz_id=quiz.id, project_id=project_id)
 
                 yield {
                     "status": "done",
@@ -337,14 +333,14 @@ class QuizService:
                 }
 
         except ValueError as e:
-            logger.error(f"error creating quiz: {e}")
+            logger.error_structured("error creating quiz", project_id=project_id, error=str(e))
             yield {
                 "status": "done",
                 "message": "Error creating quiz",
                 "error": str(e),
             }
         except Exception as e:
-            logger.error(f"error creating quiz: {e}", exc_info=True)
+            logger.error_structured("error creating quiz", project_id=project_id, error=str(e), exc_info=True)
             yield {
                 "status": "done",
                 "message": "Error creating quiz",
@@ -362,7 +358,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting quizzes for project_id={project_id}")
+                logger.info_structured("getting quizzes", project_id=project_id)
 
                 quizzes = (
                     db.query(Quiz)
@@ -371,10 +367,10 @@ class QuizService:
                     .all()
                 )
 
-                logger.info(f"found {len(quizzes)} quizzes")
+                logger.info_structured("found quizzes", count=len(quizzes), project_id=project_id)
                 return quizzes
             except Exception as e:
-                logger.error(f"error getting quizzes for project_id={project_id}: {e}")
+                logger.error_structured("error getting quizzes", project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     def get_quiz_questions(self, quiz_id: str) -> List[QuizQuestion]:
@@ -388,7 +384,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting quiz questions for quiz_id={quiz_id}")
+                logger.info_structured("getting quiz questions", quiz_id=quiz_id)
 
                 questions = (
                     db.query(QuizQuestion)
@@ -397,10 +393,10 @@ class QuizService:
                     .all()
                 )
 
-                logger.info(f"found {len(questions)} quiz questions")
+                logger.info_structured("found quiz questions", count=len(questions), quiz_id=quiz_id)
                 return questions
             except Exception as e:
-                logger.error(f"error getting quiz questions for quiz_id={quiz_id}: {e}")
+                logger.error_structured("error getting quiz questions", quiz_id=quiz_id, error=str(e), exc_info=True)
                 raise
 
     def create_quiz_question(
@@ -440,7 +436,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"creating quiz question for quiz_id={quiz_id}")
+                logger.info_structured("creating quiz question", quiz_id=quiz_id, project_id=project_id)
 
                 # Verify quiz exists
                 quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
@@ -476,12 +472,12 @@ class QuizService:
                 db.commit()
                 db.refresh(question)
 
-                logger.info(f"created quiz question_id={question.id}")
+                logger.info_structured("created quiz question", question_id=question.id, quiz_id=quiz_id, project_id=project_id)
                 return question
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error creating quiz question for quiz_id={quiz_id}: {e}")
+                logger.error_structured("error creating quiz question", quiz_id=quiz_id, project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     def update_quiz_question(
@@ -514,7 +510,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"updating quiz question_id={question_id}")
+                logger.info_structured("updating quiz question", question_id=question_id, quiz_id=quiz_id)
 
                 question = (
                     db.query(QuizQuestion)
@@ -522,7 +518,7 @@ class QuizService:
                     .first()
                 )
                 if not question:
-                    logger.warning(f"quiz question_id={question_id} not found")
+                    logger.warning_structured("quiz question not found", question_id=question_id, quiz_id=quiz_id)
                     return None
 
                 if question_text is not None:
@@ -545,7 +541,7 @@ class QuizService:
                 db.commit()
                 db.refresh(question)
 
-                logger.info(f"updated quiz question_id={question_id}")
+                logger.info_structured("updated quiz question", question_id=question_id, quiz_id=quiz_id)
                 return question
             except Exception as e:
                 logger.error(
@@ -603,7 +599,7 @@ class QuizService:
                 for question in updated_questions:
                     db.refresh(question)
 
-                logger.info(f"reordered {len(updated_questions)} quiz questions")
+                logger.info_structured("reordered quiz questions", count=len(updated_questions), quiz_id=quiz_id)
                 return updated_questions
             except ValueError:
                 raise
@@ -624,7 +620,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting quiz question_id={question_id}")
+                logger.info_structured("deleting quiz question", question_id=question_id, quiz_id=quiz_id)
 
                 question = (
                     db.query(QuizQuestion)
@@ -633,13 +629,13 @@ class QuizService:
                 )
 
                 if not question:
-                    logger.warning(f"quiz question_id={question_id} not found")
+                    logger.warning_structured("quiz question not found", question_id=question_id, quiz_id=quiz_id)
                     return False
 
                 db.delete(question)
                 db.commit()
 
-                logger.info(f"deleted quiz question_id={question_id}")
+                logger.info_structured("deleted quiz question", question_id=question_id, quiz_id=quiz_id)
                 return True
             except Exception as e:
                 logger.error(
@@ -661,18 +657,18 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting quiz_id={quiz_id}")
+                logger.info_structured("getting quiz", quiz_id=quiz_id)
 
                 quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
                 if not quiz:
                     raise ValueError(f"Quiz {quiz_id} not found")
 
-                logger.info(f"found quiz_id={quiz_id}")
+                logger.info_structured("found quiz", quiz_id=quiz_id)
                 return quiz
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error getting quiz quiz_id={quiz_id}: {e}")
+                logger.error_structured("error getting quiz", quiz_id=quiz_id, error=str(e), exc_info=True)
                 raise
 
     def update_quiz(
@@ -696,7 +692,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"updating quiz_id={quiz_id}")
+                logger.info_structured("updating quiz", quiz_id=quiz_id)
 
                 quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
                 if not quiz:
@@ -710,12 +706,12 @@ class QuizService:
                 db.commit()
                 db.refresh(quiz)
 
-                logger.info(f"updated quiz_id={quiz_id}")
+                logger.info_structured("updated quiz", quiz_id=quiz_id)
                 return quiz
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error updating quiz quiz_id={quiz_id}: {e}")
+                logger.error_structured("error updating quiz", quiz_id=quiz_id, error=str(e), exc_info=True)
                 raise
 
     def delete_quiz(self, quiz_id: str) -> bool:
@@ -732,7 +728,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting quiz_id={quiz_id}")
+                logger.info_structured("deleting quiz", quiz_id=quiz_id)
 
                 quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
                 if not quiz:
@@ -742,12 +738,12 @@ class QuizService:
                 db.delete(quiz)
                 db.commit()
 
-                logger.info(f"deleted quiz_id={quiz_id}")
+                logger.info_structured("deleted quiz", quiz_id=quiz_id)
                 return True
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error deleting quiz quiz_id={quiz_id}: {e}")
+                logger.error_structured("error deleting quiz", quiz_id=quiz_id, error=str(e), exc_info=True)
                 raise
 
     async def submit_quiz_answers(
@@ -767,7 +763,7 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"submitting answers for quiz_id={quiz_id}")
+                logger.info_structured("submitting answers", quiz_id=quiz_id)
 
                 # Get all questions for the quiz
                 questions = (
@@ -862,7 +858,7 @@ class QuizService:
             ValueError: If project not found or no documents available
         """
         try:
-            logger.info(f"generating quiz content for project_id={project_id}")
+            logger.info_structured("generating quiz content", project_id=project_id)
 
             # Get project language code
             project = db.query(Project).filter(Project.id == project_id).first()

@@ -152,7 +152,7 @@ class FlashcardService:
 
                 db.add(flashcard_group)
 
-                logger.info(f"created flashcard_group_id={flashcard_group.id}")
+                logger.info_structured("created flashcard group", flashcard_group_id=flashcard_group.id, project_id=project_id)
 
                 # Save flashcards to database
                 for position, flashcard_item in enumerate(flashcards_data):
@@ -170,15 +170,13 @@ class FlashcardService:
 
                 db.commit()
 
-                logger.info(f"generated {len(flashcards_data)} flashcards")
+                logger.info_structured("generated flashcards", count=len(flashcards_data), project_id=project_id)
 
                 return str(flashcard_group.id)
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(
-                    f"error creating flashcard group for project_id={project_id}: {e}"
-                )
+                logger.error_structured("error creating flashcard group", project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     async def create_flashcard_group_with_flashcards_stream(
@@ -287,7 +285,7 @@ class FlashcardService:
 
                 db.commit()
 
-                logger.info(f"generated {len(flashcards_data)} flashcards")
+                logger.info_structured("generated flashcards", count=len(flashcards_data), project_id=project_id)
 
                 yield {
                     "status": "done",
@@ -296,14 +294,14 @@ class FlashcardService:
                 }
 
         except ValueError as e:
-            logger.error(f"error creating flashcard group: {e}")
+            logger.error_structured("error creating flashcard group", project_id=project_id, error=str(e))
             yield {
                 "status": "done",
                 "message": "Error creating flashcards",
                 "error": str(e),
             }
         except Exception as e:
-            logger.error(f"error creating flashcard group: {e}", exc_info=True)
+            logger.error_structured("error creating flashcard group", project_id=project_id, error=str(e), exc_info=True)
             yield {
                 "status": "done",
                 "message": "Error creating flashcards",
@@ -321,7 +319,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting flashcard groups for project_id={project_id}")
+                logger.info_structured("getting flashcard groups", project_id=project_id)
 
                 groups = (
                     db.query(FlashcardGroup)
@@ -335,7 +333,7 @@ class FlashcardService:
                     .all()
                 )
 
-                logger.info(f"found {len(groups)} flashcard groups")
+                logger.info_structured("found flashcard groups", count=len(groups), project_id=project_id)
                 return groups
             except Exception as e:
                 logger.error(
@@ -354,7 +352,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting flashcard group_id={group_id}")
+                logger.info_structured("getting flashcard group", group_id=group_id)
 
                 group = (
                     db.query(FlashcardGroup)
@@ -363,13 +361,13 @@ class FlashcardService:
                 )
 
                 if group:
-                    logger.info(f"found flashcard group_id={group_id}")
+                    logger.info_structured("found flashcard group", group_id=group_id)
                 else:
-                    logger.info(f"flashcard group_id={group_id} not found")
+                    logger.info_structured("flashcard group not found", group_id=group_id)
 
                 return group
             except Exception as e:
-                logger.error(f"error getting flashcard group group_id={group_id}: {e}")
+                logger.error_structured("error getting flashcard group", group_id=group_id, error=str(e), exc_info=True)
                 raise
 
     def get_flashcards_by_group(self, group_id: str) -> List[Flashcard]:
@@ -383,7 +381,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting flashcards for group_id={group_id}")
+                logger.info_structured("getting flashcards", group_id=group_id)
 
                 flashcards = (
                     db.query(Flashcard)
@@ -392,10 +390,10 @@ class FlashcardService:
                     .all()
                 )
 
-                logger.info(f"found {len(flashcards)} flashcards")
+                logger.info_structured("found flashcards", count=len(flashcards), group_id=group_id)
                 return flashcards
             except Exception as e:
-                logger.error(f"error getting flashcards for group_id={group_id}: {e}")
+                logger.error_structured("error getting flashcards", group_id=group_id, error=str(e), exc_info=True)
                 raise
 
     def delete_flashcard_group(self, group_id: str) -> bool:
@@ -409,7 +407,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting flashcard group_id={group_id}")
+                logger.info_structured("deleting flashcard group", group_id=group_id)
 
                 group = (
                     db.query(FlashcardGroup)
@@ -418,17 +416,17 @@ class FlashcardService:
                 )
 
                 if not group:
-                    logger.warning(f"flashcard group_id={group_id} not found")
+                    logger.warning_structured("flashcard group not found", group_id=group_id)
                     return False
 
                 # Delete all flashcards in the group first (cascade should handle this)
                 db.delete(group)
                 db.commit()
 
-                logger.info(f"deleted flashcard group_id={group_id}")
+                logger.info_structured("deleted flashcard group", group_id=group_id)
                 return True
             except Exception as e:
-                logger.error(f"error deleting flashcard group group_id={group_id}: {e}")
+                logger.error_structured("error deleting flashcard group", group_id=group_id, error=str(e), exc_info=True)
                 raise
 
     def update_flashcard_group(
@@ -449,7 +447,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"updating flashcard group_id={group_id}")
+                logger.info_structured("updating flashcard group", group_id=group_id)
 
                 group = (
                     db.query(FlashcardGroup)
@@ -457,7 +455,7 @@ class FlashcardService:
                     .first()
                 )
                 if not group:
-                    logger.warning(f"flashcard group_id={group_id} not found")
+                    logger.warning_structured("flashcard group not found", group_id=group_id)
                     return None
 
                 if name is not None:
@@ -470,11 +468,11 @@ class FlashcardService:
                 db.commit()
                 db.refresh(group)
 
-                logger.info(f"updated flashcard group_id={group_id}")
+                logger.info_structured("updated flashcard group", group_id=group_id)
 
                 return group
             except Exception as e:
-                logger.error(f"error updating flashcard group group_id={group_id}: {e}")
+                logger.error_structured("error updating flashcard group", group_id=group_id, error=str(e), exc_info=True)
                 raise
 
     def create_flashcard(
@@ -504,7 +502,7 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"creating flashcard for group_id={group_id}")
+                logger.info_structured("creating flashcard", group_id=group_id, project_id=project_id)
 
                 # Verify group exists
                 group = (
@@ -537,12 +535,12 @@ class FlashcardService:
                 db.commit()
                 db.refresh(flashcard)
 
-                logger.info(f"created flashcard_id={flashcard.id}")
+                logger.info_structured("created flashcard", flashcard_id=flashcard.id, group_id=group_id, project_id=project_id)
                 return flashcard
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error creating flashcard for group_id={group_id}: {e}")
+                logger.error_structured("error creating flashcard", group_id=group_id, project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     def update_flashcard(
@@ -565,13 +563,13 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"updating flashcard_id={flashcard_id}")
+                logger.info_structured("updating flashcard", flashcard_id=flashcard_id)
 
                 flashcard = (
                     db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
                 )
                 if not flashcard:
-                    logger.warning(f"flashcard_id={flashcard_id} not found")
+                    logger.warning_structured("flashcard not found", flashcard_id=flashcard_id)
                     return None
 
                 if question is not None:
@@ -584,7 +582,7 @@ class FlashcardService:
                 db.commit()
                 db.refresh(flashcard)
 
-                logger.info(f"updated flashcard_id={flashcard_id}")
+                logger.info_structured("updated flashcard", flashcard_id=flashcard_id)
                 return flashcard
             except Exception as e:
                 logger.error(
@@ -646,7 +644,7 @@ class FlashcardService:
                 for flashcard in updated_flashcards:
                     db.refresh(flashcard)
 
-                logger.info(f"reordered {len(updated_flashcards)} flashcards")
+                logger.info_structured("reordered flashcards", count=len(updated_flashcards), group_id=group_id)
                 return updated_flashcards
             except ValueError:
                 raise
@@ -667,20 +665,20 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting flashcard_id={flashcard_id}")
+                logger.info_structured("deleting flashcard", flashcard_id=flashcard_id)
 
                 flashcard = (
                     db.query(Flashcard).filter(Flashcard.id == flashcard_id).first()
                 )
 
                 if not flashcard:
-                    logger.warning(f"flashcard_id={flashcard_id} not found")
+                    logger.warning_structured("flashcard not found", flashcard_id=flashcard_id)
                     return False
 
                 db.delete(flashcard)
                 db.commit()
 
-                logger.info(f"deleted flashcard_id={flashcard_id}")
+                logger.info_structured("deleted flashcard", flashcard_id=flashcard_id)
                 return True
             except Exception as e:
                 logger.error(

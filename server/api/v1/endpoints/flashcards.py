@@ -64,7 +64,7 @@ async def create_flashcard_group_stream(
                 yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error("error in streaming flashcard creation: %s", e, exc_info=True)
+            logger.error_structured("error in streaming flashcard creation", project_id=project_id, error=str(e), exc_info=True)
             error_progress = FlashcardProgressUpdate(
                 status="done",
                 message="Error creating flashcards",
@@ -99,7 +99,7 @@ async def create_flashcard_group(
 ):
     """Create a new flashcard group."""
     try:
-        logger.info("creating flashcard group for project_id=%s", project_id)
+        logger.info_structured("creating flashcard group", project_id=project_id, user_id=current_user.id)
 
         group_id = await flashcard_service.create_flashcard_group_with_flashcards(
             project_id=project_id,
@@ -123,13 +123,13 @@ async def create_flashcard_group(
         )
 
     except ValueError as e:
-        logger.error("error creating flashcard group: %s", e)
+        logger.error_structured("error creating flashcard group", project_id=project_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error creating flashcard group: %s", e)
+        logger.error_structured("error creating flashcard group", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create flashcard group",
@@ -150,7 +150,7 @@ async def list_flashcard_groups(
 ):
     """List all flashcard groups for a project."""
     try:
-        logger.info("listing flashcard groups for project_id=%s", project_id)
+        logger.info_structured("listing flashcard groups", project_id=project_id, user_id=current_user.id)
 
         groups = flashcard_service.get_flashcard_groups(project_id)
 
@@ -159,7 +159,7 @@ async def list_flashcard_groups(
         )
 
     except Exception as e:
-        logger.error("error listing flashcard groups: %s", e)
+        logger.error_structured("error listing flashcard groups", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list flashcard groups",
@@ -180,7 +180,7 @@ async def get_flashcard_group(
 ):
     """Get a specific flashcard group."""
     try:
-        logger.info("getting flashcard group_id=%s", group_id)
+        logger.info_structured("getting flashcard group", group_id=group_id, user_id=current_user.id)
 
         group = flashcard_service.get_flashcard_group(group_id)
 
@@ -196,7 +196,7 @@ async def get_flashcard_group(
         )
 
     except Exception as e:
-        logger.error("error getting flashcard group: %s", e)
+        logger.error_structured("error getting flashcard group", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get flashcard group",
@@ -216,7 +216,7 @@ async def delete_flashcard_group(
 ):
     """Delete a flashcard group."""
     try:
-        logger.info("deleting flashcard group_id=%s", group_id)
+        logger.info_structured("deleting flashcard group", group_id=group_id, user_id=current_user.id)
 
         success = flashcard_service.delete_flashcard_group(group_id)
 
@@ -227,7 +227,7 @@ async def delete_flashcard_group(
             )
 
     except Exception as e:
-        logger.error("error deleting flashcard group: %s", e)
+        logger.error_structured("error deleting flashcard group", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete flashcard group",
@@ -248,7 +248,7 @@ async def list_flashcards(
 ):
     """List all flashcards in a group."""
     try:
-        logger.info("listing flashcards for group_id=%s", group_id)
+        logger.info_structured("listing flashcards", group_id=group_id, user_id=current_user.id)
 
         flashcards = flashcard_service.get_flashcards_by_group(group_id)
 
@@ -257,7 +257,7 @@ async def list_flashcards(
         )
 
     except Exception as e:
-        logger.error("error listing flashcards: %s", e)
+        logger.error_structured("error listing flashcards", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list flashcards",
@@ -283,11 +283,11 @@ async def get_study_queue(
 ):
     """Get flashcards for study queue."""
     try:
-        logger.info(
-            "getting study queue for group_id=%s, user_id=%s, include_mastered=%s",
-            group_id,
-            current_user.id,
-            include_mastered,
+        logger.info_structured(
+            "getting study queue",
+            group_id=group_id,
+            user_id=current_user.id,
+            include_mastered=include_mastered,
         )
 
         db = SessionLocal()
@@ -306,7 +306,7 @@ async def get_study_queue(
         )
 
     except Exception as e:
-        logger.error("error getting study queue: %s", e)
+        logger.error_structured("error getting study queue", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get study queue",
@@ -328,7 +328,7 @@ async def create_flashcard(
 ):
     """Create a new flashcard."""
     try:
-        logger.info("creating flashcard for group_id=%s", group_id)
+        logger.info_structured("creating flashcard", group_id=group_id, user_id=current_user.id)
 
         # Get group to get project_id
         group = flashcard_service.get_flashcard_group(group_id)
@@ -353,13 +353,13 @@ async def create_flashcard(
         )
 
     except ValueError as e:
-        logger.error("error creating flashcard: %s", e)
+        logger.error_structured("error creating flashcard", group_id=group_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error creating flashcard: %s", e)
+        logger.error_structured("error creating flashcard", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create flashcard",
@@ -381,7 +381,7 @@ async def update_flashcard(
 ):
     """Update an existing flashcard."""
     try:
-        logger.info("updating flashcard_id=%s", flashcard_id)
+        logger.info_structured("updating flashcard", flashcard_id=flashcard_id, user_id=current_user.id)
 
         flashcard = flashcard_service.update_flashcard(
             flashcard_id=flashcard_id,
@@ -402,7 +402,7 @@ async def update_flashcard(
         )
 
     except Exception as e:
-        logger.error("error updating flashcard: %s", e)
+        logger.error_structured("error updating flashcard", flashcard_id=flashcard_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update flashcard",
@@ -424,7 +424,7 @@ async def reorder_flashcards(
 ):
     """Reorder flashcards in a group."""
     try:
-        logger.info("reordering flashcards for group_id=%s", group_id)
+        logger.info_structured("reordering flashcards", group_id=group_id, user_id=current_user.id)
 
         flashcards = flashcard_service.reorder_flashcards(
             group_id=group_id,
@@ -436,13 +436,13 @@ async def reorder_flashcards(
         )
 
     except ValueError as e:
-        logger.error("error reordering flashcards: %s", e)
+        logger.error_structured("error reordering flashcards", group_id=group_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error reordering flashcards: %s", e)
+        logger.error_structured("error reordering flashcards", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to reorder flashcards",
@@ -462,7 +462,7 @@ async def delete_flashcard(
 ):
     """Delete a flashcard."""
     try:
-        logger.info("deleting flashcard_id=%s", flashcard_id)
+        logger.info_structured("deleting flashcard", flashcard_id=flashcard_id, user_id=current_user.id)
 
         success = flashcard_service.delete_flashcard(flashcard_id)
 
@@ -473,7 +473,7 @@ async def delete_flashcard(
             )
 
     except Exception as e:
-        logger.error("error deleting flashcard: %s", e)
+        logger.error_structured("error deleting flashcard", flashcard_id=flashcard_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete flashcard",
@@ -503,7 +503,7 @@ async def export_flashcard_group(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        logger.error("error exporting flashcard group: %s", e)
+        logger.error_structured("error exporting flashcard group", group_id=group_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export flashcard group",

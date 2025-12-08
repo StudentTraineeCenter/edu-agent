@@ -22,7 +22,7 @@ def get_usage(
     usage_service: UsageService = Depends(get_usage_service),
 ) -> UsageResponse:
     """Get current usage statistics for the authenticated user."""
-    logger.info("getting usage statistics for user_id=%s", current_user.id)
+    logger.info_structured("getting usage statistics", user_id=current_user.id)
 
     usage_stats = usage_service.get_usage(current_user.id)
     usage_dto = UsageDto(**usage_stats.model_dump())

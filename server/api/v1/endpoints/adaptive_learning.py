@@ -45,7 +45,7 @@ async def generate_study_session(
         )
         return StudySessionResponse(**session)
     except Exception as e:
-        logger.error(f"error generating study session: {e}")
+        logger.error_structured("error generating study session", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate study session",
@@ -97,7 +97,7 @@ async def list_study_sessions(
 
         return result
     except Exception as e:
-        logger.error(f"error listing study sessions: {e}")
+        logger.error_structured("error listing study sessions", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list study sessions",
@@ -149,7 +149,7 @@ async def get_study_session(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"error getting study session: {e}")
+        logger.error_structured("error getting study session", session_id=session_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get study session",

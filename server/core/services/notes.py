@@ -82,9 +82,7 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(
-                    f"creating note for project_id={project_id} with prompt='{user_prompt}'"
-                )
+                logger.info_structured("creating note", project_id=project_id, user_prompt=user_prompt[:100] if user_prompt else None)
 
                 # Generate all content using LangChain directly
                 generated_content = await self._generate_note_content(
@@ -98,9 +96,7 @@ class NoteService:
                 description = generated_content.description
                 content = generated_content.content
 
-                logger.info(
-                    f"creating note title='{title[:100]}...' for project_id={project_id}"
-                )
+                logger.info_structured("creating note", title=title[:100] if title else None, project_id=project_id)
 
                 note = Note(
                     id=str(uuid.uuid4()),
@@ -115,13 +111,13 @@ class NoteService:
                 db.add(note)
                 db.commit()
 
-                logger.info(f"created note_id={note.id}")
+                logger.info_structured("created note", note_id=note.id, project_id=project_id)
 
                 return str(note.id)
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error creating note for project_id={project_id}: {e}")
+                logger.error_structured("error creating note", project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     async def create_note_with_content_stream(
@@ -206,7 +202,7 @@ class NoteService:
                 db.commit()
                 db.refresh(note)
 
-                logger.info(f"created note_id={note.id}")
+                logger.info_structured("created note", note_id=note.id, project_id=project_id)
 
                 yield {
                     "status": "done",
@@ -215,14 +211,14 @@ class NoteService:
                 }
 
         except ValueError as e:
-            logger.error(f"error creating note: {e}")
+            logger.error_structured("error creating note", project_id=project_id, error=str(e))
             yield {
                 "status": "done",
                 "message": "Error creating note",
                 "error": str(e),
             }
         except Exception as e:
-            logger.error(f"error creating note: {e}", exc_info=True)
+            logger.error_structured("error creating note", project_id=project_id, error=str(e), exc_info=True)
             yield {
                 "status": "done",
                 "message": "Error creating note",
@@ -240,7 +236,7 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting notes for project_id={project_id}")
+                logger.info_structured("getting notes", project_id=project_id)
 
                 notes = (
                     db.query(Note)
@@ -249,10 +245,10 @@ class NoteService:
                     .all()
                 )
 
-                logger.info(f"found {len(notes)} notes")
+                logger.info_structured("found notes", count=len(notes), project_id=project_id)
                 return notes
             except Exception as e:
-                logger.error(f"error getting notes for project_id={project_id}: {e}")
+                logger.error_structured("error getting notes", project_id=project_id, error=str(e), exc_info=True)
                 raise
 
     def get_note(self, note_id: str) -> Optional[Note]:
@@ -266,18 +262,18 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"getting note_id={note_id}")
+                logger.info_structured("getting note", note_id=note_id)
 
                 note = db.query(Note).filter(Note.id == note_id).first()
 
                 if note:
-                    logger.info(f"found note_id={note_id}")
+                    logger.info_structured("found note", note_id=note_id)
                 else:
-                    logger.info(f"note_id={note_id} not found")
+                    logger.info_structured("note not found", note_id=note_id)
 
                 return note
             except Exception as e:
-                logger.error(f"error getting note note_id={note_id}: {e}")
+                logger.error_structured("error getting note", note_id=note_id, error=str(e), exc_info=True)
                 raise
 
     def delete_note(self, note_id: str) -> bool:
@@ -291,21 +287,21 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting note_id={note_id}")
+                logger.info_structured("deleting note", note_id=note_id)
 
                 note = db.query(Note).filter(Note.id == note_id).first()
 
                 if not note:
-                    logger.warning(f"note_id={note_id} not found")
+                    logger.warning_structured("note not found", note_id=note_id)
                     return False
 
                 db.delete(note)
                 db.commit()
 
-                logger.info(f"deleted note_id={note_id}")
+                logger.info_structured("deleted note", note_id=note_id)
                 return True
             except Exception as e:
-                logger.error(f"error deleting note note_id={note_id}: {e}")
+                logger.error_structured("error deleting note", note_id=note_id, error=str(e), exc_info=True)
                 raise
 
     def update_note(
@@ -328,11 +324,11 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"updating note_id={note_id}")
+                logger.info_structured("updating note", note_id=note_id)
 
                 note = db.query(Note).filter(Note.id == note_id).first()
                 if not note:
-                    logger.warning(f"note_id={note_id} not found")
+                    logger.warning_structured("note not found", note_id=note_id)
                     return None
 
                 if title is not None:
@@ -347,11 +343,11 @@ class NoteService:
                 db.commit()
                 db.refresh(note)
 
-                logger.info(f"updated note_id={note_id}")
+                logger.info_structured("updated note", note_id=note_id)
 
                 return note
             except Exception as e:
-                logger.error(f"error updating note note_id={note_id}: {e}")
+                logger.error_structured("error updating note", note_id=note_id, error=str(e), exc_info=True)
                 raise
 
     async def _generate_note_content(
@@ -375,7 +371,7 @@ class NoteService:
             ValueError: If project not found or no documents available
         """
         try:
-            logger.info(f"generating note content for project_id={project_id}")
+            logger.info_structured("generating note content", project_id=project_id)
 
             project = db.query(Project).filter(Project.id == project_id).first()
 

@@ -28,11 +28,11 @@ def create_project(
     current_user: User = Depends(get_user),
 ):
     """Create a new project"""
-    logger.info(f"Creating project: {body.name}")
+    logger.info_structured("creating project", name=body.name, user_id=current_user.id)
 
     exists = project_service.check_exists(current_user.id, body.name)
     if exists:
-        logger.error(f"Project with this name already exists: {body.name}")
+        logger.error_structured("project with this name already exists", name=body.name, user_id=current_user.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Project with this name already exists",
@@ -57,7 +57,7 @@ def list_projects(
     current_user: User = Depends(get_user),
 ):
     """List all projects"""
-    logger.info(f"Listing projects for owner: {current_user.id}")
+    logger.info_structured("listing projects", user_id=current_user.id)
 
     result = project_service.list_projects(current_user.id)
 
@@ -80,7 +80,7 @@ def get_project(
 ):
     """Get a project by id"""
 
-    logger.info(f"Getting project: {project_id}")
+    logger.info_structured("getting project", project_id=project_id, user_id=current_user.id)
 
     result = project_service.get_project(project_id, current_user.id)
 
@@ -101,7 +101,7 @@ def update_project(
     current_user: User = Depends(get_user),
 ):
     """Update a project"""
-    logger.info(f"Updating project: {project_id}")
+    logger.info_structured("updating project", project_id=project_id, user_id=current_user.id)
 
     result = project_service.update_project(
         project_id,
@@ -126,6 +126,6 @@ def delete_project(
     current_user: User = Depends(get_user),
 ):
     """Delete a project by id"""
-    logger.info(f"Deleting project: {project_id}")
+    logger.info_structured("deleting project", project_id=project_id, user_id=current_user.id)
     project_service.delete_project(project_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

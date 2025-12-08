@@ -61,7 +61,7 @@ class DocumentService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"listing documents for project_id={project_id}")
+                logger.info_structured("listing documents", project_id=project_id)
                 documents = (
                     db.query(Document)
                     .filter(
@@ -95,7 +95,7 @@ class DocumentService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"retrieving document_id={document_id}")
+                logger.info_structured("retrieving document", document_id=document_id)
                 document = (
                     db.query(Document)
                     .filter(Document.id == document_id, Document.owner_id == user_id)
@@ -104,12 +104,12 @@ class DocumentService:
                 if not document:
                     raise ValueError(f"Document {document_id} not found")
 
-                logger.info(f"retrieved document_id={document_id}")
+                logger.info_structured("retrieved document", document_id=document_id)
                 return document
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error retrieving document_id={document_id}: {e}")
+                logger.error_structured("error retrieving document", document_id=document_id, error=str(e), exc_info=True)
                 raise
 
     async def search_documents(
@@ -138,7 +138,7 @@ class DocumentService:
                 # Get document IDs for the project
                 document_ids = [str(doc.id) for doc in project.documents]
                 if not document_ids:
-                    logger.info(f"no documents found for project_id={project_id}")
+                    logger.info_structured("no documents found", project_id=project_id)
                     return []
 
                 logger.info(
@@ -186,7 +186,7 @@ class DocumentService:
 
                 project = db.query(Project).filter(Project.id == project_id).first()
                 if not project:
-                    logger.info(f"project_id={project_id} not found")
+                    logger.info_structured("project not found", project_id=project_id)
                     return "Project not found.", []
 
                 # Get project language code
@@ -199,7 +199,7 @@ class DocumentService:
                 documents = project.documents
                 doc_ids = [str(doc.id) for doc in documents]
                 if not doc_ids:
-                    logger.info(f"no documents found for project_id={project_id}")
+                    logger.info_structured("no documents found", project_id=project_id)
                     return "No documents found for this project.", []
 
                 logger.info(
@@ -217,7 +217,7 @@ class DocumentService:
 
                 # Get relevant documents for context
                 relevant_docs = await retriever.ainvoke(query)
-                logger.info(f"retrieved {len(relevant_docs)} relevant documents")
+                logger.info_structured("retrieved relevant documents", count=len(relevant_docs), project_id=project_id)
 
                 # Create context from relevant documents with numbered citations
                 context_parts = []
@@ -247,7 +247,7 @@ class DocumentService:
                         content = doc.page_content[:1000] if doc.page_content else ""
 
                         if not content.strip():
-                            logger.warning("empty content for segment, skipping")
+                            logger.warning_structured("empty content for segment, skipping", document_id=document_id)
                             continue
 
                         context_parts.append(f"[{citation_idx}] {title}:\n{content}...")
@@ -278,7 +278,7 @@ class DocumentService:
                         citation_idx += 1
 
                     except ValidationError as e:
-                        logger.warning(f"invalid document metadata, skipping: {e}")
+                        logger.warning_structured("invalid document metadata, skipping", error=str(e))
                         continue
 
                 context = (
@@ -376,7 +376,7 @@ class DocumentService:
         except ValueError:
             raise
         except Exception as e:
-            logger.error(f"error generating SAS URL for document_id={document_id}: {e}")
+            logger.error_structured("error generating SAS URL", document_id=document_id, error=str(e), exc_info=True)
             raise
 
     def get_document_blob_stream(self, document_id: str, user_id: str):
@@ -439,7 +439,7 @@ class DocumentService:
         except ValueError:
             raise
         except Exception as e:
-            logger.error(f"error streaming blob for document_id={document_id}: {e}")
+            logger.error_structured("error streaming blob", document_id=document_id, error=str(e), exc_info=True)
             raise
 
     def delete_document(self, document_id: str, user_id: str) -> bool:
@@ -457,7 +457,7 @@ class DocumentService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info(f"deleting document_id={document_id}")
+                logger.info_structured("deleting document", document_id=document_id)
                 document = (
                     db.query(Document)
                     .filter(Document.id == document_id, Document.owner_id == user_id)
@@ -530,12 +530,12 @@ class DocumentService:
                 db.delete(document)
                 db.commit()
 
-                logger.info(f"deleted document_id={document_id}")
+                logger.info_structured("deleted document", document_id=document_id)
                 return True
             except ValueError:
                 raise
             except Exception as e:
-                logger.error(f"error deleting document_id={document_id}: {e}")
+                logger.error_structured("error deleting document", document_id=document_id, error=str(e), exc_info=True)
                 raise
 
     async def _create_vector_store(self) -> PGVectorStore:
@@ -632,7 +632,7 @@ class DocumentService:
                 )
 
                 if not combined_text.strip():
-                    logger.warning(f"empty content for document {doc_id}, skipping")
+                    logger.warning_structured("empty content for document, skipping", doc_id=doc_id)
                     continue
 
                 doc_meta = doc_map.get(str(doc_id))
@@ -648,7 +648,7 @@ class DocumentService:
                     )
                     results.append(result)
                 except ValidationError as e:
-                    logger.error(f"failed to create search result item: {e}")
+                    logger.error_structured("failed to create search result item", doc_id=doc_id, error=str(e), exc_info=True)
                     continue
 
             return results

@@ -64,7 +64,7 @@ async def upload_document(
     for _ in files:
         usage_service.check_and_increment(current_user.id, "document_upload")
 
-    logger.info("uploading %d document(s) for project_id=%s", len(files), project_id)
+    logger.info_structured("uploading documents", count=len(files), project_id=project_id, user_id=current_user.id)
 
     # Validate file types
     document_ids = []
@@ -73,7 +73,7 @@ async def upload_document(
 
     for file in files:
         if not file.filename:
-            logger.error("file with empty filename provided")
+            logger.error_structured("file with empty filename provided", project_id=project_id)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File with empty filename provided",
@@ -84,8 +84,8 @@ async def upload_document(
         )
 
         if file_extension not in allowed_types:
-            logger.error(
-                "unsupported file_type=%s for file=%s", file_extension, file.filename
+            logger.error_structured(
+                "unsupported file type", file_type=file_extension, file_name=file.filename, project_id=project_id
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,10 +113,11 @@ async def upload_document(
                 project_id=project_id,
                 owner_id=current_user.id,
             )
-            logger.info(
-                "document uploaded document_id=%s, file_name=%s",
-                document_id,
-                filename,
+            logger.info_structured(
+                "document uploaded",
+                document_id=document_id,
+                file_name=filename,
+                project_id=project_id,
             )
             return document_id, content
 
@@ -139,9 +140,10 @@ async def upload_document(
                 project_id=project_id,
             )
 
-        logger.info(
-            "uploaded %d document(s), processing scheduled in background",
-            len(document_ids),
+        logger.info_structured(
+            "uploaded documents, processing scheduled in background",
+            count=len(document_ids),
+            project_id=project_id,
         )
 
         return DocumentUploadResponse(
@@ -151,7 +153,7 @@ async def upload_document(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error uploading documents: %s", e)
+        logger.error_structured("error uploading documents", project_id=project_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload documents",
@@ -171,7 +173,7 @@ def list_documents(
     current_user: User = Depends(get_user),
 ):
     """List all documents for a project"""
-    logger.info("listing documents for project_id=%s", project_id)
+    logger.info_structured("listing documents", project_id=project_id, user_id=current_user.id)
 
     try:
         documents = document_service.list_documents(project_id, current_user.id)
@@ -180,7 +182,7 @@ def list_documents(
             data=[DocumentDto.model_validate(doc) for doc in documents],
         )
     except Exception as e:
-        logger.error("error listing documents: %s", e)
+        logger.error_structured("error listing documents", project_id=project_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list documents",
@@ -200,13 +202,13 @@ def get_document(
     current_user: User = Depends(get_user),
 ):
     """Get a document by id"""
-    logger.info("getting document_id=%s", document_id)
+    logger.info_structured("getting document", document_id=document_id, user_id=current_user.id)
 
     try:
         document = document_service.get_document(document_id, current_user.id)
 
         if not document:
-            logger.error("document_id=%s not found", document_id)
+            logger.error_structured("document not found", document_id=document_id, user_id=current_user.id)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
@@ -215,7 +217,7 @@ def get_document(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error getting document: %s", e)
+        logger.error_structured("error getting document", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get document",
@@ -241,13 +243,13 @@ def preview_document(
 
     Example: /v1/documents/{id}/preview
     """
-    logger.info("getting preview URL for document_id=%s", document_id)
+    logger.info_structured("getting preview URL", document_id=document_id, user_id=current_user.id)
 
     try:
         document = document_service.get_document(document_id, current_user.id)
 
         if not document:
-            logger.error("document_id=%s not found", document_id)
+            logger.error_structured("document not found", document_id=document_id, user_id=current_user.id)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
@@ -276,13 +278,13 @@ def preview_document(
     except HTTPException:
         raise
     except ValueError as e:
-        logger.error("error getting preview URL: %s", e)
+        logger.error_structured("error getting preview URL", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error getting preview URL: %s", e)
+        logger.error_structured("error getting preview URL", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get preview URL",
@@ -300,13 +302,13 @@ def stream_document(
     current_user: User = Depends(get_user),
 ):
     """Stream document content with proper headers for inline display."""
-    logger.info("streaming document_id=%s", document_id)
+    logger.info_structured("streaming document", document_id=document_id, user_id=current_user.id)
 
     try:
         document = document_service.get_document(document_id, current_user.id)
 
         if not document:
-            logger.error("document_id=%s not found", document_id)
+            logger.error_structured("document not found", document_id=document_id, user_id=current_user.id)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
@@ -339,13 +341,13 @@ def stream_document(
     except HTTPException:
         raise
     except ValueError as e:
-        logger.error("error streaming document: %s", e)
+        logger.error_structured("error streaming document", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except Exception as e:
-        logger.error("error streaming document: %s", e)
+        logger.error_structured("error streaming document", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to stream document",
@@ -364,13 +366,13 @@ def delete_document(
     current_user: User = Depends(get_user),
 ):
     """Delete a document by id"""
-    logger.info("deleting document_id=%s", document_id)
+    logger.info_structured("deleting document", document_id=document_id, user_id=current_user.id)
 
     try:
         success = document_service.delete_document(document_id, current_user.id)
 
         if not success:
-            logger.error("document_id=%s not found", document_id)
+            logger.error_structured("document not found", document_id=document_id, user_id=current_user.id)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
@@ -378,14 +380,14 @@ def delete_document(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     except ValueError as e:
-        logger.error("document_id=%s not found: %s", document_id, e)
+        logger.error_structured("document not found", document_id=document_id, user_id=current_user.id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("error deleting document: %s", e)
+        logger.error_structured("error deleting document", document_id=document_id, user_id=current_user.id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete document",

@@ -65,7 +65,7 @@ def create_chat(
     current_user: User = Depends(get_user),
 ):
     """Create a new chat"""
-    logger.info("creating chat")
+    logger.info_structured("creating chat", project_id=body.project_id, user_id=current_user.id)
 
     result = chat_service.create_chat(body.project_id, current_user.id, None)
     messages = [_message_to_dto(msg) for msg in result.messages]
@@ -95,7 +95,7 @@ def list_chats(
     current_user: User = Depends(get_user),
 ):
     """List all chats"""
-    logger.info("listing chats for project_id=%s", project_id)
+    logger.info_structured("listing chats", project_id=project_id, user_id=current_user.id)
 
     result = chat_service.list_chats(project_id, current_user.id)
 
@@ -136,12 +136,12 @@ def get_chat(
 ):
     """Get a chat by id"""
 
-    logger.info("getting chat_id=%s", chat_id)
+    logger.info_structured("getting chat", chat_id=chat_id, user_id=current_user.id)
 
     result = chat_service.get_chat(chat_id, current_user.id)
 
     if not result:
-        logger.error("chat_id=%s not found", chat_id)
+        logger.error_structured("chat not found", chat_id=chat_id, user_id=current_user.id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chat not found",
@@ -175,7 +175,7 @@ def update_chat(
     current_user: User = Depends(get_user),
 ):
     """Update a chat by id"""
-    logger.info("updating chat_id=%s", chat_id)
+    logger.info_structured("updating chat", chat_id=chat_id, user_id=current_user.id)
 
     result = chat_service.update_chat(chat_id, current_user.id, body.title)
 
@@ -205,7 +205,7 @@ def delete_chat(
     current_user: User = Depends(get_user),
 ):
     """Delete a chat by id"""
-    logger.info("deleting chat_id=%s", chat_id)
+    logger.info_structured("deleting chat", chat_id=chat_id, user_id=current_user.id)
     chat_service.delete_chat(chat_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -233,7 +233,7 @@ async def send_streaming_message(
     async def generate_stream() -> AsyncGenerator[str, None]:
         """Generate streaming response chunks"""
         try:
-            logger.info("starting streaming response generation")
+            logger.info_structured("starting streaming response generation", chat_id=chat_id, user_id=user_id)
             async for chunk_data in chat_service.send_streaming_message(
                 chat_id, user_id, body.message
             ):
@@ -266,7 +266,7 @@ async def send_streaming_message(
                 yield sse_data.encode("utf-8")
 
         except Exception as e:
-            logger.error("error in streaming: %s", e, exc_info=True)
+            logger.error_structured("error in streaming", chat_id=chat_id, user_id=user_id, error=str(e), exc_info=True)
             error_msg = StreamingChatMessage(
                 chunk=f"Error: {str(e)}",
                 done=True,
