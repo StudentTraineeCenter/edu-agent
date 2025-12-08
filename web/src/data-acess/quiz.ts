@@ -60,6 +60,8 @@ export const createQuizStreamAtom = Atom.fn(
       projectId: string
       questionCount?: number
       userPrompt?: string
+      length?: string
+      difficulty?: string
     },
     _get: Atom.FnContext,
   ) {
@@ -69,6 +71,8 @@ export const createQuizStreamAtom = Atom.fn(
       new CreateQuizRequest({
         question_count: input.questionCount,
         user_prompt: input.userPrompt,
+        length: input.length,
+        difficulty: input.difficulty,
       }),
     )
     const resp = yield* httpClient.post(

@@ -38,6 +38,7 @@ async def create_note_stream(
             async for progress_update in note_service.create_note_with_content_stream(
                 project_id=project_id,
                 user_prompt=body.user_prompt,
+                length=body.length,
             ):
                 progress = NoteProgressUpdate(**progress_update)
                 progress_json = progress.model_dump_json()
@@ -85,6 +86,7 @@ async def create_note(
         note_id = await note_service.create_note_with_content(
             project_id=project_id,
             user_prompt=body.user_prompt,
+            length=body.length,
         )
 
         note = note_service.get_note(note_id)

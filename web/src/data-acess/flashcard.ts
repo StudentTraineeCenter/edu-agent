@@ -57,6 +57,8 @@ export const createFlashcardGroupStreamAtom = Atom.fn(
       projectId: string
       flashcardCount?: number
       userPrompt?: string
+      length?: string
+      difficulty?: string
     },
     _get: Atom.FnContext,
   ) {
@@ -65,6 +67,8 @@ export const createFlashcardGroupStreamAtom = Atom.fn(
       new CreateFlashcardGroupRequest({
         flashcard_count: input.flashcardCount,
         user_prompt: input.userPrompt,
+        length: input.length,
+        difficulty: input.difficulty,
       }),
     )
     const resp = yield* httpClient.post(

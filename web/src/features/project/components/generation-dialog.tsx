@@ -12,6 +12,13 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Loader2Icon } from 'lucide-react'
 import { useAtomValue, useAtom } from '@effect-atom/atom-react'
 import { indexedDocumentsAtom } from '@/data-acess/document'
@@ -47,6 +54,8 @@ export const useGenerationDialog = create<GenerationDialogStore>((set) => ({
 }))
 
 type GenerationType = 'quiz' | 'flashcard' | 'note' | 'mindmap'
+type LengthOption = 'less' | 'normal' | 'more'
+type DifficultyOption = 'easy' | 'medium' | 'hard'
 
 export function GenerationDialog() {
   const { isOpen, projectId, close } = useGenerationDialog()
@@ -56,6 +65,8 @@ export function GenerationDialog() {
   )
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedType, setSelectedType] = useState<GenerationType>('note')
+  const [length, setLength] = useState<LengthOption>('normal')
+  const [difficulty, setDifficulty] = useState<DifficultyOption>('medium')
 
   const documentsResult = useAtomValue(indexedDocumentsAtom(projectId || ''))
 
@@ -145,6 +156,7 @@ export function GenerationDialog() {
           await createNoteStream({
             projectId,
             userPrompt: prompt.trim() || undefined,
+            length: length !== 'normal' ? length : undefined,
           })
           break
         case 'quiz':
@@ -152,6 +164,8 @@ export function GenerationDialog() {
             projectId,
             questionCount: 30,
             userPrompt: prompt.trim() || undefined,
+            length: length !== 'normal' ? length : undefined,
+            difficulty: difficulty !== 'medium' ? difficulty : undefined,
           })
           break
         case 'flashcard':
@@ -159,6 +173,8 @@ export function GenerationDialog() {
             projectId,
             flashcardCount: 30,
             userPrompt: prompt.trim() || undefined,
+            length: length !== 'normal' ? length : undefined,
+            difficulty: difficulty !== 'medium' ? difficulty : undefined,
           })
           break
         case 'mindmap':
@@ -184,6 +200,8 @@ export function GenerationDialog() {
     setPrompt('')
     setSelectedDocumentIds(new Set())
     setSelectedType('note')
+    setLength('normal')
+    setDifficulty('medium')
   }
 
   const hasSelectedDocuments = selectedDocumentIds.size > 0
@@ -191,6 +209,11 @@ export function GenerationDialog() {
     Result.isSuccess(documentsResult) &&
     documentsResult.value.length > 0 &&
     selectedDocumentIds.size === documentsResult.value.length
+
+  const hasCustomSettings =
+    selectedType === 'quiz' ||
+    selectedType === 'flashcard' ||
+    selectedType === 'note'
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -253,6 +276,58 @@ export function GenerationDialog() {
               disabled={isGenerating}
             />
           </div>
+
+          {hasCustomSettings && (
+            <div className="space-y-3 shrink-0 border rounded-md p-4">
+              <Label className="sr-only">Custom Settings</Label>
+              <div
+                className={`grid gap-4 ${
+                  selectedType === 'quiz' || selectedType === 'flashcard'
+                    ? 'grid-cols-2'
+                    : 'grid-cols-1'
+                }`}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="length">Length</Label>
+                  <Select
+                    value={length}
+                    onValueChange={(value) => setLength(value as LengthOption)}
+                    disabled={isGenerating}
+                  >
+                    <SelectTrigger id="length" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="less">Less</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="more">More</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(selectedType === 'quiz' || selectedType === 'flashcard') && (
+                  <div className="space-y-2">
+                    <Label htmlFor="difficulty">Difficulty</Label>
+                    <Select
+                      value={difficulty}
+                      onValueChange={(value) =>
+                        setDifficulty(value as DifficultyOption)
+                      }
+                      disabled={isGenerating}
+                    >
+                      <SelectTrigger id="difficulty" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center justify-between shrink-0">

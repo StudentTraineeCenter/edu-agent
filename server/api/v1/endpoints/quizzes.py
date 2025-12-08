@@ -46,6 +46,8 @@ async def create_quiz_stream(
                 project_id=project_id,
                 count=body.question_count,
                 user_prompt=body.user_prompt,
+                length=body.length,
+                difficulty=body.difficulty,
             ):
                 progress = QuizProgressUpdate(**progress_update)
                 progress_json = progress.model_dump_json()
@@ -94,6 +96,8 @@ async def create_quiz(
             project_id=project_id,
             count=body.question_count,
             user_prompt=body.user_prompt,
+            length=body.length,
+            difficulty=body.difficulty,
         )
 
         quiz = quiz_service.get_quiz(quiz_id)

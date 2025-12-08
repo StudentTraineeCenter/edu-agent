@@ -110,11 +110,32 @@ class QuizService:
 
         self.quiz_parser = JsonOutputParser(pydantic_object=QuizGenerationRequest)
 
+    def _resolve_question_count(
+        self, count: int, length: Optional[str] = None
+    ) -> int:
+        """Resolve length preference to actual question count.
+        
+        Args:
+            count: Base count (used if length is None or 'normal')
+            length: Length preference: 'less', 'normal', or 'more'
+            
+        Returns:
+            Resolved question count
+        """
+        if length == "less":
+            return 15
+        elif length == "more":
+            return 50
+        else:  # normal or None
+            return count
+
     async def create_quiz_with_questions(
         self,
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> str:
         """Create a new quiz with auto-generated name, description, and questions.
 
@@ -131,16 +152,20 @@ class QuizService:
         """
         with self._get_db_session() as db:
             try:
+                # Resolve length to actual count
+                resolved_count = self._resolve_question_count(count, length)
                 logger.info(
-                    f"creating quiz with count={count} questions for project_id={project_id}"
+                    f"creating quiz with count={resolved_count} questions for project_id={project_id} (length={length})"
                 )
 
                 # Generate all content using LangChain directly
                 generated_content = await self._generate_quiz_content(
                     db=db,
                     project_id=project_id,
-                    count=count,
+                    count=resolved_count,
                     user_prompt=user_prompt,
+                    length=None,  # Don't pass length to prompt, already resolved to count
+                    difficulty=difficulty,
                 )
 
                 name = generated_content.name
@@ -198,6 +223,8 @@ class QuizService:
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
         """Create a quiz with streaming progress updates.
 
@@ -248,17 +275,21 @@ class QuizService:
                     }
                     return
 
+                # Resolve length to actual count
+                resolved_count = self._resolve_question_count(count, length)
                 yield {
                     "status": "generating",
-                    "message": f"Generating {count} questions...",
+                    "message": f"Generating {resolved_count} questions...",
                 }
 
                 # Generate content
                 generated_content = await self._generate_quiz_content(
                     db=db,
                     project_id=project_id,
-                    count=count,
+                    count=resolved_count,
                     user_prompt=user_prompt,
+                    length=None,  # Don't pass length to prompt, already resolved to count
+                    difficulty=difficulty,
                 )
 
                 name = generated_content.name
@@ -813,6 +844,8 @@ class QuizService:
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> QuizGenerationResult:
         """Generate quiz name, description, and questions in one call.
 
@@ -866,14 +899,23 @@ class QuizService:
             # Create prompt template
             prompt_template = self._create_quiz_prompt_template()
 
+            # Build difficulty instructions (length is already resolved to count)
+            difficulty_instruction = ""
+            if difficulty == "easy":
+                difficulty_instruction = " Focus on basic concepts and straightforward questions suitable for beginners."
+            elif difficulty == "hard":
+                difficulty_instruction = " Create challenging questions that test deep understanding, analysis, and application of concepts."
+            # "medium" or None uses default behavior
+
             # Build the prompt
             prompt = prompt_template.format(
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
                 count=count,
-                user_prompt=user_prompt
-                or "Generate comprehensive quiz questions covering key concepts, definitions, and important details.",
+                user_prompt=(user_prompt
+                or "Generate comprehensive quiz questions covering key concepts, definitions, and important details.")
+                + difficulty_instruction,
                 language_code=language_code,
                 format_instructions=self.quiz_parser.get_format_instructions(),
             )

@@ -51,6 +51,16 @@ class CreateQuizRequest(BaseModel):
         max_length=2000,
         description="Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.",
     )
+    length: Optional[str] = Field(
+        None,
+        pattern="^(less|normal|more)$",
+        description="Length preference: less, normal, or more",
+    )
+    difficulty: Optional[str] = Field(
+        None,
+        pattern="^(easy|medium|hard)$",
+        description="Overall difficulty level: easy, medium, or hard",
+    )
 
 
 class UpdateQuizRequest(BaseModel):

@@ -51,7 +51,7 @@ export const mindMapProgressAtom = Atom.make<{
 export const generateMindMapStreamAtom = Atom.fn(
   Effect.fn(function* (
     input: { projectId: string; userPrompt?: string },
-    get: Atom.FnContext,
+    _get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson({

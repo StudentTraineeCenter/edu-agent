@@ -26,6 +26,11 @@ class CreateNoteRequest(BaseModel):
         max_length=2000,
         description="Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.",
     )
+    length: Optional[str] = Field(
+        None,
+        pattern="^(less|normal|more)$",
+        description="Length preference: less, normal, or more",
+    )
 
 
 class UpdateNoteRequest(BaseModel):

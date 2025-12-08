@@ -447,6 +447,20 @@ export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupReq
   user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
+  /**
+   * Length preference: less, normal, or more
+   */
+  length: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
+    { nullable: true },
+  ),
+  /**
+   * Overall difficulty level: easy, medium, or hard
+   */
+  difficulty: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true },
+  ),
 }) {}
 
 export class CreateFlashcardGroupStreamV1FlashcardsStreamPost200 extends S.Struct(
@@ -636,6 +650,20 @@ export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
   user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
+  /**
+   * Length preference: less, normal, or more
+   */
+  length: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
+    { nullable: true },
+  ),
+  /**
+   * Overall difficulty level: easy, medium, or hard
+   */
+  difficulty: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true },
+  ),
 }) {}
 
 export class CreateQuizStreamV1QuizzesStreamPost200 extends S.Struct({}) {}
@@ -850,6 +878,13 @@ export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
   user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
+  /**
+   * Length preference: less, normal, or more
+   */
+  length: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
+    { nullable: true },
+  ),
 }) {}
 
 export class CreateNoteStreamV1NotesStreamPost200 extends S.Struct({}) {}

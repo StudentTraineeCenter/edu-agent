@@ -75,11 +75,32 @@ class FlashcardService:
             pydantic_object=FlashcardGroupGenerationRequest
         )
 
+    def _resolve_flashcard_count(
+        self, count: int, length: Optional[str] = None
+    ) -> int:
+        """Resolve length preference to actual flashcard count.
+        
+        Args:
+            count: Base count (used if length is None or 'normal')
+            length: Length preference: 'less', 'normal', or 'more'
+            
+        Returns:
+            Resolved flashcard count
+        """
+        if length == "less":
+            return 15
+        elif length == "more":
+            return 50
+        else:  # normal or None
+            return count
+
     async def create_flashcard_group_with_flashcards(
         self,
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> str:
         """Create a new flashcard group with auto-generated name, description, and flashcards.
 
@@ -96,16 +117,20 @@ class FlashcardService:
         """
         with self._get_db_session() as db:
             try:
+                # Resolve length to actual count
+                resolved_count = self._resolve_flashcard_count(count, length)
                 logger.info(
-                    f"creating flashcard group with count={count} flashcards for project_id={project_id}"
+                    f"creating flashcard group with count={resolved_count} flashcards for project_id={project_id} (length={length})"
                 )
 
                 # Generate all content using LangChain directly
                 generated_content = await self._generate_flashcard_group_content(
                     db=db,
                     project_id=project_id,
-                    count=count,
+                    count=resolved_count,
                     user_prompt=user_prompt,
+                    length=None,  # Don't pass length to prompt, already resolved to count
+                    difficulty=difficulty,
                 )
 
                 name = generated_content.name
@@ -161,6 +186,8 @@ class FlashcardService:
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
         """Create a flashcard group with streaming progress updates.
 
@@ -211,17 +238,21 @@ class FlashcardService:
                     }
                     return
 
+                # Resolve length to actual count
+                resolved_count = self._resolve_flashcard_count(count, length)
                 yield {
                     "status": "generating",
-                    "message": f"Generating {count} flashcards...",
+                    "message": f"Generating {resolved_count} flashcards...",
                 }
 
                 # Generate content
                 generated_content = await self._generate_flashcard_group_content(
                     db=db,
                     project_id=project_id,
-                    count=count,
+                    count=resolved_count,
                     user_prompt=user_prompt,
+                    length=None,  # Don't pass length to prompt, already resolved to count
+                    difficulty=difficulty,
                 )
 
                 name = generated_content.name
@@ -663,6 +694,8 @@ class FlashcardService:
         project_id: str,
         count: int = 30,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
+        difficulty: Optional[str] = None,
     ) -> FlashcardGroupGenerationResult:
         """Generate flashcard group name, description, and flashcards in one call.
 
@@ -721,14 +754,23 @@ class FlashcardService:
             # Create prompt template
             prompt_template = self._create_flashcard_group_prompt_template()
 
+            # Build difficulty instructions (length is already resolved to count)
+            difficulty_instruction = ""
+            if difficulty == "easy":
+                difficulty_instruction = " Focus on basic concepts and straightforward flashcards suitable for beginners."
+            elif difficulty == "hard":
+                difficulty_instruction = " Create challenging flashcards that test deep understanding, analysis, and application of concepts."
+            # "medium" or None uses default behavior
+
             # Build the prompt
             prompt = prompt_template.format(
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
                 count=count,
-                user_prompt=user_prompt
-                or "Generate comprehensive flashcards covering key concepts, definitions, and important details.",
+                user_prompt=(user_prompt
+                or "Generate comprehensive flashcards covering key concepts, definitions, and important details.")
+                + difficulty_instruction,
                 language_code=language_code,
                 format_instructions=self.flashcard_parser.get_format_instructions(),
             )

@@ -55,6 +55,8 @@ async def create_flashcard_group_stream(
                 project_id=project_id,
                 count=body.flashcard_count,
                 user_prompt=body.user_prompt,
+                length=body.length,
+                difficulty=body.difficulty,
             ):
                 progress = FlashcardProgressUpdate(**progress_update)
                 progress_json = progress.model_dump_json()
@@ -103,6 +105,8 @@ async def create_flashcard_group(
             project_id=project_id,
             count=body.flashcard_count,
             user_prompt=body.user_prompt,
+            length=body.length,
+            difficulty=body.difficulty,
         )
 
         group = flashcard_service.get_flashcard_group(group_id)

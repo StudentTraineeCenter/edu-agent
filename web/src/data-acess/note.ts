@@ -40,13 +40,14 @@ export const noteProgressAtom = Atom.make<{
 
 export const createNoteStreamAtom = Atom.fn(
   Effect.fn(function* (
-    input: { projectId: string; userPrompt?: string },
+    input: { projectId: string; userPrompt?: string; length?: string },
     get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(
       new CreateNoteRequest({
         user_prompt: input.userPrompt,
+        length: input.length,
       }),
     )
     const resp = yield* httpClient.post(

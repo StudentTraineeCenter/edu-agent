@@ -66,6 +66,7 @@ class NoteService:
         self,
         project_id: str,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
     ) -> str:
         """Create a new note with auto-generated title, description, and markdown content.
 
@@ -90,6 +91,7 @@ class NoteService:
                     db=db,
                     project_id=project_id,
                     user_prompt=user_prompt,
+                    length=length,
                 )
 
                 title = generated_content.title
@@ -126,6 +128,7 @@ class NoteService:
         self,
         project_id: str,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
         """Create a note with streaming progress updates.
 
@@ -182,6 +185,7 @@ class NoteService:
                     db=db,
                     project_id=project_id,
                     user_prompt=user_prompt,
+                    length=length,
                 )
 
                 title = generated_content.title
@@ -355,6 +359,7 @@ class NoteService:
         db: Session,
         project_id: str,
         user_prompt: Optional[str] = None,
+        length: Optional[str] = None,
     ) -> NoteGenerationResult:
         """Generate note title, description, and markdown content.
 
@@ -407,13 +412,22 @@ class NoteService:
             # Create prompt template
             prompt_template = self._create_note_prompt_template()
 
+            # Build length instruction with concrete targets
+            length_instruction = ""
+            if length == "less":
+                length_instruction = " Keep the note concise (target: 500-800 words), focusing only on the most essential information with brief explanations."
+            elif length == "more":
+                length_instruction = " Create a comprehensive, detailed note (target: 2000-3000 words) with extensive coverage, multiple examples, detailed explanations, and thorough context."
+            # "normal" or None uses default behavior (target: 1000-1500 words)
+
             # Build the prompt
             prompt = prompt_template.format(
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
-                user_prompt=user_prompt
-                or "Generate a comprehensive study note covering key concepts, definitions, and important details.",
+                user_prompt=(user_prompt
+                or "Generate a comprehensive study note covering key concepts, definitions, and important details.")
+                + length_instruction,
                 language_code=language_code,
                 format_instructions=self.note_parser.get_format_instructions(),
             )
