@@ -7,7 +7,7 @@ from typing import AsyncGenerator, List, Optional
 from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from langchain_core.messages import AIMessage, BaseMessage, ToolCall
+from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel
 
@@ -431,6 +431,24 @@ class ChatService:
                                 )
                             elif not tool_calls[tc_id].input:
                                 tool_calls[tc_id].input = tc_args
+
+                            async for update_chunk in yield_tool_update():
+                                yield update_chunk
+
+            # Handle tool execution results from tools node
+            if "tools" in chunk:
+                msgs: list[BaseMessage] = chunk["tools"].get("messages", [])
+                for msg in msgs:
+                    if isinstance(msg, ToolMessage):
+                        tc_id = msg.tool_call_id
+                        if tc_id in tool_calls:
+                            # Check if there's an error in the status
+                            if msg.status == "error":
+                                tool_calls[tc_id].state = "output-error"
+                                tool_calls[tc_id].error_text = str(msg.content)
+                            else:
+                                tool_calls[tc_id].state = "output-available"
+                                tool_calls[tc_id].output = msg.content
 
                             async for update_chunk in yield_tool_update():
                                 yield update_chunk
