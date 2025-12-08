@@ -369,9 +369,40 @@ class ChatService:
         # --- process stream chunks ----------------------------------------------
         async for chunk in self.agent.astream(
             {"messages": chat_history, "sources": []},
-            stream_mode="updates",
+            stream_mode=["updates", "messages"],
             context=ctx,
         ):
+            # When using stream_mode=["updates", "messages"], chunks come as (mode_name, data)
+            if isinstance(chunk, tuple) and len(chunk) == 2:
+                mode_name, data = chunk
+                
+                # Handle "messages" mode - token-by-token streaming
+                if mode_name == "messages":
+                    # data is a tuple of (message, metadata)
+                    if isinstance(data, tuple) and len(data) == 2:
+                        message, metadata = data
+                        
+                        # Only stream AIMessage content (agent responses), not ToolMessage content
+                        if isinstance(message, AIMessage) and hasattr(message, "content") and message.content:
+                            buffer_parts.append(message.content)
+                            yield MessageChunk(chunk=message.content, done=False)
+                            
+                            # Send "generating" status on first token
+                            if not has_started_generating:
+                                yield MessageChunk(chunk="", done=False, status="generating")
+                                has_started_generating = True
+                    continue
+                
+                # Handle "updates" mode - node completions
+                elif mode_name == "updates":
+                    chunk = data  # data is the actual update dict, continue processing below
+                else:
+                    continue
+            
+            # Handle update-level chunks (node completions) - must be a dict from here on
+            if not isinstance(chunk, dict):
+                continue
+            
             # Extract sources from middleware hooks
             chunk_key = (
                 "ensure_sources_in_stream.after_model"
@@ -392,23 +423,15 @@ class ChatService:
                     if not any(s.id == source.id for s in gathered_sources):
                         gathered_sources.append(source)
 
-            # Handle model chunks (AI responses)
+            # Handle model chunks (node completions - tool calls and metadata)
             if "model" in chunk:
-                # Send "generating" status when first content arrives
-                if not has_started_generating:
-                    yield MessageChunk(chunk="", done=False, status="generating")
-                    has_started_generating = True
-
                 msgs: list[BaseMessage] = chunk["model"].get("messages", [])
+                
                 for msg in msgs:
-                    # Extract content if available
-                    if msg.content:
-                        buffer_parts.append(msg.content)
-                        yield MessageChunk(chunk=msg.content, done=False)
-
                     # Extract tool calls from AIMessage
                     if isinstance(msg, AIMessage):
                         tool_calls_list: list[ToolCall] = msg.tool_calls or []
+                        
                         for tc in tool_calls_list:
                             tc_id = tc.get("id") or str(uuid4())
                             tc_name = tc.get("name") or ""
@@ -434,9 +457,11 @@ class ChatService:
             # Handle tool execution results from tools node
             if "tools" in chunk:
                 msgs: list[BaseMessage] = chunk["tools"].get("messages", [])
+                
                 for msg in msgs:
                     if isinstance(msg, ToolMessage):
                         tc_id = msg.tool_call_id
+                        
                         if tc_id in tool_calls:
                             # Check if there's an error in the status
                             if msg.status == "error":

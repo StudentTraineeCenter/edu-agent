@@ -9,7 +9,7 @@ from db.models import ChatMessageSource
 
 @tool(
     "search_project_documents",
-    description="Search project documents for relevant course content. Use for questions about course material. Do NOT use for greetings, casual chat, or when creating study resources.",
+    description="Search project documents for relevant course content. ALWAYS use this for questions about course concepts, definitions, examples, exercises, or any academic topic. Only skip for greetings or purely personal questions.",
 )
 async def search_project_documents(
     query: str,
@@ -45,16 +45,17 @@ async def search_project_documents(
         for i, result in enumerate(search_results, 1)
     ]
     
-    # Format content for agent
+    # Format content for agent - give clean context without citation markers
+    # The agent should use this information naturally, not copy-paste it
     context_blocks = [
-        f"[{source.citation_index}] {source.title}\n{(source.content or '')[:1000]}\n"
+        f"From {source.title}:\n{source.content[:1500]}"
         for source in sources
     ]
     
-    formatted_content = "\n\n".join(context_blocks)
+    formatted_content = "\n\n---\n\n".join(context_blocks)
     
     return {
-        "content": formatted_content,
+        "content": f"Here is relevant information from the course documents:\n\n{formatted_content}\n\nPlease use this information to answer the student's question in a clear, educational way.",
         "sources": sources,  # This will be captured by middleware
     }
 
