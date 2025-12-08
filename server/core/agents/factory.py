@@ -45,12 +45,20 @@ async def capture_sources_from_rag(request, handler):
     return result
 
 
+# Cache system prompts by language for performance
+_prompt_cache = {}
+
 @dynamic_prompt
 async def dynamic_system_prompt(request: ModelRequest) -> str:
     """Generate dynamic system prompt."""
     language = request.runtime.context.language or "English"
+    
+    # Return cached prompt if available
+    if language in _prompt_cache:
+        return _prompt_cache[language]
 
-    return f"""<role>
+    # Generate and cache the prompt
+    prompt = f"""<role>
 You are an expert educational AI tutor dedicated to helping students learn and master course material. Your primary goal is to facilitate deep understanding, not just provide answers.
 
 CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All explanations, examples, questions, and generated study resources (flashcards, quizzes, notes, mind maps) must be in {language}. Never mix languages or use a different language than {language}.
@@ -81,6 +89,9 @@ CRITICAL LANGUAGE REQUIREMENT: You MUST respond entirely in {language}. All expl
 - When generating study resources (flashcards, quizzes, notes, mind maps), ensure ALL content is in {language}
 - When students ask questions, help them understand the "why" behind concepts, not just the "what"
 </rules>"""
+    
+    _prompt_cache[language] = prompt
+    return prompt
 
 
 @after_model(state_schema=CustomAgentState)

@@ -9,18 +9,7 @@ from db.models import ChatMessageSource
 
 @tool(
     "search_project_documents",
-    description="""Search through project documents and materials to find relevant information.
-
-Use this tool when the user asks questions about:
-- project content, concepts, or topics
-- Specific subject matter from their uploaded materials
-- Technical explanations from their documents
-- Details that require referencing project materials
-
-Do NOT use for:
-- Greetings or casual conversation
-- Requests to create study resources (flashcards, quizzes, notes, mind maps)
-- General questions that don't require document context""",
+    description="Search project documents for relevant course content. Use for questions about course material. Do NOT use for greetings, casual chat, or when creating study resources.",
 )
 async def search_project_documents(
     query: str,

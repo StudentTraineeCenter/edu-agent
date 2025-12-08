@@ -77,6 +77,8 @@ class ChatService:
             streaming=False,
         )
 
+        self.agent = make_agent()
+
     def create_chat(self, project_id: str, user_id: str, title: Optional[str]) -> Chat:
         """Create a new chat.
 
@@ -343,10 +345,8 @@ class ChatService:
 
         async def yield_tool_update():
             yield MessageChunk(chunk="", done=False, tools=list(tool_calls.values()))
-            await asyncio.sleep(0.001)
 
         # --- agent + state ------------------------------------------------------
-        agent = make_agent()
 
         buffer_parts: list[str] = []
         gathered_sources: list[ChatMessageSource] = []
@@ -365,10 +365,9 @@ class ChatService:
 
         # Send initial "thinking" status
         yield MessageChunk(chunk="", done=False, status="thinking")
-        await asyncio.sleep(0.001)
 
         # --- process stream chunks ----------------------------------------------
-        async for chunk in agent.astream(
+        async for chunk in self.agent.astream(
             {"messages": chat_history, "sources": []},
             stream_mode="updates",
             context=ctx,
@@ -388,7 +387,6 @@ class ChatService:
                 # Send "searching" status when RAG is fetching documents
                 if chunk_key == "fetch_and_set_sources.before_model" and model_sources:
                     yield MessageChunk(chunk="", done=False, status="searching")
-                    await asyncio.sleep(0.001)
 
                 for source in model_sources:
                     if not any(s.id == source.id for s in gathered_sources):
@@ -399,7 +397,6 @@ class ChatService:
                 # Send "generating" status when first content arrives
                 if not has_started_generating:
                     yield MessageChunk(chunk="", done=False, status="generating")
-                    await asyncio.sleep(0.001)
                     has_started_generating = True
 
                 msgs: list[BaseMessage] = chunk["model"].get("messages", [])
@@ -408,7 +405,6 @@ class ChatService:
                     if msg.content:
                         buffer_parts.append(msg.content)
                         yield MessageChunk(chunk=msg.content, done=False)
-                        await asyncio.sleep(0.001)
 
                     # Extract tool calls from AIMessage
                     if isinstance(msg, AIMessage):
