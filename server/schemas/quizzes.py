@@ -31,6 +31,7 @@ class QuizQuestionDto(BaseModel):
     correct_option: str
     explanation: Optional[str] = None
     difficulty_level: str
+    position: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -80,6 +81,62 @@ class QuizQuestionListResponse(BaseModel):
     """Response model for listing quiz questions."""
 
     data: List[QuizQuestionDto] = Field(description="List of quiz questions")
+
+
+class CreateQuizQuestionRequest(BaseModel):
+    """Request model for creating a quiz question."""
+
+    question_text: str = Field(min_length=1, description="Question text")
+    option_a: str = Field(min_length=1, description="Option A")
+    option_b: str = Field(min_length=1, description="Option B")
+    option_c: str = Field(min_length=1, description="Option C")
+    option_d: str = Field(min_length=1, description="Option D")
+    correct_option: str = Field(
+        pattern="^(a|b|c|d)$", description="Correct option (a, b, c, or d)"
+    )
+    explanation: Optional[str] = Field(None, description="Explanation for the answer")
+    difficulty_level: str = Field(
+        default="medium",
+        pattern="^(easy|medium|hard)$",
+        description="Difficulty level",
+    )
+    position: Optional[int] = Field(
+        None, ge=0, description="Position for ordering within quiz"
+    )
+
+
+class UpdateQuizQuestionRequest(BaseModel):
+    """Request model for updating a quiz question."""
+
+    question_text: Optional[str] = Field(
+        None, min_length=1, description="Question text"
+    )
+    option_a: Optional[str] = Field(None, min_length=1, description="Option A")
+    option_b: Optional[str] = Field(None, min_length=1, description="Option B")
+    option_c: Optional[str] = Field(None, min_length=1, description="Option C")
+    option_d: Optional[str] = Field(None, min_length=1, description="Option D")
+    correct_option: Optional[str] = Field(
+        None, pattern="^(a|b|c|d)$", description="Correct option (a, b, c, or d)"
+    )
+    explanation: Optional[str] = Field(None, description="Explanation for the answer")
+    difficulty_level: Optional[str] = Field(
+        None, pattern="^(easy|medium|hard)$", description="Difficulty level"
+    )
+
+
+class ReorderQuizQuestionsRequest(BaseModel):
+    """Request model for reordering quiz questions."""
+
+    question_ids: List[str] = Field(
+        description="List of question IDs in the desired order"
+    )
+
+
+class QuizQuestionResponse(BaseModel):
+    """Response model for quiz question operations."""
+
+    question: QuizQuestionDto
+    message: str
 
 
 class QuizProgressUpdate(BaseModel):

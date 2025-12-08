@@ -10,6 +10,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from core.agents.search import SearchInterface
@@ -361,7 +362,7 @@ class QuizService:
                 questions = (
                     db.query(QuizQuestion)
                     .filter(QuizQuestion.quiz_id == quiz_id)
-                    .order_by(QuizQuestion.created_at.asc())
+                    .order_by(QuizQuestion.position.asc())
                     .all()
                 )
 
@@ -369,6 +370,248 @@ class QuizService:
                 return questions
             except Exception as e:
                 logger.error(f"error getting quiz questions for quiz_id={quiz_id}: {e}")
+                raise
+
+    def create_quiz_question(
+        self,
+        quiz_id: str,
+        project_id: str,
+        question_text: str,
+        option_a: str,
+        option_b: str,
+        option_c: str,
+        option_d: str,
+        correct_option: str,
+        explanation: Optional[str] = None,
+        difficulty_level: str = "medium",
+        position: Optional[int] = None,
+    ) -> QuizQuestion:
+        """Create a new quiz question.
+
+        Args:
+            quiz_id: The quiz ID
+            project_id: The project ID
+            question_text: The question text
+            option_a: Option A
+            option_b: Option B
+            option_c: Option C
+            option_d: Option D
+            correct_option: Correct option (a, b, c, or d)
+            explanation: Optional explanation
+            difficulty_level: Difficulty level (easy, medium, hard)
+            position: Optional position for ordering. If None, appends to end.
+
+        Returns:
+            Created QuizQuestion model instance
+
+        Raises:
+            ValueError: If quiz not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"creating quiz question for quiz_id={quiz_id}")
+
+                # Verify quiz exists
+                quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+                if not quiz:
+                    raise ValueError(f"Quiz {quiz_id} not found")
+
+                # If position not provided, get the max position and add 1
+                if position is None:
+                    max_position = (
+                        db.query(func.max(QuizQuestion.position))
+                        .filter(QuizQuestion.quiz_id == quiz_id)
+                        .scalar()
+                    )
+                    position = (max_position or -1) + 1
+
+                question = QuizQuestion(
+                    id=str(uuid.uuid4()),
+                    quiz_id=quiz_id,
+                    project_id=project_id,
+                    question_text=question_text,
+                    option_a=option_a,
+                    option_b=option_b,
+                    option_c=option_c,
+                    option_d=option_d,
+                    correct_option=correct_option,
+                    explanation=explanation,
+                    difficulty_level=difficulty_level,
+                    position=position,
+                    created_at=datetime.now(),
+                )
+
+                db.add(question)
+                db.commit()
+                db.refresh(question)
+
+                logger.info(f"created quiz question_id={question.id}")
+                return question
+            except ValueError:
+                raise
+            except Exception as e:
+                logger.error(f"error creating quiz question for quiz_id={quiz_id}: {e}")
+                raise
+
+    def update_quiz_question(
+        self,
+        question_id: str,
+        question_text: Optional[str] = None,
+        option_a: Optional[str] = None,
+        option_b: Optional[str] = None,
+        option_c: Optional[str] = None,
+        option_d: Optional[str] = None,
+        correct_option: Optional[str] = None,
+        explanation: Optional[str] = None,
+        difficulty_level: Optional[str] = None,
+    ) -> Optional[QuizQuestion]:
+        """Update an existing quiz question.
+
+        Args:
+            question_id: The question ID
+            question_text: Optional new question text
+            option_a: Optional new option A
+            option_b: Optional new option B
+            option_c: Optional new option C
+            option_d: Optional new option D
+            correct_option: Optional new correct option
+            explanation: Optional new explanation
+            difficulty_level: Optional new difficulty level
+
+        Returns:
+            Updated QuizQuestion model instance or None if not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"updating quiz question_id={question_id}")
+
+                question = (
+                    db.query(QuizQuestion)
+                    .filter(QuizQuestion.id == question_id)
+                    .first()
+                )
+                if not question:
+                    logger.warning(f"quiz question_id={question_id} not found")
+                    return None
+
+                if question_text is not None:
+                    question.question_text = question_text
+                if option_a is not None:
+                    question.option_a = option_a
+                if option_b is not None:
+                    question.option_b = option_b
+                if option_c is not None:
+                    question.option_c = option_c
+                if option_d is not None:
+                    question.option_d = option_d
+                if correct_option is not None:
+                    question.correct_option = correct_option
+                if explanation is not None:
+                    question.explanation = explanation
+                if difficulty_level is not None:
+                    question.difficulty_level = difficulty_level
+
+                db.commit()
+                db.refresh(question)
+
+                logger.info(f"updated quiz question_id={question_id}")
+                return question
+            except Exception as e:
+                logger.error(f"error updating quiz question question_id={question_id}: {e}")
+                raise
+
+    def reorder_quiz_questions(
+        self, quiz_id: str, question_ids: List[str]
+    ) -> List[QuizQuestion]:
+        """Reorder quiz questions in a quiz.
+
+        Args:
+            quiz_id: The quiz ID
+            question_ids: List of question IDs in the desired order
+
+        Returns:
+            List of updated QuizQuestion model instances
+
+        Raises:
+            ValueError: If quiz not found or question IDs don't match quiz
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(
+                    f"reordering quiz questions for quiz_id={quiz_id}, count={len(question_ids)}"
+                )
+
+                # Verify quiz exists
+                quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
+                if not quiz:
+                    raise ValueError(f"Quiz {quiz_id} not found")
+
+                # Get all questions in the quiz
+                questions = (
+                    db.query(QuizQuestion)
+                    .filter(QuizQuestion.quiz_id == quiz_id)
+                    .all()
+                )
+                question_dict = {q.id: q for q in questions}
+
+                # Verify all provided IDs exist and belong to the quiz
+                for question_id in question_ids:
+                    if question_id not in question_dict:
+                        raise ValueError(
+                            f"Quiz question {question_id} not found in quiz {quiz_id}"
+                        )
+
+                # Update positions based on the order in question_ids
+                updated_questions = []
+                for position, question_id in enumerate(question_ids):
+                    question = question_dict[question_id]
+                    question.position = position
+                    updated_questions.append(question)
+
+                db.commit()
+                for question in updated_questions:
+                    db.refresh(question)
+
+                logger.info(f"reordered {len(updated_questions)} quiz questions")
+                return updated_questions
+            except ValueError:
+                raise
+            except Exception as e:
+                logger.error(
+                    f"error reordering quiz questions for quiz_id={quiz_id}: {e}"
+                )
+                raise
+
+    def delete_quiz_question(self, question_id: str) -> bool:
+        """Delete a quiz question.
+
+        Args:
+            question_id: The question ID
+
+        Returns:
+            True if deleted successfully, False if not found
+        """
+        with self._get_db_session() as db:
+            try:
+                logger.info(f"deleting quiz question_id={question_id}")
+
+                question = (
+                    db.query(QuizQuestion)
+                    .filter(QuizQuestion.id == question_id)
+                    .first()
+                )
+
+                if not question:
+                    logger.warning(f"quiz question_id={question_id} not found")
+                    return False
+
+                db.delete(question)
+                db.commit()
+
+                logger.info(f"deleted quiz question_id={question_id}")
+                return True
+            except Exception as e:
+                logger.error(f"error deleting quiz question question_id={question_id}: {e}")
                 raise
 
     def get_quiz(self, quiz_id: str) -> Quiz:

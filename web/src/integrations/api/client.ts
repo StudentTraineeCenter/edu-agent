@@ -697,6 +697,7 @@ export class QuizQuestionDto extends S.Class<QuizQuestionDto>(
   correct_option: S.String,
   explanation: S.optionalWith(S.String, { nullable: true }),
   difficulty_level: S.String,
+  position: S.Int,
   created_at: S.String,
 }) {}
 
@@ -710,6 +711,125 @@ export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
    * List of quiz questions
    */
   data: S.Array(QuizQuestionDto),
+}) {}
+
+/**
+ * Request model for creating a quiz question.
+ */
+export class CreateQuizQuestionRequest extends S.Class<CreateQuizQuestionRequest>(
+  'CreateQuizQuestionRequest',
+)({
+  /**
+   * Question text
+   */
+  question_text: S.String.pipe(S.minLength(1)),
+  /**
+   * Option A
+   */
+  option_a: S.String.pipe(S.minLength(1)),
+  /**
+   * Option B
+   */
+  option_b: S.String.pipe(S.minLength(1)),
+  /**
+   * Option C
+   */
+  option_c: S.String.pipe(S.minLength(1)),
+  /**
+   * Option D
+   */
+  option_d: S.String.pipe(S.minLength(1)),
+  /**
+   * Correct option (a, b, c, or d)
+   */
+  correct_option: S.String.pipe(S.pattern(new RegExp('^(a|b|c|d)$'))),
+  /**
+   * Explanation for the answer
+   */
+  explanation: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Difficulty level
+   */
+  difficulty_level: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true, default: () => 'medium' as const },
+  ),
+  /**
+   * Position for ordering within quiz
+   */
+  position: S.optionalWith(S.Int.pipe(S.greaterThanOrEqualTo(0)), {
+    nullable: true,
+  }),
+}) {}
+
+/**
+ * Response model for quiz question operations.
+ */
+export class QuizQuestionResponse extends S.Class<QuizQuestionResponse>(
+  'QuizQuestionResponse',
+)({
+  question: QuizQuestionDto,
+  message: S.String,
+}) {}
+
+/**
+ * Request model for updating a quiz question.
+ */
+export class UpdateQuizQuestionRequest extends S.Class<UpdateQuizQuestionRequest>(
+  'UpdateQuizQuestionRequest',
+)({
+  /**
+   * Question text
+   */
+  question_text: S.optionalWith(S.String.pipe(S.minLength(1)), {
+    nullable: true,
+  }),
+  /**
+   * Option A
+   */
+  option_a: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Option B
+   */
+  option_b: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Option C
+   */
+  option_c: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Option D
+   */
+  option_d: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  /**
+   * Correct option (a, b, c, or d)
+   */
+  correct_option: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(a|b|c|d)$'))),
+    { nullable: true },
+  ),
+  /**
+   * Explanation for the answer
+   */
+  explanation: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Difficulty level
+   */
+  difficulty_level: S.optionalWith(
+    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
+    { nullable: true },
+  ),
+}) {}
+
+/**
+ * Request model for reordering quiz questions.
+ */
+export class ReorderQuizQuestionsRequest extends S.Class<ReorderQuizQuestionsRequest>(
+  'ReorderQuizQuestionsRequest',
+)({
+  /**
+   * List of question IDs in the desired order
+   */
+  question_ids: S.Array(S.String),
 }) {}
 
 export class ExportQuizV1QuizzesQuizIdExportGet200 extends S.Struct({}) {}
@@ -1518,6 +1638,63 @@ export const make = (
           }),
         ),
       ),
+    createQuizQuestionV1QuizzesQuizIdQuestionsPost: (quizId, options) =>
+      HttpClientRequest.post(`/v1/quizzes/${quizId}/questions`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizQuestionResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete: (
+      quizId,
+      questionId,
+    ) =>
+      HttpClientRequest.del(
+        `/v1/quizzes/${quizId}/questions/${questionId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch: (
+      quizId,
+      questionId,
+      options,
+    ) =>
+      HttpClientRequest.patch(
+        `/v1/quizzes/${quizId}/questions/${questionId}`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizQuestionResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch: (
+      quizId,
+      options,
+    ) =>
+      HttpClientRequest.patch(`/v1/quizzes/${quizId}/questions/reorder`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizQuestionListResponse),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     exportQuizV1QuizzesQuizIdExportGet: (quizId) =>
       HttpClientRequest.get(`/v1/quizzes/${quizId}/export`).pipe(
         withResponse(
@@ -2179,6 +2356,55 @@ export interface Client {
    */
   readonly listQuizQuestionsV1QuizzesQuizIdQuestionsGet: (
     quizId: string,
+  ) => Effect.Effect<
+    typeof QuizQuestionListResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new quiz question in a quiz
+   */
+  readonly createQuizQuestionV1QuizzesQuizIdQuestionsPost: (
+    quizId: string,
+    options: typeof CreateQuizQuestionRequest.Encoded,
+  ) => Effect.Effect<
+    typeof QuizQuestionResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a quiz question
+   */
+  readonly deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete: (
+    quizId: string,
+    questionId: string,
+  ) => Effect.Effect<
+    void,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Update an existing quiz question
+   */
+  readonly updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch: (
+    quizId: string,
+    questionId: string,
+    options: typeof UpdateQuizQuestionRequest.Encoded,
+  ) => Effect.Effect<
+    typeof QuizQuestionResponse.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Reorder quiz questions in a quiz
+   */
+  readonly reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch: (
+    quizId: string,
+    options: typeof ReorderQuizQuestionsRequest.Encoded,
   ) => Effect.Effect<
     typeof QuizQuestionListResponse.Type,
     | HttpClientError.HttpClientError

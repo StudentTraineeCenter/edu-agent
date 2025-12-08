@@ -3,7 +3,12 @@ import { Effect, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import { CreateQuizRequest } from '@/integrations/api/client'
+import {
+  CreateQuizQuestionRequest,
+  CreateQuizRequest,
+  ReorderQuizQuestionsRequest,
+  UpdateQuizQuestionRequest,
+} from '@/integrations/api/client'
 
 export const quizzesAtom = Atom.family((projectId: string) =>
   Atom.make(
@@ -56,7 +61,7 @@ export const createQuizStreamAtom = Atom.fn(
       questionCount?: number
       userPrompt?: string
     },
-    get: Atom.FnContext,
+    _get: Atom.FnContext,
   ) {
     const registry = yield* Registry.AtomRegistry
     const httpClient = yield* makeHttpClient
@@ -175,5 +180,106 @@ export const importQuizAtom = runtime.fn(
 
     registry.refresh(quizzesAtom(input.projectId))
     return response
+  }),
+)
+
+export const createQuizQuestionAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    quizId: string
+    questionText: string
+    optionA: string
+    optionB: string
+    optionC: string
+    optionD: string
+    correctOption: string
+    explanation?: string
+    difficultyLevel?: string
+    position?: number
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp = yield* client.createQuizQuestionV1QuizzesQuizIdQuestionsPost(
+      input.quizId,
+      {
+        question_text: input.questionText,
+        option_a: input.optionA,
+        option_b: input.optionB,
+        option_c: input.optionC,
+        option_d: input.optionD,
+        correct_option: input.correctOption,
+        explanation: input.explanation,
+        difficulty_level: input.difficultyLevel || 'medium',
+        position: input.position,
+      },
+    )
+
+    registry.refresh(quizQuestionsAtom(input.quizId))
+    return resp.question
+  }),
+)
+
+export const updateQuizQuestionAtom = runtime.fn(
+  Effect.fn(function* (input: {
+    quizId: string
+    questionId: string
+    questionText?: string
+    optionA?: string
+    optionB?: string
+    optionC?: string
+    optionD?: string
+    correctOption?: string
+    explanation?: string
+    difficultyLevel?: string
+  }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp =
+      yield* client.updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch(
+        input.quizId,
+        input.questionId,
+        {
+          question_text: input.questionText,
+          option_a: input.optionA,
+          option_b: input.optionB,
+          option_c: input.optionC,
+          option_d: input.optionD,
+          correct_option: input.correctOption,
+          explanation: input.explanation,
+          difficulty_level: input.difficultyLevel,
+        },
+      )
+
+    registry.refresh(quizQuestionsAtom(input.quizId))
+    return resp.question
+  }),
+)
+
+export const deleteQuizQuestionAtom = runtime.fn(
+  Effect.fn(function* (input: { quizId: string; questionId: string }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    yield* client.deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete(
+      input.quizId,
+      input.questionId,
+    )
+
+    registry.refresh(quizQuestionsAtom(input.quizId))
+  }),
+)
+
+export const reorderQuizQuestionsAtom = runtime.fn(
+  Effect.fn(function* (input: { quizId: string; questionIds: string[] }) {
+    const registry = yield* Registry.AtomRegistry
+    const client = yield* makeApiClient
+    const resp =
+      yield* client.reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch(
+        input.quizId,
+        {
+          question_ids: input.questionIds,
+        },
+      )
+
+    registry.refresh(quizQuestionsAtom(input.quizId))
+    return resp.data
   }),
 )

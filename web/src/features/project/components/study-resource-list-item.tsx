@@ -314,6 +314,18 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link
+                    to="/dashboard/p/$projectId/q/$quizId/edit"
+                    params={{
+                      projectId: quiz.project_id ?? '',
+                      quizId: quiz.id,
+                    }}
+                  >
+                    <PencilIcon className="size-4" />
+                    <span>Edit</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExport} disabled={isExporting}>
                   <DownloadIcon className="size-4" />
                   <span>Export CSV</span>

@@ -3,16 +3,20 @@ from core.logger import get_logger
 from core.services.exporter import ExporterService
 from core.services.quizzes import QuizService
 from db.models import User
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from fastapi.responses import Response, StreamingResponse
 from schemas.quizzes import (
     CreateQuizRequest,
+    CreateQuizQuestionRequest,
     QuizDto,
     QuizListResponse,
     QuizProgressUpdate,
     QuizQuestionDto,
     QuizQuestionListResponse,
+    QuizQuestionResponse,
     QuizResponse,
+    ReorderQuizQuestionsRequest,
+    UpdateQuizQuestionRequest,
 )
 
 logger = get_logger(__name__)
@@ -237,6 +241,185 @@ async def list_quiz_questions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list quiz questions",
+        )
+
+
+@router.post(
+    path="/{quiz_id}/questions",
+    response_model=QuizQuestionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create quiz question",
+    description="Create a new quiz question in a quiz",
+)
+async def create_quiz_question(
+    quiz_id: str = Path(..., description="Quiz ID"),
+    body: CreateQuizQuestionRequest = Body(...),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Create a new quiz question."""
+    try:
+        logger.info("creating quiz question for quiz_id=%s", quiz_id)
+
+        # Get quiz to get project_id
+        quiz = quiz_service.get_quiz(quiz_id)
+        if not quiz:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz not found",
+            )
+
+        question = quiz_service.create_quiz_question(
+            quiz_id=quiz_id,
+            project_id=quiz.project_id,
+            question_text=body.question_text,
+            option_a=body.option_a,
+            option_b=body.option_b,
+            option_c=body.option_c,
+            option_d=body.option_d,
+            correct_option=body.correct_option,
+            explanation=body.explanation,
+            difficulty_level=body.difficulty_level,
+            position=body.position,
+        )
+
+        return QuizQuestionResponse(
+            question=QuizQuestionDto(**question.__dict__),
+            message="Quiz question created successfully",
+        )
+
+    except ValueError as e:
+        logger.error("error creating quiz question: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error creating quiz question: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create quiz question",
+        )
+
+
+@router.patch(
+    path="/{quiz_id}/questions/{question_id}",
+    response_model=QuizQuestionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update quiz question",
+    description="Update an existing quiz question",
+)
+async def update_quiz_question(
+    quiz_id: str = Path(..., description="Quiz ID"),
+    question_id: str = Path(..., description="Question ID"),
+    body: UpdateQuizQuestionRequest = Body(...),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Update an existing quiz question."""
+    try:
+        logger.info("updating quiz question_id=%s", question_id)
+
+        question = quiz_service.update_quiz_question(
+            question_id=question_id,
+            question_text=body.question_text,
+            option_a=body.option_a,
+            option_b=body.option_b,
+            option_c=body.option_c,
+            option_d=body.option_d,
+            correct_option=body.correct_option,
+            explanation=body.explanation,
+            difficulty_level=body.difficulty_level,
+        )
+
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz question not found",
+            )
+
+        return QuizQuestionResponse(
+            question=QuizQuestionDto(**question.__dict__),
+            message="Quiz question updated successfully",
+        )
+
+    except Exception as e:
+        logger.error("error updating quiz question: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update quiz question",
+        )
+
+
+@router.delete(
+    path="/{quiz_id}/questions/{question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete quiz question",
+    description="Delete a quiz question",
+)
+async def delete_quiz_question(
+    quiz_id: str = Path(..., description="Quiz ID"),
+    question_id: str = Path(..., description="Question ID"),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Delete a quiz question."""
+    try:
+        logger.info("deleting quiz question_id=%s", question_id)
+
+        success = quiz_service.delete_quiz_question(question_id)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz question not found",
+            )
+
+    except Exception as e:
+        logger.error("error deleting quiz question: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete quiz question",
+        )
+
+
+@router.patch(
+    path="/{quiz_id}/questions/reorder",
+    response_model=QuizQuestionListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Reorder quiz questions",
+    description="Reorder quiz questions in a quiz",
+)
+async def reorder_quiz_questions(
+    quiz_id: str = Path(..., description="Quiz ID"),
+    body: ReorderQuizQuestionsRequest = Body(...),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    current_user: User = Depends(get_user),
+):
+    """Reorder quiz questions in a quiz."""
+    try:
+        logger.info("reordering quiz questions for quiz_id=%s", quiz_id)
+
+        questions = quiz_service.reorder_quiz_questions(
+            quiz_id=quiz_id,
+            question_ids=body.question_ids,
+        )
+
+        return QuizQuestionListResponse(
+            data=[QuizQuestionDto(**question.__dict__) for question in questions],
+        )
+
+    except ValueError as e:
+        logger.error("error reordering quiz questions: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        logger.error("error reordering quiz questions: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reorder quiz questions",
         )
 
 

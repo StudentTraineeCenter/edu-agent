@@ -3,12 +3,7 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import {
-  CreateFlashcardGroupRequest,
-  CreateFlashcardRequest,
-  UpdateFlashcardRequest,
-  ReorderFlashcardsRequest,
-} from '@/integrations/api/client'
+import { CreateFlashcardGroupRequest } from '@/integrations/api/client'
 
 export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   Atom.make(
@@ -63,7 +58,7 @@ export const createFlashcardGroupStreamAtom = Atom.fn(
       flashcardCount?: number
       userPrompt?: string
     },
-    get: Atom.FnContext,
+    _get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(
