@@ -422,43 +422,11 @@ export class StreamDocumentV1DocumentsDocumentIdStreamGet200 extends S.Struct(
   {},
 ) {}
 
-export class ListFlashcardGroupsV1FlashcardsGetParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Flashcard group data transfer object.
- */
-export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
-  'FlashcardGroupDto',
-)({
-  id: S.String,
-  project_id: S.String,
-  name: S.String,
-  description: S.optionalWith(S.String, { nullable: true }),
-  spaced_repetition_enabled: S.optionalWith(S.Boolean, {
-    nullable: true,
-    default: () => false as const,
-  }),
-  created_at: S.String,
-  updated_at: S.String,
-}) {}
-
-/**
- * Response model for listing flashcard groups.
- */
-export class FlashcardGroupListResponse extends S.Class<FlashcardGroupListResponse>(
-  'FlashcardGroupListResponse',
-)({
-  /**
-   * List of flashcard groups
-   */
-  data: S.Array(FlashcardGroupDto),
-}) {}
-
-export class CreateFlashcardGroupV1FlashcardsPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
+export class CreateFlashcardGroupStreamV1FlashcardsStreamPostParams extends S.Struct(
+  {
+    project_id: S.String,
+  },
+) {}
 
 /**
  * Request model for creating a flashcard group.
@@ -479,6 +447,44 @@ export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupReq
   user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
+}) {}
+
+export class CreateFlashcardGroupStreamV1FlashcardsStreamPost200 extends S.Struct(
+  {},
+) {}
+
+export class ListFlashcardGroupsV1FlashcardsGetParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Flashcard group data transfer object.
+ */
+export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
+  'FlashcardGroupDto',
+)({
+  id: S.String,
+  project_id: S.String,
+  name: S.String,
+  description: S.optionalWith(S.String, { nullable: true }),
+  created_at: S.String,
+  updated_at: S.String,
+}) {}
+
+/**
+ * Response model for listing flashcard groups.
+ */
+export class FlashcardGroupListResponse extends S.Class<FlashcardGroupListResponse>(
+  'FlashcardGroupListResponse',
+)({
+  /**
+   * List of flashcard groups
+   */
+  data: S.Array(FlashcardGroupDto),
+}) {}
+
+export class CreateFlashcardGroupV1FlashcardsPostParams extends S.Struct({
+  project_id: S.String,
 }) {}
 
 /**
@@ -516,26 +522,48 @@ export class FlashcardListResponse extends S.Class<FlashcardListResponse>(
   data: S.Array(FlashcardDto),
 }) {}
 
-export class GetDueFlashcardsV1FlashcardsGroupIdDueForReviewGetParams extends S.Struct(
+export class GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams extends S.Struct(
   {
     /**
-     * Maximum number of flashcards to return
+     * Whether to include mastered cards
      */
-    limit: S.optionalWith(
-      S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-      { nullable: true },
-    ),
+    include_mastered: S.optionalWith(S.Boolean, {
+      nullable: true,
+      default: () => false as const,
+    }),
   },
 ) {}
-
-/**
- * Whether to enable spaced repetition
- */
-export class ToggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatchRequest extends S.Boolean {}
 
 export class ExportFlashcardGroupV1FlashcardsGroupIdExportGet200 extends S.Struct(
   {},
 ) {}
+
+export class CreateQuizStreamV1QuizzesStreamPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating a quiz.
+ */
+export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
+  'CreateQuizRequest',
+)({
+  /**
+   * Number of quiz questions to generate
+   */
+  question_count: S.optionalWith(
+    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
+    { nullable: true, default: () => 30 as const },
+  ),
+  /**
+   * Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.
+   */
+  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
+}) {}
+
+export class CreateQuizStreamV1QuizzesStreamPost200 extends S.Struct({}) {}
 
 export class ListQuizzesV1QuizzesGetParams extends S.Struct({
   project_id: S.String,
@@ -567,27 +595,6 @@ export class QuizListResponse extends S.Class<QuizListResponse>(
 
 export class CreateQuizV1QuizzesPostParams extends S.Struct({
   project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a quiz.
- */
-export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
-  'CreateQuizRequest',
-)({
-  /**
-   * Number of quiz questions to generate
-   */
-  question_count: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.
-   */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -632,6 +639,26 @@ export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
 
 export class ExportQuizV1QuizzesQuizIdExportGet200 extends S.Struct({}) {}
 
+export class CreateNoteStreamV1NotesStreamPostParams extends S.Struct({
+  project_id: S.String,
+}) {}
+
+/**
+ * Request model for creating a note.
+ */
+export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
+  'CreateNoteRequest',
+)({
+  /**
+   * Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.
+   */
+  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
+}) {}
+
+export class CreateNoteStreamV1NotesStreamPost200 extends S.Struct({}) {}
+
 export class ListNotesV1NotesGetParams extends S.Struct({
   project_id: S.String,
 }) {}
@@ -663,20 +690,6 @@ export class NoteListResponse extends S.Class<NoteListResponse>(
 
 export class CreateNoteV1NotesPostParams extends S.Struct({
   project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a note.
- */
-export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
-  'CreateNoteRequest',
-)({
-  /**
-   * Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.
-   */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
 }) {}
 
 /**
@@ -826,8 +839,8 @@ export class UserDto extends S.Class<UserDto>('UserDto')({
   id: S.String,
   name: S.optionalWith(S.String, { nullable: true }),
   email: S.optionalWith(S.String, { nullable: true }),
-  azure_oid: S.optionalWith(S.String, { nullable: true }),
   created_at: S.String,
+  updated_at: S.String,
 }) {}
 
 /**
@@ -877,6 +890,22 @@ export class UsageResponse extends S.Class<UsageResponse>('UsageResponse')({
 }) {}
 
 /**
+ * Request model for creating a mind map.
+ */
+export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
+  'CreateMindMapRequest',
+)({
+  /**
+   * Optional user instructions (topic or focus area)
+   */
+  user_prompt: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200 extends S.Struct(
+  {},
+) {}
+
+/**
  * Mind map data transfer object.
  */
 export class MindMapDto extends S.Class<MindMapDto>('MindMapDto')({
@@ -900,18 +929,6 @@ export class MindMapListResponse extends S.Class<MindMapListResponse>(
   'MindMapListResponse',
 )({
   data: S.Array(MindMapDto),
-}) {}
-
-/**
- * Request model for creating a mind map.
- */
-export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
-  'CreateMindMapRequest',
-)({
-  /**
-   * Optional user instructions (topic or focus area)
-   */
-  user_prompt: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
 export class ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams extends S.Struct(
@@ -1211,6 +1228,22 @@ export const make = (
           }),
         ),
       ),
+    createFlashcardGroupStreamV1FlashcardsStreamPost: (options) =>
+      HttpClientRequest.post(`/v1/flashcards/stream`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              CreateFlashcardGroupStreamV1FlashcardsStreamPost200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     listFlashcardGroupsV1FlashcardsGet: (options) =>
       HttpClientRequest.get(`/v1/flashcards`).pipe(
         HttpClientRequest.setUrlParams({
@@ -1268,28 +1301,14 @@ export const make = (
           }),
         ),
       ),
-    getDueFlashcardsV1FlashcardsGroupIdDueForReviewGet: (groupId, options) =>
-      HttpClientRequest.get(`/v1/flashcards/${groupId}/due-for-review`).pipe(
-        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
+    getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (groupId, options) =>
+      HttpClientRequest.get(`/v1/flashcards/${groupId}/study-queue`).pipe(
+        HttpClientRequest.setUrlParams({
+          include_mastered: options?.['include_mastered'] as any,
+        }),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(FlashcardListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch: (
-      groupId,
-      options,
-    ) =>
-      HttpClientRequest.patch(
-        `/v1/flashcards/${groupId}/spaced-repetition`,
-      ).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupResponse),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1302,6 +1321,20 @@ export const make = (
             '2xx': decodeSuccess(
               ExportFlashcardGroupV1FlashcardsGroupIdExportGet200,
             ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createQuizStreamV1QuizzesStreamPost: (options) =>
+      HttpClientRequest.post(`/v1/quizzes/stream`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(CreateQuizStreamV1QuizzesStreamPost200),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1369,6 +1402,20 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(ExportQuizV1QuizzesQuizIdExportGet200),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createNoteStreamV1NotesStreamPost: (options) =>
+      HttpClientRequest.post(`/v1/notes/stream`).pipe(
+        HttpClientRequest.setUrlParams({
+          project_id: options.params?.['project_id'] as any,
+        }),
+        HttpClientRequest.bodyUnsafeJson(options.payload),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(CreateNoteStreamV1NotesStreamPost200),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -1487,6 +1534,22 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(UsageResponse),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(`/v1/projects/${projectId}/mind-maps/stream`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
@@ -1794,6 +1857,18 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Create a new flashcard group with AI-generated flashcards and stream progress updates
+   */
+  readonly createFlashcardGroupStreamV1FlashcardsStreamPost: (options: {
+    readonly params: typeof CreateFlashcardGroupStreamV1FlashcardsStreamPostParams.Encoded
+    readonly payload: typeof CreateFlashcardGroupRequest.Encoded
+  }) => Effect.Effect<
+    typeof CreateFlashcardGroupStreamV1FlashcardsStreamPost200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * List all flashcard groups for a project
    */
   readonly listFlashcardGroupsV1FlashcardsGet: (
@@ -1850,27 +1925,15 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get flashcards that are due for review based on spaced repetition algorithm
+   * Get flashcards for study session. Returns un-mastered cards by default, with option to include mastered cards.
    */
-  readonly getDueFlashcardsV1FlashcardsGroupIdDueForReviewGet: (
+  readonly getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (
     groupId: string,
     options?:
-      | typeof GetDueFlashcardsV1FlashcardsGroupIdDueForReviewGetParams.Encoded
+      | typeof GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams.Encoded
       | undefined,
   ) => Effect.Effect<
     typeof FlashcardListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Enable or disable spaced repetition for a flashcard group
-   */
-  readonly toggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatch: (
-    groupId: string,
-    options: typeof ToggleSpacedRepetitionV1FlashcardsGroupIdSpacedRepetitionPatchRequest.Encoded,
-  ) => Effect.Effect<
-    typeof FlashcardGroupResponse.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -1882,6 +1945,18 @@ export interface Client {
     groupId: string,
   ) => Effect.Effect<
     typeof ExportFlashcardGroupV1FlashcardsGroupIdExportGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new quiz with AI-generated questions and stream progress updates
+   */
+  readonly createQuizStreamV1QuizzesStreamPost: (options: {
+    readonly params: typeof CreateQuizStreamV1QuizzesStreamPostParams.Encoded
+    readonly payload: typeof CreateQuizRequest.Encoded
+  }) => Effect.Effect<
+    typeof CreateQuizStreamV1QuizzesStreamPost200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -1949,6 +2024,18 @@ export interface Client {
     quizId: string,
   ) => Effect.Effect<
     typeof ExportQuizV1QuizzesQuizIdExportGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new note with AI-generated markdown content and stream progress updates
+   */
+  readonly createNoteStreamV1NotesStreamPost: (options: {
+    readonly params: typeof CreateNoteStreamV1NotesStreamPostParams.Encoded
+    readonly payload: typeof CreateNoteRequest.Encoded
+  }) => Effect.Effect<
+    typeof CreateNoteStreamV1NotesStreamPost200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -2060,6 +2147,18 @@ export interface Client {
   readonly getUsageV1UsageGet: () => Effect.Effect<
     typeof UsageResponse.Type,
     HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Generate a new mind map from project documents with streaming progress updates
+   */
+  readonly generateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost: (
+    projectId: string,
+    options: typeof CreateMindMapRequest.Encoded,
+  ) => Effect.Effect<
+    typeof GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
    * List all mind maps for a project

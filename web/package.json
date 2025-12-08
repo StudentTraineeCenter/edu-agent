@@ -10,7 +10,7 @@
     "lint": "eslint",
     "format": "prettier",
     "check": "prettier --write . && eslint --fix",
-    "gen:client": "curl localhost:8000/openapi.json > openapi.json && pnpx @tim-smart/openapi-gen --spec ./openapi.json > src/integrations/api/client.ts && rimraf openapi.json && prettier --write src/integrations/api/client.ts"
+    "gen:client": "curl localhost:8000/openapi.json > openapi.json && pnpx @tim-smart/openapi-gen --spec ./openapi.json > src/integrations/api/client.ts && pnpx rimraf openapi.json && prettier --write src/integrations/api/client.ts"
   },
   "dependencies": {
     "@effect-atom/atom-react": "^0.3.4",
