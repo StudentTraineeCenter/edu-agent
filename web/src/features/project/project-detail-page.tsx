@@ -80,21 +80,21 @@ const DocumentsSection = ({ projectId }: { projectId: string }) => {
     .render()
 }
 
-const StudyResourcesSection = ({ projectId }: { projectId: string }) => {
+const AIContentSection = ({ projectId }: { projectId: string }) => {
   const studyResourcesResult = useAtomValue(studyResourcesAtom(projectId))
 
   return Result.builder(studyResourcesResult)
     .onInitialOrWaiting(() => (
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2Icon className="size-4 animate-spin" />
-        <span>Loading study resources…</span>
+        <span>Loading AI content…</span>
       </div>
     ))
     .onSuccess((studyResources) => (
       <>
         {studyResources.length === 0 && (
           <div className="text-center text-muted-foreground py-8">
-            <p>No study resources yet.</p>
+            <p>No AI content yet.</p>
           </div>
         )}
 
@@ -156,20 +156,6 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
       </div>
 
       <div className="flex flex-col w-1/2 gap-4 min-h-0">
-        {/* Study Resources */}
-        <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
-          <div className="flex items-center justify-between shrink-0 mb-2">
-            <h3 className="text-lg font-semibold">Study Resources</h3>
-            <Button size="sm" onClick={handleGenerateResource}>
-              <PlusIcon className="size-4" />
-              <span>Generate</span>
-            </Button>
-          </div>
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <StudyResourcesSection projectId={projectId} />
-          </div>
-        </div>
-
         {/* Documents */}
         <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
           <div className="flex items-center justify-between shrink-0 mb-2">
@@ -181,6 +167,20 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             <DocumentsSection projectId={projectId} />
+          </div>
+        </div>
+
+        {/* AI Content */}
+        <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
+          <div className="flex items-center justify-between shrink-0 mb-2">
+            <h3 className="text-lg font-semibold">AI Content</h3>
+            <Button size="sm" onClick={handleGenerateResource}>
+              <PlusIcon className="size-4" />
+              <span>Generate</span>
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <AIContentSection projectId={projectId} />
           </div>
         </div>
       </div>

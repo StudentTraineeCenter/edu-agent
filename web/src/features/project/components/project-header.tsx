@@ -58,7 +58,7 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
     const confirmed = await confirmationDialog.open({
       title: 'Delete Project',
       description:
-        'Are you sure you want to delete this project? This action cannot be undone and will delete all associated chats, documents, and study resources.',
+        'Are you sure you want to delete this project? This action cannot be undone and will delete all associated chats, documents, and AI content.',
       confirmLabel: 'Delete',
       cancelLabel: 'Cancel',
       variant: 'destructive',

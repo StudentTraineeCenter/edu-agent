@@ -219,7 +219,7 @@ export function GenerationDialog() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Generate Study Resource</DialogTitle>
+          <DialogTitle>Generate AI Content</DialogTitle>
           <DialogDescription>
             Choose a resource type, enter a topic or prompt, and select relevant
             documents to generate.
