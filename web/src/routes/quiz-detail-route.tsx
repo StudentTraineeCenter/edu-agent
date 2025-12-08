@@ -1,4 +1,4 @@
-import { quizDetailRoute } from './_config'
+import { quizDetailRoute } from '@/routes/_config'
 import { QuizDetailPage } from '@/features/quiz/quiz-detail-page'
 
 export const QuizDetailRoute = () => {

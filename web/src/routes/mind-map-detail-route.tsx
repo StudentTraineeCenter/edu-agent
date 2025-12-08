@@ -1,4 +1,4 @@
-import { mindMapDetailRoute } from './_config'
+import { mindMapDetailRoute } from '@/routes/_config'
 import { MindMapDetailPage } from '@/features/mind-map/mind-map-detail-page'
 
 export const MindMapDetailRoute = () => {

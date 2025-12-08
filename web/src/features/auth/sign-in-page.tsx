@@ -4,14 +4,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { useAtom, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { isAuthenticatedAtom, signInAtom } from '@/data-acess/auth'
+import { Cause } from 'effect'
 
 export const SignInPage = () => {
-  const { login, isLoading, loginError, isAuthenticated } = useAuth()
+  const [signInResult, signIn] = useAtom(signInAtom)
+  const isAuthenticated = useAtomValue(isAuthenticatedAtom)
+
+  const isLoading = signInResult.waiting
+
   const navigate = useNavigate()
   const search = useSearch({ from: '/sign-in' })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  // const [error, setError] = useState<string | null>(null)
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -30,25 +37,11 @@ export const SignInPage = () => {
     }
   }, [isAuthenticated, navigate, search?.redirect])
 
-  // Update error when loginError changes
-  useEffect(() => {
-    if (loginError) {
-      setError(
-        loginError instanceof Error
-          ? loginError.message
-          : 'Sign in failed. Please check your credentials.',
-      )
-    } else {
-      setError(null)
-    }
-  }, [loginError])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
 
     if (!email || !password) {
-      setError('Please enter both email and password')
+      // setError('Please enter both email and password')
       return
     }
 
@@ -57,7 +50,7 @@ export const SignInPage = () => {
       sessionStorage.setItem('auth.redirect', search.redirect)
     }
 
-    login({ email, password })
+    signIn({ type: 'password', email, password })
   }
 
   return (
@@ -101,9 +94,11 @@ export const SignInPage = () => {
             />
           </div>
 
-          {error && (
+          {signInResult._tag === 'Failure' && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-              <p className="text-sm text-destructive">{error}</p>
+              <p className="text-sm text-destructive">
+                {Cause.pretty(signInResult.cause)}
+              </p>
             </div>
           )}
 

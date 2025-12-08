@@ -1,4 +1,4 @@
-import { studySessionDetailRoute } from './_config'
+import { studySessionDetailRoute } from '@/routes/_config'
 import { StudySessionDetailPage } from '@/features/adaptive-learning/study-session-detail-page'
 
 export const StudySessionDetailRoute = () => {

@@ -1,4 +1,4 @@
-import { documentDetailRoute } from './_config'
+import { documentDetailRoute } from '@/routes/_config'
 import { DocumentDetailPage } from '@/features/document/document-detail-page'
 
 export const DocumentDetailRoute = () => {

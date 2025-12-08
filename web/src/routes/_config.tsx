@@ -1,8 +1,14 @@
 import { createRootRoute, createRoute, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { lazy, Suspense } from 'react'
-import { AppShell } from './_app-shell'
+import { AppShell } from '@/routes/_app-shell'
 import { z } from 'zod'
+
+const LoadingPage = () => {
+  return (
+    <div className="flex h-screen items-center justify-center">Loading...</div>
+  )
+}
 
 // Dynamic imports for code-splitting
 const ProjectDetailRoute = lazy(() =>
@@ -78,10 +84,12 @@ const requireAuth = async () => {
   const isAuthenticated = !!session
 
   if (!isAuthenticated) {
+    const isSignInPage = window.location.pathname === '/sign-in'
+
     throw redirect({
       to: '/sign-in',
       search: {
-        redirect: window.location.pathname,
+        redirect: isSignInPage ? undefined : window.location.pathname,
       },
     })
   }
@@ -102,13 +110,7 @@ export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   beforeLoad: requireAuth,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <DashboardRoute />
     </Suspense>
   ),
@@ -119,13 +121,7 @@ export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   validateSearch: z.object({ redirect: z.string().optional() }).optional(),
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <HomePage />
     </Suspense>
   ),
@@ -136,13 +132,7 @@ export const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   validateSearch: z.object({ redirect: z.string().optional() }).optional(),
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <SignInPage />
     </Suspense>
   ),
@@ -153,13 +143,7 @@ export const signUpRoute = createRoute({
   getParentRoute: () => rootRoute,
   validateSearch: z.object({ redirect: z.string().optional() }).optional(),
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <SignUpPage />
     </Suspense>
   ),
@@ -169,13 +153,7 @@ export const dashboardIndexRoute = createRoute({
   path: '/',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <DashboardPage />
     </Suspense>
   ),
@@ -185,13 +163,7 @@ export const projectDetailRoute = createRoute({
   path: '/p/$projectId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <ProjectDetailRoute />
     </Suspense>
   ),
@@ -201,13 +173,7 @@ export const chatDetailRoute = createRoute({
   path: '/p/$projectId/c/$chatId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <ChatDetailRoute />
     </Suspense>
   ),
@@ -217,13 +183,7 @@ export const documentDetailRoute = createRoute({
   path: '/p/$projectId/d/$documentId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <DocumentDetailRoute />
     </Suspense>
   ),
@@ -233,13 +193,7 @@ export const flashcardDetailRoute = createRoute({
   path: '/p/$projectId/f/$flashcardGroupId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <FlashcardDetailRoute />
     </Suspense>
   ),
@@ -249,13 +203,7 @@ export const quizDetailRoute = createRoute({
   path: '/p/$projectId/q/$quizId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <QuizDetailRoute />
     </Suspense>
   ),
@@ -265,13 +213,7 @@ export const noteDetailRoute = createRoute({
   path: '/p/$projectId/n/$noteId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <NoteDetailRoute />
     </Suspense>
   ),
@@ -281,13 +223,7 @@ export const mindMapDetailRoute = createRoute({
   path: '/p/$projectId/m/$mindMapId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <MindMapDetailRoute />
     </Suspense>
   ),
@@ -297,13 +233,7 @@ export const studySessionDetailRoute = createRoute({
   path: '/p/$projectId/study-session/$sessionId',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <StudySessionDetailRoute />
     </Suspense>
   ),
@@ -313,13 +243,7 @@ export const settingsRoute = createRoute({
   path: '/settings',
   getParentRoute: () => dashboardRoute,
   component: () => (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPage />}>
       <SettingsPage />
     </Suspense>
   ),

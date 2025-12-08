@@ -1,4 +1,4 @@
-import { flashcardDetailRoute } from './_config'
+import { flashcardDetailRoute } from '@/routes/_config'
 import { FlashcardDetailPage } from '@/features/flashcard/flashcard-detail-page'
 
 export const FlashcardDetailRoute = () => {

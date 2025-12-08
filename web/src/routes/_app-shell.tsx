@@ -1,10 +1,12 @@
 import { Outlet, useLocation } from '@tanstack/react-router'
 import { AppSidebar } from '@/components/navigation/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { useAuth } from '@/hooks/use-auth'
+import { useAtomValue } from '@effect-atom/atom-react'
+import { isAuthenticatedAtom } from '@/data-acess/auth'
 
 export const AppShell = () => {
-  const { isAuthenticated } = useAuth()
+  const isAuthenticated = useAtomValue(isAuthenticatedAtom)
+
   const location = useLocation()
 
   // Only show sidebar on dashboard routes

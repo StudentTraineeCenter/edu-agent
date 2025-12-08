@@ -58,7 +58,7 @@ def _get_config_value(
     if key_vault_uri:
         secret_value = _get_secret_from_key_vault(key_vault_uri, secret_name)
         if secret_value:
-            print(f"{secret_name}={secret_value}")
+            # print(f"{secret_name}={secret_value}")
             return secret_value
 
     # Fall back to environment variable
@@ -82,6 +82,7 @@ class AppConfig:
         "DATABASE_URL",
         "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres",
     )
+    # DATABASE_URL = "postgresql+psycopg2://postgres:HRY-fda*meb4nuk2tky@db.gtyatuwgnpolxjferhju.supabase.co:5432/postgres?sslmode=require"
 
     # BLOB
     AZURE_STORAGE_CONNECTION_STRING: str = _get_config_value(
@@ -219,6 +220,9 @@ class AppConfig:
     MAX_DOCUMENT_UPLOADS_PER_DAY: int = int(
         os.getenv("MAX_DOCUMENT_UPLOADS_PER_DAY", "5")
     )
+
+    # CORS
+    CORS_ALLOWED_ORIGINS: str = os.getenv("CORS_ALLOWED_ORIGINS", "*")
 
 
 app_config = AppConfig()

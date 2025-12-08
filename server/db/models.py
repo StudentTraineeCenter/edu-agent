@@ -2,13 +2,14 @@ from datetime import datetime
 from typing import Literal, Optional
 from uuid import uuid4
 
-from db.base import Base
-from db.enums import DocumentStatus
 from pgvector.sqlalchemy import Vector
 from pydantic import BaseModel
-from sqlalchemy import Boolean, Float, JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
+from db.base import Base
+from db.enums import DocumentStatus
 
 
 class User(Base):

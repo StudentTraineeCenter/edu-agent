@@ -8,7 +8,7 @@ class UserDto(BaseModel):
     id: str
     name: Optional[str] = None
     email: Optional[str] = None
-    azure_oid: Optional[str] = None
     created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}

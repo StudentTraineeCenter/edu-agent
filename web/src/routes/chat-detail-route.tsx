@@ -1,4 +1,4 @@
-import { chatDetailRoute } from './_config'
+import { chatDetailRoute } from '@/routes/_config'
 import { ChatDetailPage } from '@/features/chat/chat-detail-page'
 
 export const ChatDetailRoute = () => {

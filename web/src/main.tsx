@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { RegistryProvider } from '@effect-atom/atom-react'
 
 import { routeTree } from './routes/_config.tsx'
 
@@ -38,13 +39,15 @@ if (rootElement && !rootElement.innerHTML) {
     <StrictMode>
       <ThemeProvider>
         <SupabaseProvider>
-          <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-            <TooltipProvider>
-              <ModalProvider>
-                <RouterProvider router={router} />
-              </ModalProvider>
-            </TooltipProvider>
-          </TanStackQueryProvider.Provider>
+          <RegistryProvider>
+            <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
+              <TooltipProvider>
+                <ModalProvider>
+                  <RouterProvider router={router} />
+                </ModalProvider>
+              </TooltipProvider>
+            </TanStackQueryProvider.Provider>
+          </RegistryProvider>
         </SupabaseProvider>
       </ThemeProvider>
     </StrictMode>,

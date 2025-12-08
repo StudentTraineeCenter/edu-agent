@@ -1,4 +1,4 @@
-import { noteDetailRoute } from './_config'
+import { noteDetailRoute } from '@/routes/_config'
 import { NoteDetailPage } from '@/features/note/note-detail-page'
 
 export const NoteDetailRoute = () => {
