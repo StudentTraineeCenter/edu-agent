@@ -382,7 +382,15 @@ class ChatService:
                     if isinstance(data, tuple) and len(data) == 2:
                         message, metadata = data
 
-                        # Only stream AIMessage content (agent responses), not ToolMessage content
+                        # Skip messages from tools node - tool outputs should only be sent via tools field
+                        if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
+                            continue
+
+                        # Skip ToolMessage content - tool outputs should only be sent via tools field
+                        if isinstance(message, ToolMessage):
+                            continue
+
+                        # Only stream AIMessage content (agent responses)
                         if (
                             isinstance(message, AIMessage)
                             and hasattr(message, "content")
