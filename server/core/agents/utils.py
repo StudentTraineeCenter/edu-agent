@@ -16,12 +16,12 @@ def increment_usage(usage: Optional[UsageService], user_id: str, feature: str) -
 
 
 def build_enhanced_prompt(
-    user_prompt: Optional[str],
+    custom_instructions: Optional[str],
     query: Optional[str] = None,
     document_ids: Optional[list[str]] = None,
 ) -> str:
     """Build enhanced prompt with optional query and document filtering."""
-    prompt = user_prompt or ""
+    prompt = custom_instructions or ""
     if query:
         prompt += f" Focus on: {query}"
     if document_ids:

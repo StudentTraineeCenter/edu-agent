@@ -36,7 +36,7 @@ async def generate_mind_map_stream(
             async for progress_update in mind_map_service.generate_mind_map_stream(
                 user_id=current_user.id,
                 project_id=project_id,
-                user_prompt=body.user_prompt,
+                custom_instructions=body.custom_instructions,
             ):
                 progress = MindMapProgressUpdate(**progress_update)
                 progress_json = progress.model_dump_json()
@@ -84,7 +84,7 @@ async def generate_mind_map(
         mind_map = await mind_map_service.generate_mind_map(
             user_id=current_user.id,
             project_id=project_id,
-            user_prompt=body.user_prompt,
+            custom_instructions=body.custom_instructions,
         )
 
         return MindMapDto.model_validate(mind_map)

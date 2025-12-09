@@ -21,10 +21,10 @@ class NoteDto(BaseModel):
 class CreateNoteRequest(BaseModel):
     """Request model for creating a note."""
 
-    user_prompt: Optional[str] = Field(
+    custom_instructions: Optional[str] = Field(
         None,
         max_length=2000,
-        description="Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.",
+        description="Custom instructions including topic, format preferences, length, and any additional context.",
     )
     length: Optional[str] = Field(
         None,

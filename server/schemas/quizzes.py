@@ -46,10 +46,10 @@ class CreateQuizRequest(BaseModel):
         le=100,
         description="Number of quiz questions to generate",
     )
-    user_prompt: Optional[str] = Field(
+    custom_instructions: Optional[str] = Field(
         None,
         max_length=2000,
-        description="Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.",
+        description="Custom instructions including topic, format preferences, length, and any additional context.",
     )
     length: Optional[str] = Field(
         None,

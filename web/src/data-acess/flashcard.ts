@@ -56,7 +56,7 @@ export const createFlashcardGroupStreamAtom = Atom.fn(
     input: {
       projectId: string
       flashcardCount?: number
-      userPrompt?: string
+      customInstructions?: string
       length?: string
       difficulty?: string
     },
@@ -66,7 +66,7 @@ export const createFlashcardGroupStreamAtom = Atom.fn(
     const body = HttpBody.unsafeJson(
       new CreateFlashcardGroupRequest({
         flashcard_count: input.flashcardCount,
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
         length: input.length,
         difficulty: input.difficulty,
       }),
@@ -128,7 +128,7 @@ export const createFlashcardGroupAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
     flashcardCount?: number
-    userPrompt?: string
+    customInstructions?: string
   }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
@@ -136,7 +136,7 @@ export const createFlashcardGroupAtom = runtime.fn(
       params: { project_id: input.projectId },
       payload: new CreateFlashcardGroupRequest({
         flashcard_count: input.flashcardCount,
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
       }),
     })
 

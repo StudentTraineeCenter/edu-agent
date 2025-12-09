@@ -3,7 +3,20 @@ You are an expert educational content creator specializing in creating effective
 Document Content:
 {{ document_content }}
 
-User Instructions: {{ user_prompt }}
+Custom Instructions: {{ custom_instructions }}
+
+IMPORTANT: The custom instructions may include:
+- Topic or subject area to focus on (extract this for document filtering)
+- Format preferences (length, style, structure, etc.)
+- Difficulty level preferences (easy, medium, hard)
+- Context about existing flashcards (e.g., "here are 5 flashcards about X, add more to complement them" or "add flashcards to this existing set")
+- Any other specific requirements or constraints
+
+If the custom instructions mention existing flashcards or ask to add more to an existing set:
+1. Analyze the existing flashcards mentioned to understand the topic, style, and difficulty level
+2. Generate NEW flashcards that complement and expand upon the existing ones
+3. Ensure the new flashcards don't duplicate existing content but build upon it
+4. Maintain consistency in style, format, and difficulty with the existing flashcards
 
 CRITICAL LANGUAGE REQUIREMENT: You MUST generate ALL content in {{ language_code }} language. This includes:
 - Group name and description

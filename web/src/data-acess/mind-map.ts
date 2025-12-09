@@ -50,12 +50,12 @@ export const mindMapProgressAtom = Atom.make<{
 
 export const generateMindMapStreamAtom = Atom.fn(
   Effect.fn(function* (
-    input: { projectId: string; userPrompt?: string },
+    input: { projectId: string; customInstructions?: string },
     _get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson({
-      user_prompt: input.userPrompt || null,
+      custom_instructions: input.customInstructions || null,
     })
     const resp = yield* httpClient.post(
       `/v1/projects/${input.projectId}/mind-maps/stream`,
@@ -109,14 +109,17 @@ export const generateMindMapStreamAtom = Atom.fn(
 ).pipe(Atom.keepAlive)
 
 export const generateMindMapAtom = runtime.fn(
-  Effect.fn(function* (input: { projectId: string; userPrompt?: string }) {
+  Effect.fn(function* (input: {
+    projectId: string
+    customInstructions?: string
+  }) {
     const registry = yield* Registry.AtomRegistry
     const apiClient = yield* makeApiClient
     const mindMap =
       yield* apiClient.generateMindMapV1ProjectsProjectIdMindMapsPost(
         input.projectId,
         {
-          user_prompt: input.userPrompt || null,
+          custom_instructions: input.customInstructions,
         },
       )
     // Refresh both the list and the individual mind map atom

@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field
 class CreateMindMapRequest(BaseModel):
     """Request model for creating a mind map."""
 
-    user_prompt: Optional[str] = Field(
-        default=None, description="Optional user instructions (topic or focus area)"
+    custom_instructions: Optional[str] = Field(
+        default=None,
+        max_length=2000,
+        description="Custom instructions including topic, format preferences, and any additional context.",
     )
 
 

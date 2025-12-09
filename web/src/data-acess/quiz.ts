@@ -59,7 +59,7 @@ export const createQuizStreamAtom = Atom.fn(
     input: {
       projectId: string
       questionCount?: number
-      userPrompt?: string
+      customInstructions?: string
       length?: string
       difficulty?: string
     },
@@ -70,7 +70,7 @@ export const createQuizStreamAtom = Atom.fn(
     const body = HttpBody.unsafeJson(
       new CreateQuizRequest({
         question_count: input.questionCount,
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
         length: input.length,
         difficulty: input.difficulty,
       }),
@@ -130,7 +130,9 @@ export const createQuizAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
     questionCount?: number
-    userPrompt?: string
+    customInstructions?: string
+    length?: string
+    difficulty?: string
   }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
@@ -138,7 +140,9 @@ export const createQuizAtom = runtime.fn(
       params: { project_id: input.projectId },
       payload: new CreateQuizRequest({
         question_count: input.questionCount,
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
+        length: input.length,
+        difficulty: input.difficulty,
       }),
     })
 

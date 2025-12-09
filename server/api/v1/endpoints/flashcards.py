@@ -54,7 +54,7 @@ async def create_flashcard_group_stream(
             ) in flashcard_service.create_flashcard_group_with_flashcards_stream(
                 project_id=project_id,
                 count=body.flashcard_count,
-                user_prompt=body.user_prompt,
+                custom_instructions=body.custom_instructions,
                 length=body.length,
                 difficulty=body.difficulty,
             ):
@@ -104,7 +104,7 @@ async def create_flashcard_group(
         group_id = await flashcard_service.create_flashcard_group_with_flashcards(
             project_id=project_id,
             count=body.flashcard_count,
-            user_prompt=body.user_prompt,
+            custom_instructions=body.custom_instructions,
             length=body.length,
             difficulty=body.difficulty,
         )

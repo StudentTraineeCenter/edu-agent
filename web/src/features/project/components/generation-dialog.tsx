@@ -59,7 +59,7 @@ type DifficultyOption = 'easy' | 'medium' | 'hard'
 
 export function GenerationDialog() {
   const { isOpen, projectId, close } = useGenerationDialog()
-  const [prompt, setPrompt] = useState('')
+  const [customInstructions, setCustomInstructions] = useState('')
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(
     new Set(),
   )
@@ -148,14 +148,14 @@ export function GenerationDialog() {
   ])
 
   const handleGenerate = async () => {
-    if (!projectId || !prompt.trim()) return
+    if (!projectId || !customInstructions.trim()) return
 
     try {
       switch (selectedType) {
         case 'note':
           await createNoteStream({
             projectId,
-            userPrompt: prompt.trim() || undefined,
+            customInstructions: customInstructions.trim() || undefined,
             length: length !== 'normal' ? length : undefined,
           })
           break
@@ -163,7 +163,7 @@ export function GenerationDialog() {
           await createQuizStream({
             projectId,
             questionCount: 30,
-            userPrompt: prompt.trim() || undefined,
+            customInstructions: customInstructions.trim() || undefined,
             length: length !== 'normal' ? length : undefined,
             difficulty: difficulty !== 'medium' ? difficulty : undefined,
           })
@@ -172,7 +172,7 @@ export function GenerationDialog() {
           await createFlashcardStream({
             projectId,
             flashcardCount: 30,
-            userPrompt: prompt.trim() || undefined,
+            customInstructions: customInstructions.trim() || undefined,
             length: length !== 'normal' ? length : undefined,
             difficulty: difficulty !== 'medium' ? difficulty : undefined,
           })
@@ -180,7 +180,7 @@ export function GenerationDialog() {
         case 'mindmap':
           await generateMindMapStream({
             projectId,
-            userPrompt: prompt.trim() || undefined,
+            customInstructions: customInstructions.trim() || undefined,
           })
           break
       }
@@ -197,7 +197,7 @@ export function GenerationDialog() {
   const handleClose = () => {
     if (isGenerating) return
     close()
-    setPrompt('')
+    setCustomInstructions('')
     setSelectedDocumentIds(new Set())
     setSelectedType('note')
     setLength('normal')
@@ -221,8 +221,8 @@ export function GenerationDialog() {
         <DialogHeader className="shrink-0">
           <DialogTitle>Generate AI Content</DialogTitle>
           <DialogDescription>
-            Choose a resource type, enter a topic or prompt, and select relevant
-            documents to generate.
+            Choose a resource type, enter custom instructions, and select
+            relevant documents to generate.
           </DialogDescription>
         </DialogHeader>
 
@@ -266,12 +266,12 @@ export function GenerationDialog() {
           </div>
 
           <div className="space-y-2 shrink-0">
-            <Label htmlFor="prompt">Topic / Prompt</Label>
+            <Label htmlFor="customInstructions">Custom Instructions</Label>
             <Textarea
-              id="prompt"
-              placeholder="e.g., Explain the key concepts of machine learning..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              id="customInstructions"
+              placeholder="e.g., Explain the key concepts of machine learning... Format preferences: length (less, normal, more), difficulty (easy, medium, hard)"
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
               className="min-h-[100px] resize-none"
               disabled={isGenerating}
             />
@@ -426,7 +426,7 @@ export function GenerationDialog() {
           <Button
             type="button"
             onClick={handleGenerate}
-            disabled={isGenerating || !prompt.trim()}
+            disabled={isGenerating || !customInstructions.trim()}
           >
             {isGenerating ? (
               <>

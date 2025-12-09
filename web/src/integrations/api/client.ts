@@ -442,9 +442,9 @@ export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupReq
     { nullable: true, default: () => 30 as const },
   ),
   /**
-   * Topic or custom instructions for flashcard generation. If provided, will filter documents by topic relevance.
+   * Custom instructions including topic, format preferences, length, and any additional context. May include existing flashcards to add more to.
    */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
   /**
@@ -645,9 +645,9 @@ export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
     { nullable: true, default: () => 30 as const },
   ),
   /**
-   * Topic or custom instructions for quiz generation. If provided, will filter documents by topic relevance.
+   * Custom instructions including topic, format preferences, length, and any additional context.
    */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
   /**
@@ -873,9 +873,9 @@ export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
   'CreateNoteRequest',
 )({
   /**
-   * Topic or custom instructions for note generation. If provided, will filter documents by topic relevance.
+   * Custom instructions including topic, format preferences, length, and any additional context.
    */
-  user_prompt: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
     nullable: true,
   }),
   /**
@@ -1126,9 +1126,11 @@ export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
   'CreateMindMapRequest',
 )({
   /**
-   * Optional user instructions (topic or focus area)
+   * Custom instructions including topic, format preferences, and any additional context.
    */
-  user_prompt: S.optionalWith(S.String, { nullable: true }),
+  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
+    nullable: true,
+  }),
 }) {}
 
 export class GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200 extends S.Struct(

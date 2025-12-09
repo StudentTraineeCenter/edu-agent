@@ -41,10 +41,10 @@ class CreateFlashcardGroupRequest(BaseModel):
         le=100,
         description="Number of flashcards to generate",
     )
-    user_prompt: Optional[str] = Field(
+    custom_instructions: Optional[str] = Field(
         None,
         max_length=2000,
-        description="Topic or custom instructions for flashcard generation. If provided, will filter documents by topic relevance.",
+        description="Custom instructions including topic, format preferences, length, and any additional context. May include existing flashcards to add more to.",
     )
     length: Optional[str] = Field(
         None,

@@ -14,10 +14,10 @@ from schemas.mind_maps import MindMapDto
 
 @tool(
     "mindmap_create",
-    description="Create a mind map (visual diagram) from project documents. Include user_prompt for topic filtering.",
+    description="Create a mind map (visual diagram) from project documents. custom_instructions should include topic, format preferences, and any context.",
 )
 async def create_mind_map(
-    user_prompt: str,
+    custom_instructions: str,
     runtime: ToolRuntime[CustomAgentContext],
 ) -> str:
     ctx = runtime.context
@@ -28,7 +28,7 @@ async def create_mind_map(
     mind_map = await svc.generate_mind_map(
         user_id=ctx.user_id,
         project_id=ctx.project_id,
-        user_prompt=user_prompt,
+        custom_instructions=custom_instructions,
     )
 
     mind_map_dto = MindMapDto.model_validate(mind_map)
@@ -43,7 +43,7 @@ async def create_mind_map(
     description="Create a mind map from specific documents. Use when user references specific docs or IDs.",
 )
 async def create_mind_map_scoped(
-    user_prompt: str,
+    custom_instructions: str,
     document_ids: list[str],
     query: str,
     runtime: ToolRuntime[CustomAgentContext],
@@ -53,12 +53,12 @@ async def create_mind_map_scoped(
     # increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
     svc = MindMapService(search_interface=ctx.search)
-    enhanced_prompt = build_enhanced_prompt(user_prompt, query, document_ids)
+    enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
     mind_map = await svc.generate_mind_map(
         user_id=ctx.user_id,
         project_id=ctx.project_id,
-        user_prompt=enhanced_prompt,
+        custom_instructions=enhanced_prompt,
     )
 
     mind_map_dto = MindMapDto.model_validate(mind_map)

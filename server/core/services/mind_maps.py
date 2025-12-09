@@ -88,14 +88,14 @@ class MindMapService:
         self.map_parser = JsonOutputParser(pydantic_object=MindMapGenerationRequest)
 
     async def generate_mind_map(
-        self, user_id: str, project_id: str, user_prompt: Optional[str] = None
+        self, user_id: str, project_id: str, custom_instructions: Optional[str] = None
     ) -> MindMap:
         """Generate a mind map from project documents.
 
         Args:
             user_id: The user's unique identifier
             project_id: The project ID
-            user_prompt: Optional user instructions (topic or focus area)
+            custom_instructions: Optional custom instructions including topic, format preferences, and context
 
         Returns:
             Created MindMap model instance
@@ -118,10 +118,10 @@ class MindMapService:
                     f"using language_code={language_code} for project_id={project_id}"
                 )
 
-                # Extract topic from user_prompt if provided
+                # Extract topic from custom_instructions if provided
                 topic = None
-                if user_prompt:
-                    topic = user_prompt
+                if custom_instructions:
+                    topic = custom_instructions
 
                 # Get project documents content, optionally filtered by topic
                 document_content = await self._get_project_documents_content(
@@ -145,7 +145,7 @@ class MindMapService:
                     db=db,
                     project_id=project_id,
                     document_content=document_content,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     language_code=language_code,
                 )
 
@@ -175,14 +175,14 @@ class MindMapService:
                 raise
 
     async def generate_mind_map_stream(
-        self, user_id: str, project_id: str, user_prompt: Optional[str] = None
+        self, user_id: str, project_id: str, custom_instructions: Optional[str] = None
     ) -> AsyncGenerator[dict, None]:
         """Generate a mind map with streaming progress updates.
 
         Args:
             user_id: The user's unique identifier
             project_id: The project ID
-            user_prompt: Optional user instructions (topic or focus area)
+            custom_instructions: Optional custom instructions including topic, format preferences, and context
 
         Yields:
             Progress update dictionaries with status and message
@@ -202,10 +202,10 @@ class MindMapService:
 
                 language_code = project.language_code
 
-                # Extract topic from user_prompt if provided
+                # Extract topic from custom_instructions if provided
                 topic = None
-                if user_prompt:
-                    topic = user_prompt
+                if custom_instructions:
+                    topic = custom_instructions
 
                 yield {"status": "mapping", "message": "Mapping concepts..."}
 
@@ -232,7 +232,7 @@ class MindMapService:
                     db=db,
                     project_id=project_id,
                     document_content=document_content,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     language_code=language_code,
                 )
 
@@ -337,7 +337,7 @@ class MindMapService:
         db: Session,
         project_id: str,
         document_content: str,
-        user_prompt: Optional[str],
+        custom_instructions: Optional[str],
         language_code: str,
     ) -> MindMapGenerationResult:
         """Generate mind map content from documents.
@@ -346,7 +346,7 @@ class MindMapService:
             db: Database session
             project_id: The project ID
             document_content: Content from project documents
-            user_prompt: Optional user instructions
+            custom_instructions: Optional custom instructions including topic, format preferences, and context
             language_code: Language code for the project
 
         Returns:
@@ -361,7 +361,7 @@ class MindMapService:
                 document_content=document_content[
                     :12000
                 ],  # Limit content to avoid token limits
-                user_prompt=user_prompt
+                custom_instructions=custom_instructions
                 or "Generate a comprehensive mind map covering key concepts, relationships, and important details.",
                 language_code=language_code,
                 format_instructions=self.map_parser.get_format_instructions(),

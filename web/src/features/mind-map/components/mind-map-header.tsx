@@ -87,7 +87,7 @@ type MindMapHeaderProps = {
 export const MindMapHeader = ({ projectId, mindMapId }: MindMapHeaderProps) => {
   const generateMap = useAtomSet(generateMindMapAtom, { mode: 'promise' })
   const [isGenerating, setIsGenerating] = useState(false)
-  const [userPrompt, setUserPrompt] = useState('')
+  const [customInstructions, setCustomInstructions] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const handleGenerate = async () => {
@@ -95,9 +95,9 @@ export const MindMapHeader = ({ projectId, mindMapId }: MindMapHeaderProps) => {
     try {
       await generateMap({
         projectId,
-        userPrompt: userPrompt || undefined,
+        customInstructions: customInstructions || undefined,
       })
-      setUserPrompt('')
+      setCustomInstructions('')
       setIsDialogOpen(false)
     } finally {
       setIsGenerating(false)
@@ -138,12 +138,14 @@ export const MindMapHeader = ({ projectId, mindMapId }: MindMapHeaderProps) => {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="prompt">Topic or Focus Area (Optional)</Label>
+                <Label htmlFor="customInstructions">
+                  Custom Instructions (Optional)
+                </Label>
                 <Textarea
-                  id="prompt"
-                  placeholder="e.g., Machine Learning, Data Structures, History of Art..."
-                  value={userPrompt}
-                  onChange={(e) => setUserPrompt(e.target.value)}
+                  id="customInstructions"
+                  placeholder="e.g., Machine Learning, Data Structures, History of Art... Format preferences: structure, detail level, etc."
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
                   rows={3}
                 />
               </div>

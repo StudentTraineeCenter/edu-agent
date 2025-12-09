@@ -133,7 +133,7 @@ class QuizService:
         self,
         project_id: str,
         count: int = 30,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
         difficulty: Optional[str] = None,
     ) -> str:
@@ -142,7 +142,7 @@ class QuizService:
         Args:
             project_id: The project ID
             count: Number of questions to generate
-            user_prompt: Optional user instructions for generation
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Returns:
             ID of the created quiz
@@ -161,7 +161,7 @@ class QuizService:
                     db=db,
                     project_id=project_id,
                     count=resolved_count,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     length=None,  # Don't pass length to prompt, already resolved to count
                     difficulty=difficulty,
                 )
@@ -218,7 +218,7 @@ class QuizService:
         self,
         project_id: str,
         count: int = 30,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
         difficulty: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
@@ -227,7 +227,7 @@ class QuizService:
         Args:
             project_id: The project ID
             count: Number of questions to generate
-            user_prompt: Optional user instructions for generation
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Yields:
             Progress update dictionaries with status and message
@@ -248,10 +248,10 @@ class QuizService:
 
                 language_code = project.language_code
 
-                # Extract topic from user_prompt if provided
+                # Extract topic from custom_instructions if provided
                 topic = None
-                if user_prompt:
-                    topic = user_prompt
+                if custom_instructions:
+                    topic = custom_instructions
 
                 yield {"status": "analyzing", "message": "Analyzing content..."}
 
@@ -283,7 +283,7 @@ class QuizService:
                     db=db,
                     project_id=project_id,
                     count=resolved_count,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     length=None,  # Don't pass length to prompt, already resolved to count
                     difficulty=difficulty,
                 )
@@ -839,7 +839,7 @@ class QuizService:
         db: Session,
         project_id: str,
         count: int = 30,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
         difficulty: Optional[str] = None,
     ) -> QuizGenerationResult:
@@ -849,7 +849,7 @@ class QuizService:
             db: Database session
             project_id: The project ID
             count: Number of questions to generate
-            user_prompt: Optional user instructions
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Returns:
             QuizGenerationResult containing name, description, and questions
@@ -867,13 +867,13 @@ class QuizService:
 
             language_code = project.language_code
 
-            # Extract topic from user_prompt if provided
-            # If user_prompt contains topic-like instructions, use it for filtering
+            # Extract topic from custom_instructions if provided
+            # If custom_instructions contains topic-like instructions, use it for filtering
             topic = None
-            if user_prompt:
-                # Use user_prompt as topic for document search
+            if custom_instructions:
+                # Use custom_instructions as topic for document search
                 # This allows topic-based filtering
-                topic = user_prompt
+                topic = custom_instructions
 
             # Get project documents content, optionally filtered by topic
             document_content = await self._get_project_documents_content(
@@ -907,7 +907,7 @@ class QuizService:
                     :8000
                 ],  # Limit content to avoid token limits
                 count=count,
-                user_prompt=(user_prompt
+                custom_instructions=(custom_instructions
                 or "Generate comprehensive quiz questions covering key concepts, definitions, and important details.")
                 + difficulty_instruction,
                 language_code=language_code,

@@ -12,11 +12,11 @@ from schemas.flashcards import FlashcardDto, FlashcardGroupDto
 
 @tool(
     "flashcards_create",
-    description="Create flashcards from project documents. Use count 15-30, include user_prompt for topic filtering.",
+    description="Create flashcards from project documents. Use count 15-30. custom_instructions should include topic, format preferences (length, difficulty), and any context like existing flashcards to add more to.",
 )
 async def create_flashcards(
     count: int,
-    user_prompt: str,
+    custom_instructions: str,
     runtime: ToolRuntime[CustomAgentContext],
 ) -> dict:
     ctx = runtime.context
@@ -26,7 +26,7 @@ async def create_flashcards(
     group_id = await svc.create_flashcard_group_with_flashcards(
         project_id=ctx.project_id,
         count=count,
-        user_prompt=user_prompt,
+        custom_instructions=custom_instructions,
     )
 
     group = svc.get_flashcard_group(group_id)
@@ -49,7 +49,7 @@ async def create_flashcards(
 )
 async def create_flashcards_scoped(
     count: int,
-    user_prompt: str,
+    custom_instructions: str,
     document_ids: list[str],
     query: str,
     runtime: ToolRuntime[CustomAgentContext],
@@ -58,12 +58,12 @@ async def create_flashcards_scoped(
     increment_usage(ctx.usage, ctx.user_id, "flashcard_generation")
 
     svc = FlashcardService(search_interface=ctx.search)
-    enhanced_prompt = build_enhanced_prompt(user_prompt, query, document_ids)
+    enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
     group_id = await svc.create_flashcard_group_with_flashcards(
         project_id=ctx.project_id,
         count=count,
-        user_prompt=enhanced_prompt,
+        custom_instructions=enhanced_prompt,
     )
 
     group = svc.get_flashcard_group(group_id)

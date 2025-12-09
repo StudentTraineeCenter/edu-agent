@@ -37,7 +37,7 @@ async def create_note_stream(
         try:
             async for progress_update in note_service.create_note_with_content_stream(
                 project_id=project_id,
-                user_prompt=body.user_prompt,
+                custom_instructions=body.custom_instructions,
                 length=body.length,
             ):
                 progress = NoteProgressUpdate(**progress_update)
@@ -85,7 +85,7 @@ async def create_note(
 
         note_id = await note_service.create_note_with_content(
             project_id=project_id,
-            user_prompt=body.user_prompt,
+            custom_instructions=body.custom_instructions,
             length=body.length,
         )
 

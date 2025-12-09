@@ -14,10 +14,10 @@ from schemas.notes import NoteDto
 
 @tool(
     "note_create",
-    description="Create a study note (markdown document) from project documents. Include user_prompt for topic filtering.",
+    description="Create a study note (markdown document) from project documents. custom_instructions should include topic, format preferences (length), and any context.",
 )
 async def create_note(
-    user_prompt: str,
+    custom_instructions: str,
     runtime: ToolRuntime[CustomAgentContext],
 ) -> str:
     ctx = runtime.context
@@ -26,7 +26,7 @@ async def create_note(
     svc = NoteService(search_interface=ctx.search)
     note_id = await svc.create_note_with_content(
         project_id=ctx.project_id,
-        user_prompt=user_prompt,
+        custom_instructions=custom_instructions,
     )
 
     note = svc.get_note(note_id)
@@ -48,7 +48,7 @@ async def create_note(
     description="Create a study note from specific documents. Use when user references specific docs or IDs.",
 )
 async def create_note_scoped(
-    user_prompt: str,
+    custom_instructions: str,
     document_ids: list[str],
     query: str,
     runtime: ToolRuntime[CustomAgentContext],
@@ -57,11 +57,11 @@ async def create_note_scoped(
     increment_usage(ctx.usage, ctx.user_id, "note_generation")
 
     svc = NoteService(search_interface=ctx.search)
-    enhanced_prompt = build_enhanced_prompt(user_prompt, query, document_ids)
+    enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
     note_id = await svc.create_note_with_content(
         project_id=ctx.project_id,
-        user_prompt=enhanced_prompt,
+        custom_instructions=enhanced_prompt,
     )
 
     note = svc.get_note(note_id)

@@ -14,11 +14,11 @@ from schemas.quizzes import QuizDto, QuizQuestionDto
 
 @tool(
     "quiz_create",
-    description="Create quiz from project documents. Use count 10-30, include user_prompt for topic filtering.",
+    description="Create quiz from project documents. Use count 10-30. custom_instructions should include topic, format preferences (length, difficulty), and any context.",
 )
 async def create_quiz(
     count: int,
-    user_prompt: str,
+    custom_instructions: str,
     runtime: ToolRuntime[CustomAgentContext],
 ) -> str:
     ctx = runtime.context
@@ -28,7 +28,7 @@ async def create_quiz(
     quiz_id = await svc.create_quiz_with_questions(
         project_id=ctx.project_id,
         count=count,
-        user_prompt=user_prompt,
+        custom_instructions=custom_instructions,
     )
 
     quiz = svc.get_quiz(quiz_id)
@@ -51,7 +51,7 @@ async def create_quiz(
 )
 async def create_quiz_scoped(
     count: int,
-    user_prompt: str,
+    custom_instructions: str,
     document_ids: list[str],
     query: str,
     runtime: ToolRuntime[CustomAgentContext],
@@ -60,12 +60,12 @@ async def create_quiz_scoped(
     increment_usage(ctx.usage, ctx.user_id, "quiz_generation")
 
     svc = QuizService(search_interface=ctx.search)
-    enhanced_prompt = build_enhanced_prompt(user_prompt, query, document_ids)
+    enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
     quiz_id = await svc.create_quiz_with_questions(
         project_id=ctx.project_id,
         count=count,
-        user_prompt=enhanced_prompt,
+        custom_instructions=enhanced_prompt,
     )
 
     quiz = svc.get_quiz(quiz_id)

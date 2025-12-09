@@ -40,13 +40,13 @@ export const noteProgressAtom = Atom.make<{
 
 export const createNoteStreamAtom = Atom.fn(
   Effect.fn(function* (
-    input: { projectId: string; userPrompt?: string; length?: string },
+    input: { projectId: string; customInstructions?: string; length?: string },
     get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(
       new CreateNoteRequest({
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
         length: input.length,
       }),
     )
@@ -102,13 +102,16 @@ export const createNoteStreamAtom = Atom.fn(
 ).pipe(Atom.keepAlive)
 
 export const createNoteAtom = runtime.fn(
-  Effect.fn(function* (input: { projectId: string; userPrompt?: string }) {
+  Effect.fn(function* (input: {
+    projectId: string
+    customInstructions?: string
+  }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
     const resp = yield* client.createNoteV1NotesPost({
       params: { project_id: input.projectId },
       payload: new CreateNoteRequest({
-        user_prompt: input.userPrompt,
+        custom_instructions: input.customInstructions,
       }),
     })
 

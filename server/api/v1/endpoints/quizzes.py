@@ -45,7 +45,7 @@ async def create_quiz_stream(
             async for progress_update in quiz_service.create_quiz_with_questions_stream(
                 project_id=project_id,
                 count=body.question_count,
-                user_prompt=body.user_prompt,
+                custom_instructions=body.custom_instructions,
                 length=body.length,
                 difficulty=body.difficulty,
             ):
@@ -95,7 +95,7 @@ async def create_quiz(
         quiz_id = await quiz_service.create_quiz_with_questions(
             project_id=project_id,
             count=body.question_count,
-            user_prompt=body.user_prompt,
+            custom_instructions=body.custom_instructions,
             length=body.length,
             difficulty=body.difficulty,
         )

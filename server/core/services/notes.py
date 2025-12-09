@@ -65,14 +65,14 @@ class NoteService:
     async def create_note_with_content(
         self,
         project_id: str,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
     ) -> str:
         """Create a new note with auto-generated title, description, and markdown content.
 
         Args:
             project_id: The project ID
-            user_prompt: Optional user instructions for generation (topic)
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Returns:
             ID of the created note
@@ -82,13 +82,13 @@ class NoteService:
         """
         with self._get_db_session() as db:
             try:
-                logger.info_structured("creating note", project_id=project_id, user_prompt=user_prompt[:100] if user_prompt else None)
+                logger.info_structured("creating note", project_id=project_id, custom_instructions=custom_instructions[:100] if custom_instructions else None)
 
                 # Generate all content using LangChain directly
                 generated_content = await self._generate_note_content(
                     db=db,
                     project_id=project_id,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     length=length,
                 )
 
@@ -123,14 +123,14 @@ class NoteService:
     async def create_note_with_content_stream(
         self,
         project_id: str,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
         """Create a note with streaming progress updates.
 
         Args:
             project_id: The project ID
-            user_prompt: Optional user instructions for generation (topic)
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Yields:
             Progress update dictionaries with status and message
@@ -151,10 +151,10 @@ class NoteService:
 
                 language_code = project.language_code
 
-                # Extract topic from user_prompt if provided
+                # Extract topic from custom_instructions if provided
                 topic = None
-                if user_prompt:
-                    topic = user_prompt
+                if custom_instructions:
+                    topic = custom_instructions
 
                 yield {"status": "structuring", "message": "Structuring content..."}
 
@@ -180,7 +180,7 @@ class NoteService:
                 generated_content = await self._generate_note_content(
                     db=db,
                     project_id=project_id,
-                    user_prompt=user_prompt,
+                    custom_instructions=custom_instructions,
                     length=length,
                 )
 
@@ -354,7 +354,7 @@ class NoteService:
         self,
         db: Session,
         project_id: str,
-        user_prompt: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
         length: Optional[str] = None,
     ) -> NoteGenerationResult:
         """Generate note title, description, and markdown content.
@@ -362,7 +362,7 @@ class NoteService:
         Args:
             db: Database session
             project_id: The project ID
-            user_prompt: Optional user instructions (topic)
+            custom_instructions: Optional custom instructions including topic, format, length, and context
 
         Returns:
             NoteGenerationResult containing title, description, and content
@@ -383,10 +383,10 @@ class NoteService:
                 f"using language_code={language_code} for project_id={project_id}"
             )
 
-            # Extract topic from user_prompt if provided
+            # Extract topic from custom_instructions if provided
             topic = None
-            if user_prompt:
-                topic = user_prompt
+            if custom_instructions:
+                topic = custom_instructions
 
             # Get project documents content, optionally filtered by topic
             document_content = await self._get_project_documents_content(
@@ -419,7 +419,7 @@ class NoteService:
                 document_content=document_content[
                     :8000
                 ],  # Limit content to avoid token limits
-                user_prompt=(user_prompt
+                custom_instructions=(custom_instructions
                 or "Generate a comprehensive study note covering key concepts, definitions, and important details.")
                 + length_instruction,
                 language_code=language_code,
