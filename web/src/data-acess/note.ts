@@ -41,7 +41,7 @@ export const noteProgressAtom = Atom.make<{
 export const createNoteStreamAtom = Atom.fn(
   Effect.fn(function* (
     input: { projectId: string; customInstructions?: string; length?: string },
-    get: Atom.FnContext,
+    _get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(

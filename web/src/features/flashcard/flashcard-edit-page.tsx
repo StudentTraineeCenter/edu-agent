@@ -44,7 +44,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { FlashcardDto } from '@/integrations/api/client'
 
 type FlashcardEditPageProps = {
   flashcardGroupId: string
@@ -444,7 +443,7 @@ export const FlashcardEditPage = ({
                     ))}
                     {localFlashcards
                       .filter((f) => f.isDeleted)
-                      .map((flashcard, index) => (
+                      .map((flashcard) => (
                         <FlashcardEditor
                           key={`deleted-${flashcard.id}`}
                           flashcard={flashcard}

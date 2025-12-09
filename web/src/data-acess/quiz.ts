@@ -3,12 +3,7 @@ import { Effect, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import {
-  CreateQuizQuestionRequest,
-  CreateQuizRequest,
-  ReorderQuizQuestionsRequest,
-  UpdateQuizQuestionRequest,
-} from '@/integrations/api/client'
+import { CreateQuizRequest } from '@/integrations/api/client'
 
 export const quizzesAtom = Atom.family((projectId: string) =>
   Atom.make(

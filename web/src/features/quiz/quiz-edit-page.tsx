@@ -45,7 +45,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { QuizQuestionDto } from '@/integrations/api/client'
 
 type QuizEditPageProps = {
   quizId: string

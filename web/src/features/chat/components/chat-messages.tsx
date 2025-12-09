@@ -1,9 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import {
-  Message,
-  MessageAvatar,
-  MessageContent,
-} from '@/components/ai-elements/message'
+import { Message, MessageContent } from '@/components/ai-elements/message'
 import {
   Conversation,
   ConversationContent,

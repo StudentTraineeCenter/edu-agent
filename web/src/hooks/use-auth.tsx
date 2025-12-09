@@ -1,10 +1,10 @@
-import { useContext } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { SupabaseContext } from '@/providers/supabase-provider'
 import { supabase } from '@/lib/supabase'
+import { authAtom } from '@/data-acess/auth'
+import { useAtomValue } from '@effect-atom/atom-react'
 
 export const useAuth = () => {
-  const { session, user, loading } = useContext(SupabaseContext)
+  const { session, user } = useAtomValue(authAtom)
   const queryClient = useQueryClient()
 
   const loginMutation = useMutation({
@@ -107,7 +107,6 @@ export const useAuth = () => {
     logout: logoutMutation.mutate,
     getAccessToken,
     isLoading:
-      loading ||
       loginMutation.isPending ||
       logoutMutation.isPending ||
       signUpMutation.isPending ||

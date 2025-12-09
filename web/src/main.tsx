@@ -6,7 +6,6 @@ import { RegistryProvider } from '@effect-atom/atom-react'
 import { routeTree } from './routes/_config.tsx'
 
 import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx'
-import { SupabaseProvider } from './providers/supabase-provider.tsx'
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
@@ -38,17 +37,15 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <ThemeProvider>
-        <SupabaseProvider>
-          <RegistryProvider>
-            <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-              <TooltipProvider>
-                <ModalProvider>
-                  <RouterProvider router={router} />
-                </ModalProvider>
-              </TooltipProvider>
-            </TanStackQueryProvider.Provider>
-          </RegistryProvider>
-        </SupabaseProvider>
+        <RegistryProvider>
+          <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
+            <TooltipProvider>
+              <ModalProvider>
+                <RouterProvider router={router} />
+              </ModalProvider>
+            </TooltipProvider>
+          </TanStackQueryProvider.Provider>
+        </RegistryProvider>
       </ThemeProvider>
     </StrictMode>,
   )
