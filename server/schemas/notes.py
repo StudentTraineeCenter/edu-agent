@@ -3,6 +3,31 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+# ============================================================================
+# Internal Service Layer Types
+# ============================================================================
+
+
+class NoteGenerationRequest(BaseModel):
+    """Pydantic model for note generation request."""
+
+    title: str = Field(description="Generated title for the note")
+    description: str = Field(description="Generated description for the note")
+    content: str = Field(description="Generated markdown content for the note")
+
+
+class NoteGenerationResult(BaseModel):
+    """Model for note generation result."""
+
+    title: str
+    description: str
+    content: str
+
+
+# ============================================================================
+# API Request/Response Types
+# ============================================================================
+
 
 class NoteDto(BaseModel):
     """Note data transfer object."""

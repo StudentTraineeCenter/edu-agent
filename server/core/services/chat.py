@@ -9,7 +9,6 @@ from uuid import uuid4
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
 from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel
 
 from core.agents.context import CustomAgentContext
 from core.agents.factory import make_agent
@@ -21,20 +20,9 @@ from core.services.quizzes import QuizService
 from core.services.usage import UsageService
 from db.models import Chat, ChatMessage, ChatMessageSource, ChatMessageToolCall
 from db.session import SessionLocal
+from schemas.chat import MessageChunk
 
 logger = get_logger(__name__)
-
-
-class MessageChunk(BaseModel):
-    """Model for streaming message chunks."""
-
-    chunk: str
-    done: bool
-    status: Optional[str] = None  # Status message: thinking, searching, generating
-    sources: List[ChatMessageSource] = []
-    tools: List[ChatMessageToolCall] = []
-    id: Optional[str] = None
-    response: Optional[str] = None  # Full response at the end
 
 
 class ChatService:
@@ -301,13 +289,13 @@ class ChatService:
                         chat.updated_at = datetime.now()
                         db.commit()
 
-                        # Yield final chunk
-                        chunk_data.id = assistant_message_id
-                        chunk_data.chunk = ""  # Avoid duplication
-
-                    # Stream chunk with message_id
+                    # Yield final chunk
                     chunk_data.id = assistant_message_id
-                    yield chunk_data
+                    chunk_data.chunk = ""  # Avoid duplication
+
+                # Stream chunk with message_id
+                chunk_data.id = assistant_message_id
+                yield chunk_data
             except Exception as e:
                 logger.error(
                     f"error sending streaming message to chat_id={chat_id}: {e}"

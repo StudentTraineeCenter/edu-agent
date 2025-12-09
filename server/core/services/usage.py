@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.config import app_config
@@ -12,24 +11,9 @@ from core.exceptions import UsageLimitExceeded
 from core.logger import get_logger
 from db.models import UserUsage
 from db.session import SessionLocal
+from schemas.usage import UsageLimit, UsageStats
 
 logger = get_logger(__name__)
-
-
-class UsageLimit(BaseModel):
-    """Model for usage limit information."""
-
-    used: int
-    limit: int
-
-
-class UsageStats(BaseModel):
-    """Model for user usage statistics."""
-
-    chat_messages: UsageLimit
-    flashcard_generations: UsageLimit
-    quiz_generations: UsageLimit
-    document_uploads: UsageLimit
 
 
 class UsageService:

@@ -1,5 +1,30 @@
 from pydantic import BaseModel, Field
 
+# ============================================================================
+# Internal Service Layer Types
+# ============================================================================
+
+
+class UsageLimit(BaseModel):
+    """Model for usage limit information."""
+
+    used: int
+    limit: int
+
+
+class UsageStats(BaseModel):
+    """Model for user usage statistics."""
+
+    chat_messages: UsageLimit
+    flashcard_generations: UsageLimit
+    quiz_generations: UsageLimit
+    document_uploads: UsageLimit
+
+
+# ============================================================================
+# API Request/Response Types
+# ============================================================================
+
 
 class UsageLimitDto(BaseModel):
     """DTO for usage limit information."""

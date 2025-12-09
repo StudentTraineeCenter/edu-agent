@@ -8,7 +8,6 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from core.agents.prompts_utils import render_prompt
@@ -17,49 +16,14 @@ from core.config import app_config
 from core.logger import get_logger
 from db.models import MindMap, Project
 from db.session import SessionLocal
+from schemas.mind_maps import (
+    MindMapEdge,
+    MindMapGenerationRequest,
+    MindMapGenerationResult,
+    MindMapNode,
+)
 
 logger = get_logger(__name__)
-
-
-class MindMapNode(BaseModel):
-    """Represents a node in the mind map."""
-
-    id: str = Field(description="Unique identifier for the node")
-    label: str = Field(description="Text label for the node")
-    position: Dict[str, float] = Field(
-        description="Position coordinates {x, y} for the node"
-    )
-    data: Optional[Dict[str, Any]] = Field(
-        default=None, description="Additional data for the node"
-    )
-
-
-class MindMapEdge(BaseModel):
-    """Represents an edge (connection) in the mind map."""
-
-    id: str = Field(description="Unique identifier for the edge")
-    source: str = Field(description="ID of the source node")
-    target: str = Field(description="ID of the target node")
-    label: Optional[str] = Field(
-        default=None, description="Optional label for the edge"
-    )
-
-
-class MindMapGenerationRequest(BaseModel):
-    """Pydantic model for mind map generation request."""
-
-    title: str = Field(description="Title of the mind map")
-    description: str = Field(description="Description of the mind map")
-    nodes: List[MindMapNode] = Field(description="List of nodes in the mind map")
-    edges: List[MindMapEdge] = Field(description="List of edges connecting nodes")
-
-
-class MindMapGenerationResult(BaseModel):
-    """Model for mind map generation result."""
-
-    title: str
-    description: str
-    map_data: Dict[str, Any]
 
 
 class MindMapService:

@@ -4,6 +4,22 @@ from typing import List, Optional
 from db.enums import DocumentStatus
 from pydantic import BaseModel, Field, field_validator
 
+# ============================================================================
+# Internal Service Layer Types
+# ============================================================================
+
+
+class DocumentAnalysisResult(BaseModel):
+    """Model for document analysis result."""
+
+    content: str
+    summary: str
+
+
+# ============================================================================
+# API Request/Response Types
+# ============================================================================
+
 
 class DocumentDto(BaseModel):
     id: str

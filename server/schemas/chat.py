@@ -3,6 +3,27 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+# ============================================================================
+# Internal Service Layer Types
+# ============================================================================
+
+
+class MessageChunk(BaseModel):
+    """Model for streaming message chunks."""
+
+    chunk: str
+    done: bool
+    status: Optional[str] = None  # Status message: thinking, searching, generating
+    sources: List[Any] = []  # List of ChatMessageSource
+    tools: List[Any] = []  # List of ChatMessageToolCall
+    id: Optional[str] = None
+    response: Optional[str] = None  # Full response at the end
+
+
+# ============================================================================
+# API Request/Response Types
+# ============================================================================
+
 
 class ChatCreateRequest(BaseModel):
     """Request model for creating a new chat."""

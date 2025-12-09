@@ -8,7 +8,6 @@ from typing import AsyncGenerator, List, Optional
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -18,71 +17,16 @@ from core.config import app_config
 from core.logger import get_logger
 from db.models import Project, Quiz, QuizQuestion
 from db.session import SessionLocal
+from schemas.quizzes import (
+    QuizAnswers,
+    QuizGenerationRequest,
+    QuizGenerationResult,
+    QuizQuestionData,
+    QuizQuestionResult,
+    QuizSubmissionResult,
+)
 
 logger = get_logger(__name__)
-
-
-class QuizQuestionData(BaseModel):
-    """Pydantic model for quiz question data structure."""
-
-    question_text: str = Field(description="The quiz question text")
-    option_a: str = Field(description="Option A")
-    option_b: str = Field(description="Option B")
-    option_c: str = Field(description="Option C")
-    option_d: str = Field(description="Option D")
-    correct_option: str = Field(description="Correct option: a, b, c, or d")
-    explanation: str = Field(description="Explanation for the correct answer")
-    difficulty_level: str = Field(description="Difficulty level: easy, medium, or hard")
-
-
-class QuizGenerationRequest(BaseModel):
-    """Pydantic model for quiz generation request."""
-
-    name: str = Field(description="Generated name for the quiz")
-    description: str = Field(description="Generated description for the quiz")
-    questions: List[QuizQuestionData] = Field(
-        description="List of generated quiz questions"
-    )
-
-
-class QuizGenerationResult(BaseModel):
-    """Model for quiz generation result."""
-
-    name: str
-    description: str
-    questions: List[QuizQuestionData]
-
-
-class QuizAnswers(BaseModel):
-    """Model for quiz answers submission."""
-
-    answers: dict[str, str] = Field(
-        description="Mapping of question IDs to user answers"
-    )
-
-
-class QuizQuestionResult(BaseModel):
-    """Model for individual question result."""
-
-    question_id: str
-    question_text: str
-    user_answer: str
-    correct_answer: str
-    is_correct: bool
-    explanation: str
-    difficulty_level: str
-
-
-class QuizSubmissionResult(BaseModel):
-    """Model for quiz submission result."""
-
-    quiz_id: str
-    total_questions: int
-    correct_answers: int
-    score_percentage: float
-    grade: str
-    results: List[QuizQuestionResult]
-    submitted_at: str
 
 
 class QuizService:

@@ -8,7 +8,6 @@ from typing import AsyncGenerator, List, Optional
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from core.agents.prompts_utils import render_prompt
@@ -17,24 +16,9 @@ from core.config import app_config
 from core.logger import get_logger
 from db.models import Note, Project
 from db.session import SessionLocal
+from schemas.notes import NoteGenerationRequest, NoteGenerationResult
 
 logger = get_logger(__name__)
-
-
-class NoteGenerationRequest(BaseModel):
-    """Pydantic model for note generation request."""
-
-    title: str = Field(description="Generated title for the note")
-    description: str = Field(description="Generated description for the note")
-    content: str = Field(description="Generated markdown content for the note")
-
-
-class NoteGenerationResult(BaseModel):
-    """Model for note generation result."""
-
-    title: str
-    description: str
-    content: str
 
 
 class NoteService:

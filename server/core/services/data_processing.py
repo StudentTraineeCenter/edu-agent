@@ -13,7 +13,6 @@ from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.agents.llm import make_embeddings
@@ -23,15 +22,9 @@ from core.services.content_understanding import AzureContentUnderstandingClient
 from db.enums import DocumentStatus
 from db.models import Document, DocumentSegment
 from db.session import SessionLocal
+from schemas.documents import DocumentAnalysisResult
 
 logger = get_logger(__name__)
-
-
-class DocumentAnalysisResult(BaseModel):
-    """Model for document analysis result."""
-
-    content: str
-    summary: str
 
 
 class DataProcessingService:

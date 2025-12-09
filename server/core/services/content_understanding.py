@@ -6,20 +6,18 @@ import requests
 from requests.models import Response
 
 from core.logger import get_logger
-
-_DEFAULT_API_VERSION = "2025-05-01-preview"
-_DEFAULT_TIMEOUT_SECONDS = 30
+from schemas.shared import DEFAULT_API_VERSION, DEFAULT_TIMEOUT_SECONDS
 
 
 class AzureContentUnderstandingClient:
     def __init__(
         self,
         endpoint: str,
-        api_version: str = _DEFAULT_API_VERSION,
+        api_version: str = DEFAULT_API_VERSION,
         subscription_key: str = None,
         token_provider: callable = lambda: None,
         x_ms_useragent: str = "data-extraction-code",
-        timeout: int = _DEFAULT_TIMEOUT_SECONDS,
+        timeout: int = DEFAULT_TIMEOUT_SECONDS,
     ):
         """Costructor client for interacting with the Azure Content Understanding service.
 

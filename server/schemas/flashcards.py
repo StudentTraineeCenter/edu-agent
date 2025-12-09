@@ -3,6 +3,41 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+# ============================================================================
+# Internal Service Layer Types
+# ============================================================================
+
+
+class FlashcardData(BaseModel):
+    """Pydantic model for flashcard data structure."""
+
+    question: str = Field(description="The flashcard question")
+    answer: str = Field(description="The flashcard answer")
+    difficulty_level: str = Field(description="Difficulty level: easy, medium, or hard")
+
+
+class FlashcardGroupGenerationRequest(BaseModel):
+    """Pydantic model for flashcard group generation request."""
+
+    name: str = Field(description="Generated name for the flashcard group")
+    description: str = Field(
+        description="Generated description for the flashcard group"
+    )
+    flashcards: List[FlashcardData] = Field(description="List of generated flashcards")
+
+
+class FlashcardGroupGenerationResult(BaseModel):
+    """Model for flashcard group generation result."""
+
+    name: str
+    description: str
+    flashcards: List[FlashcardData]
+
+
+# ============================================================================
+# API Request/Response Types
+# ============================================================================
+
 
 class FlashcardGroupDto(BaseModel):
     """Flashcard group data transfer object."""
