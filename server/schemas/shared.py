@@ -1,6 +1,9 @@
 """Shared schemas - enums and constants used across multiple features."""
 
 from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # String Enums
@@ -71,3 +74,28 @@ DEFAULT_API_VERSION = "2025-05-01-preview"
 
 # Default timeout in seconds
 DEFAULT_TIMEOUT_SECONDS = 30
+
+
+# ============================================================================
+# Shared Schema Classes
+# ============================================================================
+
+
+class GenerationProgressUpdate(BaseModel):
+    """Base progress update model for generation streaming.
+    
+    This is a generic base class that can be extended by specific
+    services with additional fields (e.g., group_id, note_id, etc.).
+    """
+
+    status: GenerationStatus = Field(
+        description="Progress status enum value"
+    )
+    message: Optional[str] = Field(
+        None,
+        description="Human-readable progress message (optional, AI can infer from status)",
+    )
+    error: Optional[str] = Field(
+        None,
+        description="Error message if generation failed",
+    )

@@ -1,7 +1,15 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+from schemas.shared import (
+    CorrectOption,
+    DifficultyLevel,
+    GenerationProgressUpdate,
+    GenerationStatus,
+    LengthPreference,
+)
 
 # ============================================================================
 # Internal Service Layer Types
@@ -221,12 +229,28 @@ class QuizQuestionResponse(BaseModel):
     message: str
 
 
-class QuizProgressUpdate(BaseModel):
+class QuizProgressUpdate(GenerationProgressUpdate):
     """Progress update for quiz generation streaming."""
 
-    status: str = Field(
-        description="Progress status: searching, analyzing, generating, done"
+    quiz_id: Optional[str] = Field(
+        None, description="Quiz ID when done"
     )
-    message: str = Field(description="Human-readable progress message")
-    quiz_id: Optional[str] = Field(None, description="Quiz ID when done")
-    error: Optional[str] = Field(None, description="Error message if failed")
+
+
+# ============================================================================
+# Constants
+# ============================================================================
+
+# Document content limits
+MAX_DOCUMENT_CONTENT_LENGTH: int = 8000
+
+# Search parameters
+SEARCH_TOP_K_WITH_TOPIC: int = 50
+SEARCH_TOP_K_WITHOUT_TOPIC: int = 100
+
+# Length preference to question count mapping
+LENGTH_PREFERENCE_MAP: Dict[LengthPreference, int] = {
+    LengthPreference.LESS: 15,
+    LengthPreference.NORMAL: 30,
+    LengthPreference.MORE: 50,
+}

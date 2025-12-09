@@ -13,10 +13,24 @@ from sqlalchemy.orm import Session
 from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
+from core.exceptions import BadRequestError, NotFoundError
 from core.logger import get_logger
 from db.models import Note, Project
 from db.session import SessionLocal
-from schemas.notes import NoteGenerationRequest, NoteGenerationResult
+from schemas.notes import (
+    LENGTH_PREFERENCE_WORD_COUNT_MAP,
+    MAX_DOCUMENT_CONTENT_LENGTH,
+    NoteGenerationRequest,
+    NoteGenerationResult,
+    NoteProgressUpdate,
+    SEARCH_TOP_K_WITH_TOPIC,
+    SEARCH_TOP_K_WITHOUT_TOPIC,
+)
+from schemas.shared import (
+    GenerationProgressUpdate,
+    GenerationStatus,
+    LengthPreference,
+)
 
 logger = get_logger(__name__)
 
@@ -46,29 +60,57 @@ class NoteService:
 
         self.note_parser = JsonOutputParser(pydantic_object=NoteGenerationRequest)
 
+    def _resolve_length_instruction(
+        self, length: Optional[LengthPreference]
+    ) -> str:
+        """Resolve length preference to instruction string.
+        
+        Args:
+            length: Length preference enum or None
+            
+        Returns:
+            Length instruction string for prompt
+        """
+        if length is None:
+            length = LengthPreference.NORMAL
+        
+        word_count = LENGTH_PREFERENCE_WORD_COUNT_MAP[length]
+        if length == LengthPreference.LESS:
+            return f" Keep the note concise (target: {word_count['min']}-{word_count['max']} words), focusing only on the most essential information with brief explanations."
+        elif length == LengthPreference.MORE:
+            return f" Create a comprehensive, detailed note (target: {word_count['min']}-{word_count['max']} words) with extensive coverage, multiple examples, detailed explanations, and thorough context."
+        else:
+            return f" Create a well-balanced note (target: {word_count['min']}-{word_count['max']} words) with appropriate detail and coverage."
+
     async def create_note_with_content(
         self,
         project_id: str,
         custom_instructions: Optional[str] = None,
-        length: Optional[str] = None,
+        length: Optional[LengthPreference] = None,
     ) -> str:
         """Create a new note with auto-generated title, description, and markdown content.
 
         Args:
             project_id: The project ID
             custom_instructions: Optional custom instructions including topic, format, length, and context
+            length: Length preference enum
 
         Returns:
             ID of the created note
 
         Raises:
+            NotFoundError: If project not found
             ValueError: If no documents found or generation fails
         """
         with self._get_db_session() as db:
             try:
-                logger.info_structured("creating note", project_id=project_id, custom_instructions=custom_instructions[:100] if custom_instructions else None)
+                logger.info_structured(
+                    "creating note",
+                    project_id=project_id,
+                    length=length.value if length else None,
+                    custom_instructions=custom_instructions[:100] if custom_instructions else None,
+                )
 
-                # Generate all content using LangChain directly
                 generated_content = await self._generate_note_content(
                     db=db,
                     project_id=project_id,
@@ -76,18 +118,18 @@ class NoteService:
                     length=length,
                 )
 
-                title = generated_content.title
-                description = generated_content.description
-                content = generated_content.content
-
-                logger.info_structured("creating note", title=title[:100] if title else None, project_id=project_id)
+                logger.info_structured(
+                    "generated note content",
+                    project_id=project_id,
+                    title=generated_content.title[:100] if generated_content.title else None,
+                )
 
                 note = Note(
                     id=str(uuid.uuid4()),
                     project_id=project_id,
-                    title=title,
-                    description=description,
-                    content=content,
+                    title=generated_content.title,
+                    description=generated_content.description,
+                    content=generated_content.content,
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                 )
@@ -95,72 +137,79 @@ class NoteService:
                 db.add(note)
                 db.commit()
 
-                logger.info_structured("created note", note_id=note.id, project_id=project_id)
+                logger.info_structured(
+                    "created note",
+                    note_id=note.id,
+                    project_id=project_id,
+                )
 
                 return str(note.id)
-            except ValueError:
+            except (NotFoundError, ValueError, BadRequestError):
                 raise
             except Exception as e:
-                logger.error_structured("error creating note", project_id=project_id, error=str(e), exc_info=True)
+                logger.error_structured(
+                    "error creating note",
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
+                )
                 raise
 
     async def create_note_with_content_stream(
         self,
         project_id: str,
         custom_instructions: Optional[str] = None,
-        length: Optional[str] = None,
+        length: Optional[LengthPreference] = None,
     ) -> AsyncGenerator[dict, None]:
         """Create a note with streaming progress updates.
 
         Args:
             project_id: The project ID
             custom_instructions: Optional custom instructions including topic, format, length, and context
+            length: Length preference enum
 
         Yields:
             Progress update dictionaries with status and message
         """
         try:
-            yield {"status": "searching", "message": "Searching documents..."}
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.SEARCHING
+            ).model_dump(exclude_none=True)
 
             with self._get_db_session() as db:
-                # Get project language code
                 project = db.query(Project).filter(Project.id == project_id).first()
                 if not project:
-                    yield {
-                        "status": "done",
-                        "message": "Error: Project not found",
-                        "error": f"Project {project_id} not found",
-                    }
+                    yield GenerationProgressUpdate(
+                        status=GenerationStatus.DONE,
+                        error=f"Project {project_id} not found",
+                    ).model_dump(exclude_none=True)
                     return
 
-                language_code = project.language_code
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.STRUCTURING
+                ).model_dump(exclude_none=True)
 
-                # Extract topic from custom_instructions if provided
-                topic = None
-                if custom_instructions:
-                    topic = custom_instructions
-
-                yield {"status": "structuring", "message": "Structuring content..."}
-
-                # Get project documents content
                 document_content = await self._get_project_documents_content(
-                    project_id, topic=topic
+                    db=db,
+                    project_id=project_id,
+                    topic=custom_instructions,
                 )
                 if not document_content:
-                    if topic:
-                        error_msg = f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
-                    else:
-                        error_msg = "No documents found in project. Please upload documents first."
-                    yield {
-                        "status": "done",
-                        "message": "Error: No documents found",
-                        "error": error_msg,
-                    }
+                    error_msg = (
+                        f"No documents found related to '{custom_instructions}'. Please upload relevant documents or try a different topic."
+                        if custom_instructions
+                        else "No documents found in project. Please upload documents first."
+                    )
+                    yield GenerationProgressUpdate(
+                        status=GenerationStatus.DONE,
+                        error=error_msg,
+                    ).model_dump(exclude_none=True)
                     return
 
-                yield {"status": "writing", "message": "Writing note..."}
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.WRITING
+                ).model_dump(exclude_none=True)
 
-                # Generate content
                 generated_content = await self._generate_note_content(
                     db=db,
                     project_id=project_id,
@@ -168,17 +217,12 @@ class NoteService:
                     length=length,
                 )
 
-                title = generated_content.title
-                description = generated_content.description
-                content = generated_content.content
-
-                # Create note in database
                 note = Note(
                     id=str(uuid.uuid4()),
                     project_id=project_id,
-                    title=title,
-                    description=description,
-                    content=content,
+                    title=generated_content.title,
+                    description=generated_content.description,
+                    content=generated_content.content,
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                 )
@@ -186,28 +230,38 @@ class NoteService:
                 db.commit()
                 db.refresh(note)
 
-                logger.info_structured("created note", note_id=note.id, project_id=project_id)
+                logger.info_structured(
+                    "created note",
+                    note_id=note.id,
+                    project_id=project_id,
+                )
 
-                yield {
-                    "status": "done",
-                    "message": "Note created successfully",
-                    "note_id": str(note.id),
-                }
+                yield NoteProgressUpdate(
+                    status=GenerationStatus.DONE,
+                    note_id=str(note.id),
+                ).model_dump(exclude_none=True)
 
-        except ValueError as e:
-            logger.error_structured("error creating note", project_id=project_id, error=str(e))
-            yield {
-                "status": "done",
-                "message": "Error creating note",
-                "error": str(e),
-            }
+        except (NotFoundError, ValueError, BadRequestError) as e:
+            logger.error_structured(
+                "error creating note",
+                project_id=project_id,
+                error=str(e),
+            )
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.DONE,
+                error=str(e),
+            ).model_dump(exclude_none=True)
         except Exception as e:
-            logger.error_structured("error creating note", project_id=project_id, error=str(e), exc_info=True)
-            yield {
-                "status": "done",
-                "message": "Error creating note",
-                "error": "Failed to create note. Please try again.",
-            }
+            logger.error_structured(
+                "error creating note",
+                project_id=project_id,
+                error=str(e),
+                exc_info=True,
+            )
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.DONE,
+                error="Failed to create note. Please try again.",
+            ).model_dump(exclude_none=True)
 
     def get_notes(self, project_id: str) -> List[Note]:
         """Get all notes for a project.
@@ -339,7 +393,7 @@ class NoteService:
         db: Session,
         project_id: str,
         custom_instructions: Optional[str] = None,
-        length: Optional[str] = None,
+        length: Optional[LengthPreference] = None,
     ) -> NoteGenerationResult:
         """Generate note title, description, and markdown content.
 
@@ -347,62 +401,57 @@ class NoteService:
             db: Database session
             project_id: The project ID
             custom_instructions: Optional custom instructions including topic, format, length, and context
+            length: Length preference enum
 
         Returns:
             NoteGenerationResult containing title, description, and content
 
         Raises:
-            ValueError: If project not found or no documents available
+            NotFoundError: If project not found
+            ValueError: If no documents available
         """
         try:
-            logger.info_structured("generating note content", project_id=project_id)
+            logger.info_structured(
+                "generating note content",
+                project_id=project_id,
+                length=length.value if length else None,
+            )
 
             project = db.query(Project).filter(Project.id == project_id).first()
-
             if not project:
-                raise ValueError(f"Project {project_id} not found")
+                raise NotFoundError(f"Project {project_id} not found")
 
             language_code = project.language_code
-            logger.info(
-                f"using language_code={language_code} for project_id={project_id}"
+            logger.info_structured(
+                "using language code",
+                language_code=language_code,
+                project_id=project_id,
             )
 
-            # Extract topic from custom_instructions if provided
-            topic = None
-            if custom_instructions:
-                topic = custom_instructions
-
-            # Get project documents content, optionally filtered by topic
             document_content = await self._get_project_documents_content(
-                project_id, topic=topic
+                db=db,
+                project_id=project_id,
+                topic=custom_instructions,
             )
             if not document_content:
-                if topic:
-                    raise ValueError(
-                        f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
-                    )
-                raise ValueError(
-                    "No documents found in project. Please upload documents first."
+                error_msg = (
+                    f"No documents found related to '{custom_instructions}'. Please upload relevant documents or try a different topic."
+                    if custom_instructions
+                    else "No documents found in project. Please upload documents first."
                 )
+                raise ValueError(error_msg)
 
-            logger.info(
-                f"found {len(document_content)} chars of content in project_id={project_id}"
+            logger.info_structured(
+                "found document content",
+                document_content_length=len(document_content),
+                project_id=project_id,
             )
 
-            # Build length instruction with concrete targets
-            length_instruction = ""
-            if length == "less":
-                length_instruction = " Keep the note concise (target: 500-800 words), focusing only on the most essential information with brief explanations."
-            elif length == "more":
-                length_instruction = " Create a comprehensive, detailed note (target: 2000-3000 words) with extensive coverage, multiple examples, detailed explanations, and thorough context."
-            # "normal" or None uses default behavior (target: 1000-1500 words)
+            length_instruction = self._resolve_length_instruction(length)
 
-            # Build the prompt using Jinja2 template
             prompt = render_prompt(
                 "note_prompt",
-                document_content=document_content[
-                    :8000
-                ],  # Limit content to avoid token limits
+                document_content=document_content[:MAX_DOCUMENT_CONTENT_LENGTH],
                 custom_instructions=(custom_instructions
                 or "Generate a comprehensive study note covering key concepts, definitions, and important details.")
                 + length_instruction,
@@ -410,10 +459,7 @@ class NoteService:
                 format_instructions=self.note_parser.get_format_instructions(),
             )
 
-            # Generate content
             response = await self.llm.ainvoke(prompt)
-
-            # Parse the response
             parsed_dict = self.note_parser.parse(response.content)
             generation_request = NoteGenerationRequest(**parsed_dict)
 
@@ -422,20 +468,27 @@ class NoteService:
                 description=generation_request.description,
                 content=generation_request.content,
             )
-        except ValueError:
+        except (NotFoundError, ValueError):
             raise
         except Exception as e:
-            logger.error(
-                f"error generating note content for project_id={project_id}: {e}"
+            logger.error_structured(
+                "error generating note content",
+                project_id=project_id,
+                error=str(e),
+                exc_info=True,
             )
             raise
 
     async def _get_project_documents_content(
-        self, project_id: str, topic: Optional[str] = None
+        self,
+        db: Session,
+        project_id: str,
+        topic: Optional[str] = None,
     ) -> str:
         """Get document content for a project, optionally filtered by topic.
 
         Args:
+            db: Database session
             project_id: The project ID
             topic: Optional topic to filter documents by
 
@@ -443,10 +496,17 @@ class NoteService:
             Combined document content as string
         """
         try:
-            # If topic is provided, search for relevant documents
-            # Otherwise, get all content
-            query = topic if topic else ""
-            top_k = 50 if topic else 100  # Fewer results when filtering by topic
+            query = topic or ""
+            top_k = (
+                SEARCH_TOP_K_WITH_TOPIC if topic else SEARCH_TOP_K_WITHOUT_TOPIC
+            )
+
+            logger.info_structured(
+                "searching documents",
+                project_id=project_id,
+                has_topic=bool(topic),
+                top_k=top_k,
+            )
 
             search_results = await self.search_interface.search_documents(
                 query=query,
@@ -455,17 +515,27 @@ class NoteService:
             )
 
             if not search_results:
+                logger.warning_structured(
+                    "no search results found",
+                    project_id=project_id,
+                    has_topic=bool(topic),
+                )
                 return ""
 
-            # Combine all content
-            content_parts = []
-            for result in search_results:
-                content_parts.append(result.content)
-
-            return "\n\n".join(content_parts)
+            content = "\n\n".join(result.content for result in search_results)
+            logger.info_structured(
+                "retrieved document content",
+                project_id=project_id,
+                result_count=len(search_results),
+                content_length=len(content),
+            )
+            return content
         except Exception as e:
-            logger.error(
-                f"error getting project documents content for project_id={project_id}: {e}"
+            logger.error_structured(
+                "error getting project documents content",
+                project_id=project_id,
+                error=str(e),
+                exc_info=True,
             )
             return ""
 

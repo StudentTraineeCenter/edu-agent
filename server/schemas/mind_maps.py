@@ -3,6 +3,11 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from schemas.shared import (
+    GenerationProgressUpdate,
+    GenerationStatus,
+)
+
 # ============================================================================
 # Internal Service Layer Types
 # ============================================================================
@@ -87,12 +92,21 @@ class MindMapListResponse(BaseModel):
     data: list[MindMapDto]
 
 
-class MindMapProgressUpdate(BaseModel):
+class MindMapProgressUpdate(GenerationProgressUpdate):
     """Progress update for mind map generation streaming."""
 
-    status: str = Field(
-        description="Progress status: searching, mapping, building, done"
+    mind_map_id: Optional[str] = Field(
+        None, description="Mind map ID when done"
     )
-    message: str = Field(description="Human-readable progress message")
-    mind_map_id: Optional[str] = Field(None, description="Mind map ID when done")
-    error: Optional[str] = Field(None, description="Error message if failed")
+
+
+# ============================================================================
+# Constants
+# ============================================================================
+
+# Document content limits
+MAX_DOCUMENT_CONTENT_LENGTH: int = 12000
+
+# Search parameters
+SEARCH_TOP_K_WITH_TOPIC: int = 50
+SEARCH_TOP_K_WITHOUT_TOPIC: int = 100

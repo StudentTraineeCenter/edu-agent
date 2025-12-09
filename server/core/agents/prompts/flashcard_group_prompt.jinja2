@@ -29,7 +29,13 @@ Educational Guidelines for flashcard creation:
 1. Name: Generate a concise, descriptive name (2-6 words) that captures the main topic or theme in {{ language_code }}
 2. Description: Generate a clear description (1-2 sentences) in {{ language_code }} explaining what knowledge the flashcards will help students master
 3. Learning-focused questions: Create flashcards that test understanding, application, and critical thinking - not just rote memorization
+{% if difficulty == "easy" %}
+4. Difficulty focus: Focus on basic concepts and straightforward flashcards suitable for beginners. Prioritize foundational knowledge and clear, simple explanations.
+{% elif difficulty == "hard" %}
+4. Difficulty focus: Create challenging flashcards that test deep understanding, analysis, and application of concepts. Prioritize complex reasoning, synthesis, and advanced applications.
+{% else %}
 4. Difficulty distribution: Include a balanced mix of difficulty levels (easy: foundational concepts, medium: application, hard: analysis/synthesis)
+{% endif %}
 5. Comprehensive coverage: Cover key concepts, definitions, important facts, relationships between ideas, and practical applications
 6. Question quality: Make questions clear, specific, and thought-provoking - they should require understanding, not just recall
 7. Answer quality: Provide comprehensive but concise answers that explain the "why" behind the concept, not just the "what"

@@ -13,14 +13,23 @@ from sqlalchemy.orm import Session
 from core.agents.prompts_utils import render_prompt
 from core.agents.search import SearchInterface
 from core.config import app_config
+from core.exceptions import BadRequestError, NotFoundError
 from core.logger import get_logger
 from db.models import MindMap, Project
 from db.session import SessionLocal
 from schemas.mind_maps import (
+    MAX_DOCUMENT_CONTENT_LENGTH,
     MindMapEdge,
     MindMapGenerationRequest,
     MindMapGenerationResult,
     MindMapNode,
+    MindMapProgressUpdate,
+    SEARCH_TOP_K_WITH_TOPIC,
+    SEARCH_TOP_K_WITHOUT_TOPIC,
+)
+from schemas.shared import (
+    GenerationProgressUpdate,
+    GenerationStatus,
 )
 
 logger = get_logger(__name__)
@@ -65,46 +74,47 @@ class MindMapService:
             Created MindMap model instance
 
         Raises:
-            ValueError: If project not found or no documents available
+            NotFoundError: If project not found
+            ValueError: If no documents available
         """
         with self._get_db_session() as db:
             try:
-                logger.info(
-                    f"generating mind map for user_id={user_id}, project_id={project_id}"
+                logger.info_structured(
+                    "generating mind map",
+                    user_id=user_id,
+                    project_id=project_id,
                 )
 
                 project = db.query(Project).filter(Project.id == project_id).first()
                 if not project:
-                    raise ValueError(f"Project {project_id} not found")
+                    raise NotFoundError(f"Project {project_id} not found")
 
                 language_code = project.language_code
-                logger.info(
-                    f"using language_code={language_code} for project_id={project_id}"
+                logger.info_structured(
+                    "using language code",
+                    language_code=language_code,
+                    project_id=project_id,
                 )
 
-                # Extract topic from custom_instructions if provided
-                topic = None
-                if custom_instructions:
-                    topic = custom_instructions
-
-                # Get project documents content, optionally filtered by topic
                 document_content = await self._get_project_documents_content(
-                    project_id, topic=topic
+                    db=db,
+                    project_id=project_id,
+                    topic=custom_instructions,
                 )
                 if not document_content:
-                    if topic:
-                        raise ValueError(
-                            f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
-                        )
-                    raise ValueError(
-                        "No documents found in project. Please upload documents first."
+                    error_msg = (
+                        f"No documents found related to '{custom_instructions}'. Please upload relevant documents or try a different topic."
+                        if custom_instructions
+                        else "No documents found in project. Please upload documents first."
                     )
+                    raise ValueError(error_msg)
 
-                logger.info(
-                    f"found {len(document_content)} chars of content in project_id={project_id}"
+                logger.info_structured(
+                    "found document content",
+                    document_content_length=len(document_content),
+                    project_id=project_id,
                 )
 
-                # Generate mind map using AI
                 map_result = await self._generate_mind_map_content(
                     db=db,
                     project_id=project_id,
@@ -113,7 +123,6 @@ class MindMapService:
                     language_code=language_code,
                 )
 
-                # Create new mind map
                 mind_map = MindMap(
                     id=str(uuid.uuid4()),
                     user_id=user_id,
@@ -127,14 +136,24 @@ class MindMapService:
                 db.add(mind_map)
                 db.commit()
                 db.refresh(mind_map)
-                logger.info_structured("created mind map", mind_map_id=mind_map.id, project_id=project_id)
+
+                logger.info_structured(
+                    "created mind map",
+                    mind_map_id=mind_map.id,
+                    project_id=project_id,
+                    user_id=user_id,
+                )
                 return mind_map
 
-            except ValueError:
+            except (NotFoundError, ValueError, BadRequestError):
                 raise
             except Exception as e:
-                logger.error(
-                    f"error generating mind map for user_id={user_id}, project_id={project_id}: {e}"
+                logger.error_structured(
+                    "error generating mind map",
+                    user_id=user_id,
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
                 )
                 raise
 
@@ -152,46 +171,45 @@ class MindMapService:
             Progress update dictionaries with status and message
         """
         try:
-            yield {"status": "searching", "message": "Searching documents..."}
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.SEARCHING
+            ).model_dump(exclude_none=True)
 
             with self._get_db_session() as db:
                 project = db.query(Project).filter(Project.id == project_id).first()
                 if not project:
-                    yield {
-                        "status": "done",
-                        "message": "Error: Project not found",
-                        "error": f"Project {project_id} not found",
-                    }
+                    yield GenerationProgressUpdate(
+                        status=GenerationStatus.DONE,
+                        error=f"Project {project_id} not found",
+                    ).model_dump(exclude_none=True)
                     return
 
-                language_code = project.language_code
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.MAPPING
+                ).model_dump(exclude_none=True)
 
-                # Extract topic from custom_instructions if provided
-                topic = None
-                if custom_instructions:
-                    topic = custom_instructions
-
-                yield {"status": "mapping", "message": "Mapping concepts..."}
-
-                # Get project documents content
                 document_content = await self._get_project_documents_content(
-                    project_id, topic=topic
+                    db=db,
+                    project_id=project_id,
+                    topic=custom_instructions,
                 )
                 if not document_content:
-                    if topic:
-                        error_msg = f"No documents found related to '{topic}'. Please upload relevant documents or try a different topic."
-                    else:
-                        error_msg = "No documents found in project. Please upload documents first."
-                    yield {
-                        "status": "done",
-                        "message": "Error: No documents found",
-                        "error": error_msg,
-                    }
+                    error_msg = (
+                        f"No documents found related to '{custom_instructions}'. Please upload relevant documents or try a different topic."
+                        if custom_instructions
+                        else "No documents found in project. Please upload documents first."
+                    )
+                    yield GenerationProgressUpdate(
+                        status=GenerationStatus.DONE,
+                        error=error_msg,
+                    ).model_dump(exclude_none=True)
                     return
 
-                yield {"status": "building", "message": "Building connections..."}
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.BUILDING
+                ).model_dump(exclude_none=True)
 
-                # Generate mind map using AI
+                language_code = project.language_code
                 map_result = await self._generate_mind_map_content(
                     db=db,
                     project_id=project_id,
@@ -200,7 +218,6 @@ class MindMapService:
                     language_code=language_code,
                 )
 
-                # Create new mind map
                 mind_map = MindMap(
                     id=str(uuid.uuid4()),
                     user_id=user_id,
@@ -214,28 +231,42 @@ class MindMapService:
                 db.add(mind_map)
                 db.commit()
                 db.refresh(mind_map)
-                logger.info_structured("created mind map", mind_map_id=mind_map.id, project_id=project_id)
 
-                yield {
-                    "status": "done",
-                    "message": "Mind map created successfully",
-                    "mind_map_id": str(mind_map.id),
-                }
+                logger.info_structured(
+                    "created mind map",
+                    mind_map_id=mind_map.id,
+                    project_id=project_id,
+                    user_id=user_id,
+                )
 
-        except ValueError as e:
-            logger.error_structured("error generating mind map", project_id=project_id, user_id=user_id, error=str(e))
-            yield {
-                "status": "done",
-                "message": "Error creating mind map",
-                "error": str(e),
-            }
+                yield MindMapProgressUpdate(
+                    status=GenerationStatus.DONE,
+                    mind_map_id=str(mind_map.id),
+                ).model_dump(exclude_none=True)
+
+        except (NotFoundError, ValueError, BadRequestError) as e:
+            logger.error_structured(
+                "error generating mind map",
+                project_id=project_id,
+                user_id=user_id,
+                error=str(e),
+            )
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.DONE,
+                error=str(e),
+            ).model_dump(exclude_none=True)
         except Exception as e:
-            logger.error_structured("error generating mind map", project_id=project_id, user_id=user_id, error=str(e), exc_info=True)
-            yield {
-                "status": "done",
-                "message": "Error creating mind map",
-                "error": "Failed to create mind map. Please try again.",
-            }
+            logger.error_structured(
+                "error generating mind map",
+                project_id=project_id,
+                user_id=user_id,
+                error=str(e),
+                exc_info=True,
+            )
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.DONE,
+                error="Failed to create mind map. Please try again.",
+            ).model_dump(exclude_none=True)
 
     def get_mind_map(self, mind_map_id: str, user_id: str) -> Optional[MindMap]:
         """Get a mind map by ID.
@@ -286,13 +317,18 @@ class MindMapService:
                     .all()
                 )
 
-                logger.info(
-                    f"found {len(mind_maps)} mind maps for project_id={project_id}"
+                logger.info_structured(
+                    "found mind maps",
+                    count=len(mind_maps),
+                    project_id=project_id,
                 )
                 return mind_maps
             except Exception as e:
-                logger.error(
-                    f"error listing mind maps for project_id={project_id}: {e}"
+                logger.error_structured(
+                    "error listing mind maps",
+                    project_id=project_id,
+                    error=str(e),
+                    exc_info=True,
                 )
                 raise
 
@@ -315,30 +351,29 @@ class MindMapService:
 
         Returns:
             MindMapGenerationResult containing title, description, and map data
+
+        Raises:
+            ValueError: If generation fails
         """
         try:
-            logger.info_structured("generating mind map content", project_id=project_id, user_id=user_id)
+            logger.info_structured(
+                "generating mind map content",
+                project_id=project_id,
+            )
 
-            # Build the prompt using Jinja2 template
             prompt = render_prompt(
                 "mind_map_prompt",
-                document_content=document_content[
-                    :12000
-                ],  # Limit content to avoid token limits
+                document_content=document_content[:MAX_DOCUMENT_CONTENT_LENGTH],
                 custom_instructions=custom_instructions
                 or "Generate a comprehensive mind map covering key concepts, relationships, and important details.",
                 language_code=language_code,
                 format_instructions=self.map_parser.get_format_instructions(),
             )
 
-            # Generate content
             response = await self.llm.ainvoke(prompt)
-
-            # Parse the response
             parsed_dict = self.map_parser.parse(response.content)
             generation_request = MindMapGenerationRequest(**parsed_dict)
 
-            # Convert to map_data format (compatible with ReactFlow)
             map_data = {
                 "nodes": [
                     {
@@ -369,17 +404,24 @@ class MindMapService:
         except ValueError:
             raise
         except Exception as e:
-            logger.error(
-                f"error generating mind map content for project_id={project_id}: {e}"
+            logger.error_structured(
+                "error generating mind map content",
+                project_id=project_id,
+                error=str(e),
+                exc_info=True,
             )
             raise
 
     async def _get_project_documents_content(
-        self, project_id: str, topic: Optional[str] = None
+        self,
+        db: Session,
+        project_id: str,
+        topic: Optional[str] = None,
     ) -> str:
         """Get document content for a project, optionally filtered by topic.
 
         Args:
+            db: Database session
             project_id: The project ID
             topic: Optional topic to filter documents by
 
@@ -387,10 +429,17 @@ class MindMapService:
             Combined document content as string
         """
         try:
-            # If topic is provided, search for relevant documents
-            # Otherwise, get all content
-            query = topic if topic else ""
-            top_k = 50 if topic else 100  # Fewer results when filtering by topic
+            query = topic or ""
+            top_k = (
+                SEARCH_TOP_K_WITH_TOPIC if topic else SEARCH_TOP_K_WITHOUT_TOPIC
+            )
+
+            logger.info_structured(
+                "searching documents",
+                project_id=project_id,
+                has_topic=bool(topic),
+                top_k=top_k,
+            )
 
             search_results = await self.search_interface.search_documents(
                 query=query,
@@ -399,17 +448,27 @@ class MindMapService:
             )
 
             if not search_results:
+                logger.warning_structured(
+                    "no search results found",
+                    project_id=project_id,
+                    has_topic=bool(topic),
+                )
                 return ""
 
-            # Combine all content
-            content_parts = []
-            for result in search_results:
-                content_parts.append(result.content)
-
-            return "\n\n".join(content_parts)
+            content = "\n\n".join(result.content for result in search_results)
+            logger.info_structured(
+                "retrieved document content",
+                project_id=project_id,
+                result_count=len(search_results),
+                content_length=len(content),
+            )
+            return content
         except Exception as e:
-            logger.error(
-                f"error getting project documents content for project_id={project_id}: {e}"
+            logger.error_structured(
+                "error getting project documents content",
+                project_id=project_id,
+                error=str(e),
+                exc_info=True,
             )
             return ""
 

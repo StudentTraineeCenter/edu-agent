@@ -1,7 +1,13 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+from schemas.shared import (
+    GenerationProgressUpdate,
+    GenerationStatus,
+    LengthPreference,
+)
 
 # ============================================================================
 # Internal Service Layer Types
@@ -85,12 +91,28 @@ class NoteListResponse(BaseModel):
     data: List[NoteDto] = Field(description="List of notes")
 
 
-class NoteProgressUpdate(BaseModel):
+class NoteProgressUpdate(GenerationProgressUpdate):
     """Progress update for note generation streaming."""
 
-    status: str = Field(
-        description="Progress status: searching, structuring, writing, done"
+    note_id: Optional[str] = Field(
+        None, description="Note ID when done"
     )
-    message: str = Field(description="Human-readable progress message")
-    note_id: Optional[str] = Field(None, description="Note ID when done")
-    error: Optional[str] = Field(None, description="Error message if failed")
+
+
+# ============================================================================
+# Constants
+# ============================================================================
+
+# Document content limits
+MAX_DOCUMENT_CONTENT_LENGTH: int = 8000
+
+# Search parameters
+SEARCH_TOP_K_WITH_TOPIC: int = 50
+SEARCH_TOP_K_WITHOUT_TOPIC: int = 100
+
+# Length preference to word count mapping (for notes)
+LENGTH_PREFERENCE_WORD_COUNT_MAP: Dict[LengthPreference, Dict[str, int]] = {
+    LengthPreference.LESS: {"min": 500, "max": 800},
+    LengthPreference.NORMAL: {"min": 1000, "max": 1500},
+    LengthPreference.MORE: {"min": 2000, "max": 3000},
+}
