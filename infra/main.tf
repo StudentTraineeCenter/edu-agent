@@ -14,6 +14,7 @@ locals {
   common_tags = {
     environment = var.environment
     project     = var.project_name
+    ManagedBy   = "terraform"
   }
 
   # CAF naming components
@@ -50,8 +51,6 @@ locals {
   # AI Foundry Hub: aif-{org}-{env}-{region}-{workload}-{instance} (max 64 chars)
   ai_foundry_hub_name = substr("aif-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 64)
 
-  # AI Services: cog-{org}-{env}-{region}-{workload}-{instance} (max 64 chars)
-  ai_services_name = substr("cog-${local.org_short}-${local.env_short}-${local.region_short}${replace(local.workload_part, "-", "")}${local.instance}", 0, 64)
 
   # Application Insights: appi-{org}-{env}-{region}-{workload}-{instance} (max 260 chars)
   app_insights_name = substr("appi-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 260)
@@ -138,104 +137,72 @@ module "key_vault" {
 module "ai" {
   source = "./modules/ai"
 
-  location            = module.resource_group.location
-  resource_group_name = module.resource_group.name
-  ai_foundry_hub_name = local.ai_foundry_hub_name
-  ai_services_name    = local.ai_services_name
-  storage_account_id  = module.storage.storage_account_id
-  key_vault_id        = module.key_vault.id
-  tags                = local.common_tags
+  location                = module.resource_group.location
+  resource_group_name     = module.resource_group.name
+  ai_foundry_hub_name     = local.ai_foundry_hub_name
+  ai_foundry_project_name = "${local.org_short}-${local.env_short}-project"
+  storage_account_id      = module.storage.storage_account_id
+  key_vault_id            = module.key_vault.id
+  tags                    = local.common_tags
 }
 
 # ============================================================================
 # Key Vault Secrets - AI Services (created after AI module)
 # ============================================================================
-resource "azurerm_key_vault_secret" "azure_openai_api_key" {
-  name         = "azure-openai-api-key"
-  value        = module.ai.ai_foundry_api_key
-  key_vault_id = module.key_vault.id
+# Use for_each to eliminate repetition and make it easier to add/remove secrets
 
-  depends_on = [module.ai, module.key_vault]
+locals {
+  ai_secrets = {
+    "azure-openai-api-key" = {
+      value = module.ai.ai_foundry_api_key
+      depends_on_ai = true
+    }
+    "azure-openai-endpoint" = {
+      value = module.ai.ai_foundry_endpoint
+      depends_on_ai = true
+    }
+    "azure-openai-default-model" = {
+      value = module.ai.gpt4o_deployment_name
+      depends_on_ai = true
+    }
+    "azure-openai-embedding-deployment" = {
+      value = module.ai.text_embedding_3_large_deployment_name
+      depends_on_ai = true
+    }
+    "azure-openai-chat-deployment" = {
+      value = module.ai.gpt4o_deployment_name
+      depends_on_ai = true
+    }
+    "azure-openai-api-version" = {
+      value = "2024-06-01"
+      depends_on_ai = false
+    }
+    "azure-cu-endpoint" = {
+      value = module.ai.ai_foundry_endpoint
+      depends_on_ai = true
+    }
+    "azure-cu-key" = {
+      value = module.ai.ai_foundry_api_key
+      depends_on_ai = true
+    }
+    "azure-cu-analyzer-id" = {
+      value = "prebuilt-documentAnalyzer"
+      depends_on_ai = false
+    }
+  }
 }
 
-resource "azurerm_key_vault_secret" "azure_openai_endpoint" {
-  name         = "azure-openai-endpoint"
-  value        = module.ai.ai_foundry_endpoint
+resource "azurerm_key_vault_secret" "ai_secrets" {
+  for_each = local.ai_secrets
+
+  name         = each.key
+  value        = each.value.value
   key_vault_id = module.key_vault.id
 
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_openai_default_model" {
-  name         = "azure-openai-default-model"
-  value        = module.ai.gpt4o_deployment_name
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_openai_embedding_deployment" {
-  name         = "azure-openai-embedding-deployment"
-  value        = module.ai.text_embedding_3_large_deployment_name
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_openai_chat_deployment" {
-  name         = "azure-openai-chat-deployment"
-  value        = module.ai.gpt4o_deployment_name
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_openai_api_version" {
-  name         = "azure-openai-api-version"
-  value        = "2024-06-01"
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_document_intelligence_endpoint" {
-  name         = "azure-document-intelligence-endpoint"
-  value        = module.ai.ai_service_endpoint
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_document_intelligence_key" {
-  name         = "azure-document-intelligence-key"
-  value        = module.ai.ai_service_key
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_cu_endpoint" {
-  name         = "azure-cu-endpoint"
-  value        = module.ai.ai_service_endpoint
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_cu_key" {
-  name         = "azure-cu-key"
-  value        = module.ai.ai_service_key
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.ai, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "azure_cu_analyzer_id" {
-  name         = "azure-cu-analyzer-id"
-  value        = "prebuilt-documentAnalyzer"
-  key_vault_id = module.key_vault.id
-
-  depends_on = [module.key_vault]
+  depends_on = [
+    module.key_vault,
+    module.ai
+  ]
 }
 
 # ============================================================================
@@ -258,27 +225,26 @@ module "supabase" {
 # ============================================================================
 # Key Vault Secrets - Supabase (created after Supabase module)
 # ============================================================================
-resource "azurerm_key_vault_secret" "supabase_url" {
-  name         = "supabase-url"
-  value        = module.supabase.api_url
-  key_vault_id = module.key_vault.id
 
-  depends_on = [module.supabase, module.key_vault]
+locals {
+  supabase_secrets = {
+    "supabase-url" = {
+      value = module.supabase.api_url
+    }
+    "supabase-service-role-key" = {
+      value = var.supabase_service_role_key != null ? var.supabase_service_role_key : "MANUAL_UPDATE_REQUIRED"
+    }
+    "supabase-jwt-secret" = {
+      value = var.supabase_jwt_secret != null ? var.supabase_jwt_secret : "MANUAL_UPDATE_REQUIRED"
+    }
+  }
 }
 
-# Supabase API keys and JWT secret
-# These can be provided via Terraform variables or updated manually later
-resource "azurerm_key_vault_secret" "supabase_service_role_key" {
-  name         = "supabase-service-role-key"
-  value        = var.supabase_service_role_key != null ? var.supabase_service_role_key : "MANUAL_UPDATE_REQUIRED"
-  key_vault_id = module.key_vault.id
+resource "azurerm_key_vault_secret" "supabase_secrets" {
+  for_each = local.supabase_secrets
 
-  depends_on = [module.supabase, module.key_vault]
-}
-
-resource "azurerm_key_vault_secret" "supabase_jwt_secret" {
-  name         = "supabase-jwt-secret"
-  value        = var.supabase_jwt_secret != null ? var.supabase_jwt_secret : "MANUAL_UPDATE_REQUIRED"
+  name         = each.key
+  value        = each.value.value
   key_vault_id = module.key_vault.id
 
   depends_on = [module.supabase, module.key_vault]
@@ -387,6 +353,65 @@ module "rbac" {
     module.app_service,
     module.storage,
     module.ai
+  ]
+}
+
+# ============================================================================
+# ACR Webhooks for Auto-Deployment
+# ============================================================================
+# Webhooks trigger App Service redeployment when images are pushed to ACR.
+# This enables continuous deployment - push image, App Service automatically updates.
+
+locals {
+  acr_webhook_configs = {
+    server = {
+      service_uri = "https://${module.app_service.server_app_name}.scm.azurewebsites.net/api/registry/webhook"
+      actions     = ["push"]
+      scope       = "${var.acr_repository_server}:${var.acr_tag_server}"
+    }
+    web = {
+      service_uri = "https://${module.app_service.web_app_name}.scm.azurewebsites.net/api/registry/webhook"
+      actions     = ["push"]
+      scope       = "${var.acr_repository_web}:${var.acr_tag_web}"
+    }
+  }
+}
+
+# ============================================================================
+# ACR Webhooks for Auto-Deployment
+# ============================================================================
+# Webhooks trigger App Service container sync when images are pushed to ACR.
+# When a new image is pushed matching the scope (repository:tag), the webhook
+# calls the App Service's deployment trigger endpoint, causing it to immediately
+# pull and deploy the new image.
+#
+# This enables continuous deployment workflow:
+# 1. Build and push image to ACR
+# 2. ACR webhook fires
+# 3. App Service automatically pulls and deploys new image
+#
+# Note: App Services also poll ACR periodically, but webhooks provide immediate updates.
+
+resource "azurerm_container_registry_webhook" "deployment_webhooks" {
+  for_each = local.acr_webhook_configs
+
+  name                = "webhook${each.key}"
+  resource_group_name = module.resource_group.name
+  registry_name       = module.acr.name
+  location            = module.resource_group.location
+  service_uri         = each.value.service_uri
+  status              = "enabled"
+  scope               = each.value.scope
+  actions             = each.value.actions
+  custom_headers = {
+    "Content-Type" = "application/json"
+  }
+
+  tags = local.common_tags
+
+  depends_on = [
+    module.acr,
+    module.app_service
   ]
 }
 

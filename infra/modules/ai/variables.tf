@@ -34,9 +34,14 @@ variable "gpt4o_sku_name" {
 }
 
 variable "gpt4o_sku_capacity" {
-  description = "SKU capacity for GPT-4o deployment"
+  description = "SKU capacity for GPT-4o deployment in thousands (e.g., 1 = 1,000 tokens/minute). Must be a positive integer."
   type        = number
-  default     = 1
+  default     = 50
+
+  validation {
+    condition     = var.gpt4o_sku_capacity > 0 && var.gpt4o_sku_capacity == floor(var.gpt4o_sku_capacity)
+    error_message = "GPT-4o SKU capacity must be a positive integer."
+  }
 }
 
 variable "text_embedding_deployment_name" {
@@ -64,36 +69,39 @@ variable "text_embedding_sku_name" {
 }
 
 variable "text_embedding_sku_capacity" {
-  description = "SKU capacity for text embedding deployment"
+  description = "SKU capacity for text embedding deployment in thousands (e.g., 1 = 1,000 tokens/minute). Must be a positive integer."
   type        = number
-  default     = 1
+  default     = 500
+
+  validation {
+    condition     = var.text_embedding_sku_capacity > 0 && var.text_embedding_sku_capacity == floor(var.text_embedding_sku_capacity)
+    error_message = "Text embedding SKU capacity must be a positive integer."
+  }
 }
 
 variable "ai_foundry_hub_name" {
-  description = "Name of the AI Foundry hub"
+  description = "Name of the AI Foundry hub (cognitive account)"
   type        = string
+}
+
+variable "ai_foundry_project_name" {
+  description = "Name of the AI Foundry project"
+  type        = string
+  default     = "default-project"
 }
 
 variable "storage_account_id" {
-  description = "ID of the storage account for AI Foundry"
+  description = "ID of the storage account for AI Foundry (optional, for future use)"
   type        = string
+  default     = null
 }
 
 variable "key_vault_id" {
-  description = "ID of the key vault for AI Foundry"
+  description = "ID of the key vault for AI Foundry (optional, for future use)"
   type        = string
+  default     = null
 }
 
-variable "ai_services_name" {
-  description = "Name of the AI Services resource"
-  type        = string
-}
-
-variable "ai_services_sku_name" {
-  description = "SKU name for AI Services"
-  type        = string
-  default     = "S0"
-}
 
 variable "tags" {
   description = "Tags to apply to resources"

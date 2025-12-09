@@ -59,18 +59,6 @@ output "text_embedding_3_large_deployment_name" {
   value       = module.ai.text_embedding_3_large_deployment_name
 }
 
-# AI Services
-output "ai_service_endpoint" {
-  description = "AI Services endpoint"
-  value       = module.ai.ai_service_endpoint
-}
-
-output "ai_service_key" {
-  description = "AI Services API key"
-  value       = module.ai.ai_service_key
-  sensitive   = true
-}
-
 # Container Registry
 output "acr_name" {
   description = "Name of the Azure Container Registry"
@@ -85,6 +73,11 @@ output "acr_repository_server" {
 output "acr_repository_web" {
   description = "ACR repository name for web"
   value       = var.acr_repository_web
+}
+
+output "acr_webhooks_configured" {
+  description = "Whether ACR webhooks are configured for auto-deployment"
+  value       = length(azurerm_container_registry_webhook.deployment_webhooks) > 0
 }
 
 # App Services

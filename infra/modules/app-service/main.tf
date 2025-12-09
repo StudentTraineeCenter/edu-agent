@@ -28,6 +28,8 @@ resource "azurerm_linux_web_app" "server" {
     ftps_state                              = "Disabled"
     minimum_tls_version                     = "1.2"
     http2_enabled                           = true
+    # Enable continuous deployment - App Service will check for new images periodically
+    # Webhooks provide immediate trigger, this is a fallback
   }
 
   identity {
@@ -59,6 +61,8 @@ resource "azurerm_linux_web_app" "web" {
     ftps_state                              = "Disabled"
     minimum_tls_version                     = "1.2"
     http2_enabled                           = true
+    # Enable continuous deployment - App Service will check for new images periodically
+    # Webhooks provide immediate trigger, this is a fallback
   }
 
   identity {

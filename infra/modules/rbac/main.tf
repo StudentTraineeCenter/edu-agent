@@ -1,102 +1,148 @@
 data "azurerm_client_config" "current" {}
 
 # ============================================================================
-# Key Vault RBAC Assignments
+# RBAC Assignments - Using for_each to reduce repetition
 # ============================================================================
 
-# Server app: Key Vault Secrets User (read secrets)
-resource "azurerm_role_assignment" "server_app_key_vault_secrets_user" {
+locals {
+  # Key Vault role assignments
+  key_vault_assignments = {
+    "server-app-secrets-user" = {
   scope                = var.key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = var.server_app_identity_principal_id
 }
-
-# Current user: Key Vault Secrets Officer (manage secrets)
-resource "azurerm_role_assignment" "current_user_key_vault_secrets_officer" {
+    "current-user-secrets-officer" = {
   scope                = var.key_vault_id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
 }
-
-# Current user: Key Vault Reader (read Key Vault properties)
-resource "azurerm_role_assignment" "current_user_key_vault_reader" {
+    "current-user-reader" = {
   scope                = var.key_vault_id
   role_definition_name = "Key Vault Reader"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+  }
 
-# ============================================================================
-# Azure Container Registry RBAC Assignments
-# ============================================================================
-
-# Server app: ACR Pull
-resource "azurerm_role_assignment" "server_app_acr_pull" {
+  # ACR role assignments
+  acr_assignments = {
+    "server-app-pull" = {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.server_app_identity_principal_id
 }
-
-# Web app: ACR Pull
-resource "azurerm_role_assignment" "web_app_acr_pull" {
+    "web-app-pull" = {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.web_app_identity_principal_id
 }
-
-# Current user: ACR Push (push images to registry)
-resource "azurerm_role_assignment" "current_user_acr_push" {
+    "current-user-push" = {
   scope                = var.acr_id
   role_definition_name = "AcrPush"
   principal_id         = data.azurerm_client_config.current.object_id
 }
-
-# Current user: ACR Pull (pull images from registry)
-resource "azurerm_role_assignment" "current_user_acr_pull" {
+    "current-user-pull" = {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+  }
 
-# ============================================================================
-# Storage Account RBAC Assignments
-# ============================================================================
-
-# Server app: Storage Blob Data Contributor (read/write access)
-resource "azurerm_role_assignment" "server_app_storage_blob_data_contributor" {
+  # Storage Account role assignments
+  storage_assignments = {
+    "server-app-blob-contributor" = {
   scope                = var.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = var.server_app_identity_principal_id
 }
-
-# Current user: Storage Blob Data Contributor (for Terraform/debugging)
-resource "azurerm_role_assignment" "current_user_storage_blob_data_contributor" {
+    "current-user-blob-contributor" = {
   scope                = var.storage_account_id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+  }
 
-# ============================================================================
-# AI Foundry (Cognitive Services) RBAC Assignments
-# ============================================================================
-
-# Current user: Cognitive Services Contributor (required for managing AI resources)
-resource "azurerm_role_assignment" "current_user_cognitive_services_contributor" {
+  # AI Foundry (Cognitive Services) role assignments
+  ai_assignments = {
+    "current-user-contributor" = {
   scope                = var.ai_foundry_cognitive_account_id
   role_definition_name = "Cognitive Services Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
 }
-
-# Current user: Cognitive Services OpenAI Contributor (required for OpenAI deployments)
-resource "azurerm_role_assignment" "current_user_cognitive_services_openai_contributor" {
+    "current-user-openai-contributor" = {
   scope                = var.ai_foundry_cognitive_account_id
   role_definition_name = "Cognitive Services OpenAI Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
 }
-
-# Server app: Cognitive Services OpenAI User (required for using OpenAI deployments)
-resource "azurerm_role_assignment" "server_app_cognitive_services_openai_user" {
+    "server-app-openai-user" = {
   scope                = var.ai_foundry_cognitive_account_id
   role_definition_name = "Cognitive Services OpenAI User"
   principal_id         = var.server_app_identity_principal_id
+    }
+  }
+}
+
+# Key Vault RBAC
+resource "azurerm_role_assignment" "key_vault" {
+  for_each = local.key_vault_assignments
+
+  scope                = each.value.scope
+  role_definition_name = each.value.role_definition_name
+  principal_id         = each.value.principal_id
+
+  lifecycle {
+    ignore_changes = [
+      condition_version,
+      skip_service_principal_aad_check
+    ]
+  }
+}
+
+# ACR RBAC
+resource "azurerm_role_assignment" "acr" {
+  for_each = local.acr_assignments
+
+  scope                = each.value.scope
+  role_definition_name = each.value.role_definition_name
+  principal_id         = each.value.principal_id
+
+  lifecycle {
+    ignore_changes = [
+      condition_version,
+      skip_service_principal_aad_check
+    ]
+  }
+}
+
+# Storage Account RBAC
+resource "azurerm_role_assignment" "storage" {
+  for_each = local.storage_assignments
+
+  scope                = each.value.scope
+  role_definition_name = each.value.role_definition_name
+  principal_id         = each.value.principal_id
+
+  lifecycle {
+    ignore_changes = [
+      condition_version,
+      skip_service_principal_aad_check
+    ]
+  }
+}
+
+# AI Foundry RBAC
+resource "azurerm_role_assignment" "ai" {
+  for_each = local.ai_assignments
+
+  scope                = each.value.scope
+  role_definition_name = each.value.role_definition_name
+  principal_id         = each.value.principal_id
+
+  lifecycle {
+    ignore_changes = [
+      condition_version,
+      skip_service_principal_aad_check
+    ]
+  }
 }
 
