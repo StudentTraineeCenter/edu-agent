@@ -40,8 +40,11 @@ locals {
   # App Service Plan: asp-{org}-{env}-{region}-{workload}-{instance} (max 40 chars)
   app_service_plan_name = substr("asp-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-${local.instance}", 0, 40)
 
+  # Container App: ca{org}{env}{region}{workload}{instance} (max 32 chars, lowercase alphanumeric and hyphens only)
+  server_container_app_name = lower(substr("ca${local.org_short}${local.env_short}${local.region_short}${replace(local.workload_part, "-", "")}srv${local.instance}", 0, 32))
+  container_app_environment_name = lower(substr("cae${local.org_short}${local.env_short}${local.region_short}${replace(local.workload_part, "-", "")}${local.instance}", 0, 32))
+
   # App Services: app-{org}-{env}-{region}-{workload}-{instance} (max 60 chars)
-  server_app_name = substr("app-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-server-${local.instance}", 0, 60)
   web_app_name    = substr("app-${local.org_short}-${local.env_short}-${local.region_short}${local.workload_part}-web-${local.instance}", 0, 60)
 
   # Database: sql-{org}-{env}-{region}-{workload}-{instance} (max 63 chars)
@@ -277,7 +280,34 @@ module "application_insights" {
 }
 
 # ============================================================================
-# App Service Plan & Web Apps
+# Container App for Server
+# ============================================================================
+module "container_app" {
+  source = "./modules/container-app"
+
+  environment_name              = local.container_app_environment_name
+  location                      = module.resource_group.location
+  resource_group_name           = module.resource_group.name
+  log_analytics_workspace_id    = module.application_insights.log_analytics_workspace_id
+  app_name                      = local.server_container_app_name
+  acr_login_server              = module.acr.login_server
+  acr_id                        = module.acr.id
+  acr_repository                = var.acr_repository_server
+  acr_tag                       = var.acr_tag_server
+  key_vault_uri                 = module.key_vault.uri
+  app_insights_connection_string = module.application_insights.app_insights_connection_string
+  cors_allowed_origins          = "https://${local.web_app_name}.azurewebsites.net,http://localhost:3000"
+
+  depends_on = [
+    module.application_insights,
+    module.acr
+  ]
+
+  tags = local.common_tags
+}
+
+# ============================================================================
+# App Service Plan & Web App (server moved to Container App)
 # ============================================================================
 module "app_service" {
   source = "./modules/app-service"
@@ -285,39 +315,10 @@ module "app_service" {
   service_plan_name     = local.app_service_plan_name
   location              = module.resource_group.location
   resource_group_name   = module.resource_group.name
-  server_app_name       = local.server_app_name
   web_app_name          = local.web_app_name
   acr_login_server      = module.acr.login_server
-  acr_repository_server = var.acr_repository_server
-  acr_tag_server        = var.acr_tag_server
   acr_repository_web    = var.acr_repository_web
   acr_tag_web           = var.acr_tag_web
-
-  server_app_settings = {
-    # Key Vault configuration - app uses managed identity to fetch secrets via RBAC
-    "AZURE_KEY_VAULT_URI" = module.key_vault.uri
-
-    # Application Insights
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = module.application_insights.app_insights_connection_string
-
-    # CORS configuration - allow requests from web app and localhost
-    "CORS_ALLOWED_ORIGINS" = "https://${local.web_app_name}.azurewebsites.net,http://localhost:3000"
-
-    # Usage limits (read directly from env, not from Key Vault)
-    "MAX_CHAT_MESSAGES_PER_DAY"         = "50"
-    "MAX_FLASHCARD_GENERATIONS_PER_DAY" = "10"
-    "MAX_QUIZ_GENERATIONS_PER_DAY"      = "10"
-    "MAX_DOCUMENT_UPLOADS_PER_DAY"      = "5"
-
-    # Required for Python web apps
-    "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
-    "WEBSITES_PORT"                  = "8000"
-    # Disable access logging - HTTP logs handled by HTTPLoggingMiddleware and sent to Azure Monitor
-    # Note: uvicorn workers will respect access_log=False set in main.py
-    "STARTUP_COMMAND"                = "gunicorn -k uvicorn.workers.UvicornWorker -w 2 --log-level info app.main:app --bind 0.0.0.0:8000"
-  }
-
-  depends_on = [module.application_insights]
 
   web_app_settings = {
     "WEBSITES_PORT"                       = "80"
@@ -327,9 +328,11 @@ module "app_service" {
     "VITE_SUPABASE_URL"     = module.supabase.api_url
     "VITE_SUPABASE_ANON_KEY" = var.supabase_anon_key != null ? var.supabase_anon_key : ""
 
-    # URLs - constructed from name pattern (will match actual hostname)
-    "VITE_SERVER_URL" = "https://${module.app_service.server_app_default_hostname}"
+    # URLs - constructed from container app FQDN
+    "VITE_SERVER_URL" = "https://${module.container_app.app_fqdn}"
   }
+
+  depends_on = [module.container_app]
 
   tags = local.common_tags
 }
@@ -342,7 +345,7 @@ module "rbac" {
 
   key_vault_id                     = module.key_vault.id
   acr_id                           = module.acr.id
-  server_app_identity_principal_id = module.app_service.server_app_identity_principal_id
+  server_app_identity_principal_id = module.container_app.app_identity_principal_id
   web_app_identity_principal_id    = module.app_service.web_app_identity_principal_id
   storage_account_id               = module.storage.storage_account_id
   ai_foundry_cognitive_account_id  = module.ai.ai_foundry_hub_id
@@ -350,10 +353,14 @@ module "rbac" {
   depends_on = [
     module.key_vault,
     module.acr,
+    module.container_app,
     module.app_service,
     module.storage,
     module.ai
   ]
+
+  # Note: AcrPull for container app is handled within the container_app module
+  # to ensure it's created before the container app tries to pull images
 }
 
 # ============================================================================
@@ -364,11 +371,6 @@ module "rbac" {
 
 locals {
   acr_webhook_configs = {
-    server = {
-      service_uri = "https://${module.app_service.server_app_name}.scm.azurewebsites.net/api/registry/webhook"
-      actions     = ["push"]
-      scope       = "${var.acr_repository_server}:${var.acr_tag_server}"
-    }
     web = {
       service_uri = "https://${module.app_service.web_app_name}.scm.azurewebsites.net/api/registry/webhook"
       actions     = ["push"]
@@ -392,6 +394,11 @@ locals {
 #
 # Note: App Services also poll ACR periodically, but webhooks provide immediate updates.
 
+# ============================================================================
+# ACR Webhooks for Auto-Deployment (Web App only)
+# ============================================================================
+# Container Apps use continuous deployment via ACR integration, so webhooks
+# are only needed for the web app on App Service.
 resource "azurerm_container_registry_webhook" "deployment_webhooks" {
   for_each = local.acr_webhook_configs
 
@@ -414,5 +421,8 @@ resource "azurerm_container_registry_webhook" "deployment_webhooks" {
     module.app_service
   ]
 }
+
+# Note: Container Apps automatically pull new images from ACR when they're pushed.
+# No webhook configuration needed - Container Apps poll ACR for updates.
 
 

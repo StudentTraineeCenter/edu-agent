@@ -25,12 +25,8 @@ locals {
   }
 
   # ACR role assignments
+  # Note: server-app AcrPull is handled in container-app module to ensure it's created before container app
   acr_assignments = {
-    "server-app-pull" = {
-  scope                = var.acr_id
-  role_definition_name = "AcrPull"
-  principal_id         = var.server_app_identity_principal_id
-}
     "web-app-pull" = {
   scope                = var.acr_id
   role_definition_name = "AcrPull"

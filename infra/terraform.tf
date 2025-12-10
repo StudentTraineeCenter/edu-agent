@@ -18,6 +18,10 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.13"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
     supabase = {
       source  = "supabase/supabase"
       version = "~> 1.0"

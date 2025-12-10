@@ -80,12 +80,13 @@ output "acr_webhooks_configured" {
   value       = length(azurerm_container_registry_webhook.deployment_webhooks) > 0
 }
 
-# App Services
-output "app_server_url" {
-  description = "URL of the server web app"
-  value       = module.app_service.server_app_default_hostname
+# Container App (Server)
+output "container_app_server_url" {
+  description = "FQDN of the server container app"
+  value       = module.container_app.app_fqdn
 }
 
+# App Service (Web)
 output "app_web_url" {
   description = "URL of the web app"
   value       = module.app_service.web_app_default_hostname

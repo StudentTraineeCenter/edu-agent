@@ -25,11 +25,6 @@ variable "sku_name" {
   default     = "B1"
 }
 
-variable "server_app_name" {
-  description = "Name of the server web app"
-  type        = string
-}
-
 variable "web_app_name" {
   description = "Name of the web app"
   type        = string
@@ -38,17 +33,6 @@ variable "web_app_name" {
 variable "acr_login_server" {
   description = "ACR login server URL"
   type        = string
-}
-
-variable "acr_repository_server" {
-  description = "ACR repository name for server"
-  type        = string
-}
-
-variable "acr_tag_server" {
-  description = "ACR tag for server"
-  type        = string
-  default     = "latest"
 }
 
 variable "acr_repository_web" {
@@ -62,12 +46,6 @@ variable "acr_tag_web" {
   default     = "latest"
 }
 
-variable "server_health_check_path" {
-  description = "Health check path for server app"
-  type        = string
-  default     = "/health"
-}
-
 variable "web_health_check_path" {
   description = "Health check path for web app"
   type        = string
@@ -78,12 +56,6 @@ variable "health_check_eviction_time_in_min" {
   description = "Health check eviction time in minutes"
   type        = number
   default     = 10
-}
-
-variable "server_app_settings" {
-  description = "App settings for server web app"
-  type        = map(string)
-  default     = {}
 }
 
 variable "web_app_settings" {
