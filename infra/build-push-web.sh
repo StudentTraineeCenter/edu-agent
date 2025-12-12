@@ -10,7 +10,8 @@ TAG="${1:-latest}"
 DOCKERFILE_PATH="${2:-../web/Dockerfile}"
 CONTEXT_DIR="${3:-../web}"
 
-SERVER_URL="$(terraform output -raw app_server_url)"
+# SERVER_URL="$(terraform output -raw container_app_server_url)"
+SERVER_URL="https://caeduagentdevswcsrv4xaeje.delightfulplant-f833a476.swedencentral.azurecontainerapps.io"
 SUPABASE_URL="$(terraform output -raw supabase_api_url)"
 
 # Note: Supabase anon key is sensitive and should be retrieved from Key Vault or environment

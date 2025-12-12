@@ -83,7 +83,7 @@ output "acr_webhooks_configured" {
 # Container App (Server)
 output "container_app_server_url" {
   description = "FQDN of the server container app"
-  value       = module.container_app.app_fqdn
+  value       = replace(module.container_app.app_fqdn, "--[a-z0-9]+\\.", ".")
 }
 
 # App Service (Web)

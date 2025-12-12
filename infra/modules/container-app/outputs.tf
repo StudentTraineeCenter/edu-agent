@@ -32,3 +32,8 @@ output "app_identity_id" {
   description = "ID of the user-assigned managed identity"
   value       = azurerm_user_assigned_identity.container_app.id
 }
+
+output "app_identity_client_id" {
+  description = "Client ID of the user-assigned managed identity"
+  value       = azurerm_user_assigned_identity.container_app.client_id
+}

@@ -70,15 +70,26 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 app.openapi = lambda: custom_openapi(app)
 
-# Add HTTP logging middleware first (outermost) to capture all requests/responses
+# Add HTTP logging middleware to capture all requests/responses
 app.add_middleware(HTTPLoggingMiddleware)
 
+# Add CORS middleware - must be added last to process preflight requests first
+# In FastAPI, middleware processes requests in reverse order of addition
+# Note: We use allow_credentials=False because we use JWT Bearer tokens (not cookies)
+# When allow_credentials=True, you CANNOT use "*" for origins per CORS spec
+cors_origins = app_config.CORS_ALLOWED_ORIGINS
+logger.info_structured(
+    "configuring cors",
+    allowed_origins=cors_origins,
+    allow_credentials=False,
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=app_config.CORS_ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=False,  # Set to False since we use JWT tokens, not cookies
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 app.include_router(router=v1_router, prefix="/v1")
