@@ -72,3 +72,10 @@ class FlashcardGroupUpdate(BaseModel):
 class ChatCompletionRequest(BaseModel):
     message: str = Field(..., description="User message to process")
 
+
+class GenerateRequest(BaseModel):
+    topic: Optional[str] = Field(None, description="Topic for generation")
+    custom_instructions: Optional[str] = Field(None, description="Custom instructions for generation")
+    count: Optional[int] = Field(None, description="Number of items to generate (for flashcards/quizzes)")
+    difficulty: Optional[str] = Field(None, description="Difficulty level (for flashcards/quizzes)")
+

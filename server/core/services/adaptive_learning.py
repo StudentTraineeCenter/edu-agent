@@ -3,7 +3,7 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,8 @@ from db.models import (
     QuizQuestion,
     StudySession,
 )
+from schemas.adaptive_learning import StudySessionProgressUpdate
+from schemas.shared import GenerationProgressUpdate, GenerationStatus
 from uuid import uuid4
 from db.session import SessionLocal
 
@@ -211,6 +213,212 @@ class AdaptiveLearningService:
                 "learning_objectives": learning_objectives,
                 "generated_at": session.generated_at.isoformat(),
             }
+
+    async def generate_study_session_stream(
+        self,
+        user_id: str,
+        project_id: str,
+        session_length_minutes: int = 30,
+        focus_topics: Optional[List[str]] = None,
+    ) -> AsyncGenerator[dict, None]:
+        """Generate an adaptive study session with streaming progress updates.
+
+        Args:
+            user_id: User ID
+            project_id: Project ID
+            session_length_minutes: Desired session length
+            focus_topics: Optional list of topics to focus on
+
+        Yields:
+            Progress update dictionaries with status and message
+        """
+        try:
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.ANALYZING,
+                message="Analyzing your performance data..."
+            ).model_dump(exclude_none=True)
+
+            with self._get_db_session() as db:
+                # Get practice records for analysis
+                practice_records = self.practice_service.get_user_practice_records(
+                    user_id=user_id, project_id=project_id
+                )
+
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.THINKING,
+                    message="Identifying weak areas and prioritizing content..."
+                ).model_dump(exclude_none=True)
+
+                # Analyze performance
+                topic_analysis = self._analyze_topics(practice_records)
+
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.SEARCHING,
+                    message="Searching for relevant study materials..."
+                ).model_dump(exclude_none=True)
+
+                # Get available resources
+                flashcard_groups = (
+                    db.query(FlashcardGroup)
+                    .filter(FlashcardGroup.project_id == project_id)
+                    .all()
+                )
+
+                quizzes = db.query(Quiz).filter(Quiz.project_id == project_id).all()
+
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.BUILDING,
+                    message="Building your personalized study session..."
+                ).model_dump(exclude_none=True)
+
+                # Prioritize flashcards
+                prioritized_flashcards = []
+
+                # 1. Weak topics
+                weak_topics = [
+                    topic
+                    for topic, stats in topic_analysis.items()
+                    if stats["accuracy"] < 70
+                ]
+
+                if weak_topics:
+                    for group in flashcard_groups:
+                        flashcards = (
+                            db.query(Flashcard).filter(Flashcard.group_id == group.id).all()
+                        )
+
+                        for flashcard in flashcards:
+                            # Simple topic matching (could be improved with NLP)
+                            if any(
+                                topic.lower() in flashcard.question.lower()
+                                for topic in weak_topics
+                            ):
+                                if not any(
+                                    f["flashcard_id"] == flashcard.id
+                                    for f in prioritized_flashcards
+                                ):
+                                    prioritized_flashcards.append(
+                                        {
+                                            "flashcard_id": flashcard.id,
+                                            "group_id": group.id,
+                                            "priority": "medium",
+                                            "reason": "weak_topic",
+                                        }
+                                    )
+
+                # 2. Fill remaining slots with new/unpracticed items
+                practiced_flashcard_ids = {
+                    pr.item_id for pr in practice_records if pr.item_type == "flashcard"
+                }
+
+                for group in flashcard_groups:
+                    if len(prioritized_flashcards) >= 30:  # Limit session size
+                        break
+
+                    flashcards = (
+                        db.query(Flashcard).filter(Flashcard.group_id == group.id).all()
+                    )
+
+                    for flashcard in flashcards:
+                        if flashcard.id not in practiced_flashcard_ids:
+                            if not any(
+                                f["flashcard_id"] == flashcard.id
+                                for f in prioritized_flashcards
+                            ):
+                                prioritized_flashcards.append(
+                                    {
+                                        "flashcard_id": flashcard.id,
+                                        "group_id": group.id,
+                                        "priority": "low",
+                                        "reason": "new_item",
+                                    }
+                                )
+
+                yield GenerationProgressUpdate(
+                    status=GenerationStatus.STRUCTURING,
+                    message="Finalizing your study session..."
+                ).model_dump(exclude_none=True)
+
+                # Estimate time (assume 1 minute per flashcard)
+                estimated_minutes = len(prioritized_flashcards)
+                final_flashcards = prioritized_flashcards[
+                    :session_length_minutes
+                ]  # Limit to session length
+                focus_topics_list = weak_topics[:5] if weak_topics else []
+                learning_objectives = self._generate_learning_objectives(topic_analysis)
+
+                # Create and save study session
+                session = StudySession(
+                    user_id=user_id,
+                    project_id=project_id,
+                    session_data={
+                        "flashcards": final_flashcards,
+                        "learning_objectives": learning_objectives,
+                    },
+                    estimated_time_minutes=min(estimated_minutes, session_length_minutes),
+                    session_length_minutes=session_length_minutes,
+                    focus_topics=focus_topics_list if focus_topics_list else None,
+                )
+                db.add(session)
+                db.flush()  # Flush to get session.id
+
+                # Create a flashcard group for this study session with only the selected flashcards
+                session_group = FlashcardGroup(
+                    id=str(uuid4()),
+                    project_id=project_id,
+                    name=f"Study Session - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    description="Personalized study session based on your performance",
+                    study_session_id=session.id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(session_group)
+                db.flush()
+
+                # Copy selected flashcards to the new group
+                flashcard_ids_to_copy = [f["flashcard_id"] for f in final_flashcards]
+                original_flashcards = (
+                    db.query(Flashcard)
+                    .filter(Flashcard.id.in_(flashcard_ids_to_copy))
+                    .all()
+                )
+
+                for original_flashcard in original_flashcards:
+                    # Create a copy of the flashcard in the session group
+                    new_flashcard = Flashcard(
+                        id=str(uuid4()),
+                        group_id=session_group.id,
+                        project_id=project_id,
+                        question=original_flashcard.question,
+                        answer=original_flashcard.answer,
+                        difficulty_level=original_flashcard.difficulty_level,
+                        created_at=datetime.now(),
+                    )
+                    db.add(new_flashcard)
+
+                db.commit()
+                db.refresh(session)
+                db.refresh(session_group)
+
+                yield StudySessionProgressUpdate(
+                    status=GenerationStatus.DONE,
+                    message="Study session created successfully",
+                    session_id=session.id,
+                    flashcard_group_id=session_group.id,
+                ).model_dump(exclude_none=True)
+
+        except Exception as e:
+            logger.error_structured(
+                "error in streaming study session generation",
+                project_id=project_id,
+                user_id=user_id,
+                error=str(e),
+                exc_info=True,
+            )
+            yield GenerationProgressUpdate(
+                status=GenerationStatus.DONE,
+                error=str(e),
+            ).model_dump(exclude_none=True)
 
     def _analyze_topics(
         self, practice_records: List[PracticeRecord]

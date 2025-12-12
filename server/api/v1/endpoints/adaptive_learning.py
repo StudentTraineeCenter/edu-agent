@@ -3,7 +3,12 @@ from core.logger import get_logger
 from core.services.adaptive_learning import AdaptiveLearningService
 from db.models import User
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from schemas.adaptive_learning import (
+    StudySessionProgressUpdate,
+    StudySessionResponse,
+)
 from typing import List, Dict, Any, Optional
 
 router = APIRouter()
@@ -11,14 +16,60 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
-class StudySessionResponse(BaseModel):
-    session_id: str
-    flashcard_group_id: Optional[str] = None
-    flashcards: List[Dict[str, Any]]
-    estimated_time_minutes: int
-    focus_topics: List[str]
-    learning_objectives: List[str]
-    generated_at: str
+@router.post(
+    "/projects/{project_id}/study-sessions/stream",
+    status_code=status.HTTP_200_OK,
+    summary="Generate adaptive study session with streaming progress",
+    description="Generate a personalized study session with streaming progress updates",
+)
+async def generate_study_session_stream(
+    project_id: str,
+    session_length_minutes: int = Query(30, ge=10, le=120),
+    focus_topics: Optional[List[str]] = Query(None),
+    adaptive_service: AdaptiveLearningService = Depends(get_adaptive_learning_service),
+    current_user: User = Depends(get_user),
+):
+    """Generate an adaptive study session with streaming progress updates."""
+
+    async def generate_stream():
+        """Generate streaming progress updates"""
+        try:
+            async for progress_update in adaptive_service.generate_study_session_stream(
+                user_id=current_user.id,
+                project_id=project_id,
+                session_length_minutes=session_length_minutes,
+                focus_topics=focus_topics,
+            ):
+                progress = StudySessionProgressUpdate(**progress_update)
+                progress_json = progress.model_dump_json()
+                sse_data = f"data: {progress_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            logger.error_structured(
+                "error in streaming study session generation",
+                project_id=project_id,
+                user_id=current_user.id,
+                error=str(e),
+                exc_info=True,
+            )
+            error_progress = StudySessionProgressUpdate(
+                status="done",
+                message="Error generating study session",
+                error=str(e),
+            )
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 
 @router.post(
