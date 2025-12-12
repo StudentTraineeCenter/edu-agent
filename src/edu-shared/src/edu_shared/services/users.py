@@ -1,7 +1,7 @@
 """CRUD service for managing users."""
 
 from contextlib import contextmanager
-from typing import List
+from typing import List, Optional
 
 from edu_shared.db.models import User
 from edu_shared.db.session import get_session_factory
@@ -76,10 +76,63 @@ class UserService:
                 db.rollback()
                 raise
 
+    def get_or_create_user_from_token(
+        self,
+        user_id: str,
+        email: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> UserDto:
+        """Get or create a user from JWT token data.
+        
+        Args:
+            user_id: The user ID from JWT token (sub claim)
+            email: Optional email from token
+            name: Optional name from token
+            
+        Returns:
+            UserDto: The user DTO
+        """
+        with self._get_db_session() as db:
+            try:
+                # Try to get existing user
+                user = db.query(User).filter(User.id == user_id).first()
+                
+                if user:
+                    # Update user information if needed
+                    updated = False
+                    if email and user.email != email:
+                        user.email = email
+                        updated = True
+                    if name and user.name != name:
+                        user.name = name
+                        updated = True
+                    
+                    if updated:
+                        db.commit()
+                        db.refresh(user)
+                    
+                    return self._model_to_dto(user)
+                else:
+                    # User should be synced from auth.users via database trigger
+                    # But create it here as fallback if trigger hasn't run yet
+                    new_user = User(
+                        id=user_id,
+                        email=email,
+                        name=name or email.split("@")[0] or f"user_{user_id[:8]}",
+                    )
+                    db.add(new_user)
+                    db.commit()
+                    db.refresh(new_user)
+                    return self._model_to_dto(new_user)
+            except Exception as e:
+                db.rollback()
+                raise
+
     def _model_to_dto(self, user: User) -> UserDto:
         """Convert User model to UserDto."""
         return UserDto(
             id=user.id,
+            name=user.name,
             email=user.email,
             created_at=user.created_at,
             updated_at=user.updated_at,

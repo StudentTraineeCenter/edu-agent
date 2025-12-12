@@ -14,6 +14,7 @@ from routers import (
     quizzes_router,
     flashcard_groups_router,
     users_router,
+    auth_router,
 )
 
 
@@ -55,6 +56,7 @@ class Api:
         self.app.include_router(quizzes_router)
         self.app.include_router(flashcard_groups_router)
         self.app.include_router(users_router)
+        self.app.include_router(auth_router)
 
     def run(self):
         """

@@ -7,6 +7,7 @@ from routers.notes import router as notes_router
 from routers.quizzes import router as quizzes_router
 from routers.flashcard_groups import router as flashcard_groups_router
 from routers.users import router as users_router
+from routers.auth import router as auth_router
 
 __all__ = [
     "projects_router",
@@ -16,5 +17,6 @@ __all__ = [
     "quizzes_router",
     "flashcard_groups_router",
     "users_router",
+    "auth_router",
 ]
 

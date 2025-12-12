@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Database
     database_url: str
 
+    # Supabase Auth
+    supabase_jwt_secret: str
+
 
 @lru_cache
 def get_settings() -> Settings:
