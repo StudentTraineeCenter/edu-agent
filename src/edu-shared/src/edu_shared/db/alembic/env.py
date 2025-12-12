@@ -2,12 +2,11 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
-from core.config import app_config
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from db.base import Base
-from db import models  # noqa: F401 - Import models to register with Base.metadata
+from edu_shared.db.base import Base
+from edu_shared.db import models  # noqa: F401 - Import models to register with Base.metadata
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
@@ -21,8 +20,10 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-database_url = os.getenv("DATABASE_URL") or app_config.DATABASE_URL
-config.set_main_option("sqlalchemy.url", database_url)
+# Get database URL from environment variable
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

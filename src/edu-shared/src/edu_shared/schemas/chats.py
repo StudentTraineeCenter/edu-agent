@@ -7,12 +7,9 @@ class SourceDto(BaseModel):
     model_config = {"from_attributes": True}
 
     id: str = Field(..., description="Unique ID of the source segment")
-    citation_index: int = Field(..., description="Citation number for [n] references")
     content: str = Field(..., description="Content of the source segment")
     title: str = Field(..., description="Title/name of the source document")
     document_id: str = Field(..., description="ID of the source document")
-    preview_url: Optional[str] = Field(None, description="URL to preview/download the document")
-    score: float = Field(..., description="Relevance score of the source")
 
 
 class ToolCallDto(BaseModel):

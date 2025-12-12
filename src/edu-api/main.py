@@ -1,11 +1,20 @@
 from sqlalchemy import text
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 import uvicorn
 
 from config import get_settings
-from edu_shared.db.session import init_db, get_db
+from edu_shared.db.session import init_db
+from routers import (
+    projects_router,
+    documents_router,
+    chats_router,
+    notes_router,
+    quizzes_router,
+    flashcard_groups_router,
+    users_router,
+)
 
 
 class ApiConfig(BaseModel):
@@ -35,9 +44,17 @@ class Api:
 
     def setup_routes(self):
         @self.app.get("/health")
-        async def health_check(db=Depends(get_db)):
-            db.execute(text("SELECT 1"))  # Simple query to check DB connectivity
+        async def health_check():
             return {"status": "healthy", "api": self.config.name}
+
+        # Register all routers
+        self.app.include_router(projects_router)
+        self.app.include_router(documents_router)
+        self.app.include_router(chats_router)
+        self.app.include_router(notes_router)
+        self.app.include_router(quizzes_router)
+        self.app.include_router(flashcard_groups_router)
+        self.app.include_router(users_router)
 
     def run(self):
         """
