@@ -1,9 +1,11 @@
 """Router for note CRUD operations."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
+from auth import get_current_user
 from edu_shared.services import NoteService, NotFoundError
 from edu_shared.schemas.notes import NoteDto
+from edu_shared.schemas.users import UserDto
 from routers.schemas import NoteCreate, NoteUpdate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/notes", tags=["notes"])
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/api/v1/projects/{project_id}/notes", tags=["notes"])
 async def create_note(
     project_id: str,
     note: NoteCreate,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Create a new note."""
     service = NoteService()
@@ -31,6 +34,7 @@ async def create_note(
 async def get_note(
     project_id: str,
     note_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Get a note by ID."""
     service = NoteService()
@@ -45,6 +49,7 @@ async def get_note(
 @router.get("", response_model=list[NoteDto])
 async def list_notes(
     project_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """List all notes for a project."""
     service = NoteService()
@@ -59,6 +64,7 @@ async def update_note(
     project_id: str,
     note_id: str,
     note: NoteUpdate,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Update a note."""
     service = NoteService()
@@ -80,6 +86,7 @@ async def update_note(
 async def delete_note(
     project_id: str,
     note_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Delete a note."""
     service = NoteService()

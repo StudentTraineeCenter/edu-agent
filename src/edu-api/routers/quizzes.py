@@ -1,9 +1,11 @@
 """Router for quiz CRUD operations."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 
+from auth import get_current_user
 from edu_shared.services import QuizService, NotFoundError
 from edu_shared.schemas.quizzes import QuizDto
+from edu_shared.schemas.users import UserDto
 from routers.schemas import QuizCreate, QuizUpdate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/quizzes", tags=["quizzes"])
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/api/v1/projects/{project_id}/quizzes", tags=["quizze
 async def create_quiz(
     project_id: str,
     quiz: QuizCreate,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Create a new quiz."""
     service = QuizService()
@@ -30,6 +33,7 @@ async def create_quiz(
 async def get_quiz(
     project_id: str,
     quiz_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Get a quiz by ID."""
     service = QuizService()
@@ -44,6 +48,7 @@ async def get_quiz(
 @router.get("", response_model=list[QuizDto])
 async def list_quizzes(
     project_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """List all quizzes for a project."""
     service = QuizService()
@@ -58,6 +63,7 @@ async def update_quiz(
     project_id: str,
     quiz_id: str,
     quiz: QuizUpdate,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Update a quiz."""
     service = QuizService()
@@ -78,6 +84,7 @@ async def update_quiz(
 async def delete_quiz(
     project_id: str,
     quiz_id: str,
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Delete a quiz."""
     service = QuizService()

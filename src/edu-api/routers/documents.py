@@ -3,11 +3,13 @@
 import asyncio
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Header, File, UploadFile
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 
+from auth import get_current_user
 from edu_shared.services import DocumentService, DocumentProcessingService, NotFoundError
 from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
+from edu_shared.schemas.users import UserDto
 from routers.schemas import DocumentCreate, DocumentUpdate
 from services.queue import QueueService
 from config import get_settings
@@ -19,7 +21,7 @@ router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["docu
 async def upload_document(
     project_id: str,
     files: List[UploadFile] = File(...),
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Upload one or more documents. Processing happens asynchronously in background."""
     if not files:
@@ -87,7 +89,7 @@ async def upload_document(
                 file_content=content,
                 filename=filename,
                 project_id=project_id,
-                owner_id=user_id,
+                owner_id=current_user.id,
             )
             return document_id, content
 
@@ -108,7 +110,7 @@ async def upload_document(
                 "data": DocumentProcessingData(
                     document_id=document_id,
                     project_id=project_id,
-                    user_id=user_id,
+                    user_id=current_user.id,
                 ),
             }
             queue_service.send_message(task_message)
@@ -125,13 +127,13 @@ async def upload_document(
 async def create_document(
     project_id: str,
     document: DocumentCreate,
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Create a new document."""
     service = DocumentService()
     try:
         return service.create_document(
-            owner_id=user_id,
+            owner_id=current_user.id,
             file_name=document.file_name,
             file_type=document.file_type,
             file_size=document.file_size,
@@ -147,12 +149,12 @@ async def create_document(
 async def get_document(
     project_id: str,
     document_id: str,
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Get a document by ID."""
     service = DocumentService()
     try:
-        return service.get_document(document_id=document_id, owner_id=user_id)
+        return service.get_document(document_id=document_id, owner_id=current_user.id)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -162,12 +164,12 @@ async def get_document(
 @router.get("", response_model=list[DocumentDto])
 async def list_documents(
     project_id: str,
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """List all documents for a project."""
     service = DocumentService()
     try:
-        return service.list_documents(owner_id=user_id, project_id=project_id)
+        return service.list_documents(owner_id=current_user.id, project_id=project_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -177,14 +179,14 @@ async def update_document(
     project_id: str,
     document_id: str,
     document: DocumentUpdate,
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Update a document."""
     service = DocumentService()
     try:
         return service.update_document(
             document_id=document_id,
-            owner_id=user_id,
+            owner_id=current_user.id,
             file_name=document.file_name,
             summary=document.summary,
             project_id=project_id,
@@ -199,12 +201,12 @@ async def update_document(
 async def delete_document(
     project_id: str,
     document_id: str,
-    user_id: str = Header(..., alias="X-User-Id"),
+    current_user: UserDto = Depends(get_current_user),
 ):
     """Delete a document."""
     service = DocumentService()
     try:
-        service.delete_document(document_id=document_id, owner_id=user_id)
+        service.delete_document(document_id=document_id, owner_id=current_user.id)
         return None
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
