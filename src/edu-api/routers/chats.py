@@ -128,12 +128,9 @@ async def send_streaming_message(
                     sources_list = [
                         SourceDto(
                             id=source.id,
-                            citation_index=source.citation_index,
                             content=source.content,
                             title=source.title,
                             document_id=source.document_id,
-                            preview_url=source.preview_url,
-                            score=source.score,
                         )
                         for source in chunk_data.sources
                     ]

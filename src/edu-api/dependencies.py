@@ -33,9 +33,15 @@ def get_document_service() -> DocumentService:
     return DocumentService()
 
 
-def get_chat_service() -> ChatService:
+def get_chat_service(
+    settings: Settings = Depends(get_settings_dep),
+) -> ChatService:
     """Get ChatService instance."""
-    return ChatService()
+    return ChatService(
+        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
+        azure_openai_endpoint=settings.azure_openai_endpoint,
+        azure_openai_api_version=settings.azure_openai_api_version,
+    )
 
 
 def get_note_service() -> NoteService:

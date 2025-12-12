@@ -60,22 +60,24 @@ class ChatService:
             self.credential, "https://cognitiveservices.azure.com/.default"
         )
         
+        # Build LLM kwargs, only include api_version if provided
+        llm_kwargs = {
+            "azure_deployment": azure_openai_chat_deployment,
+            "azure_endpoint": azure_openai_endpoint,
+            "azure_ad_token_provider": self.token_provider,
+            "temperature": 0.25,
+        }
+        if azure_openai_api_version:
+            llm_kwargs["api_version"] = azure_openai_api_version
+        
         llm_streaming = AzureChatOpenAI(
-            azure_deployment=azure_openai_chat_deployment,
-            azure_endpoint=azure_openai_endpoint,
-            api_version=azure_openai_api_version,
-            azure_ad_token_provider=self.token_provider,
-            temperature=0.25,
             streaming=True,
+            **llm_kwargs,
         )
         
         self.llm_non_streaming = AzureChatOpenAI(
-            azure_deployment=azure_openai_chat_deployment,
-            azure_endpoint=azure_openai_endpoint,
-            api_version=azure_openai_api_version,
-            azure_ad_token_provider=self.token_provider,
-            temperature=0.25,
             streaming=False,
+            **llm_kwargs,
         )
 
         self.agent = make_agent(llm=llm_streaming)            

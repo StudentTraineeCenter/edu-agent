@@ -66,8 +66,29 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
     """Handle Pydantic validation errors."""
+    # Convert errors to JSON-serializable format
+    errors = exc.errors()
+    serializable_errors = []
+    for error in errors:
+        serializable_error = {
+            "loc": list(error.get("loc", [])),
+            "msg": str(error.get("msg", "")),
+            "type": str(error.get("type", "")),
+        }
+        if "ctx" in error:
+            # Convert context to string if it contains non-serializable data
+            ctx = error["ctx"]
+            if isinstance(ctx, dict):
+                serializable_error["ctx"] = {
+                    k: str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v
+                    for k, v in ctx.items()
+                }
+            else:
+                serializable_error["ctx"] = str(ctx)
+        serializable_errors.append(serializable_error)
+    
     logger.warning(
-        f"Validation error: {exc.errors()}",
+        f"Validation error: {serializable_errors}",
         extra={
             "method": request.method,
             "path": request.url.path,
@@ -80,7 +101,7 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
             "error": {
                 "message": "Validation error",
                 "status_code": 422,
-                "details": exc.errors(),
+                "details": serializable_errors,
             }
         },
     )
