@@ -13,10 +13,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 
 const ChatHeaderContent = (props: { projectId: string; chatId: string }) => {
   const { projectId, chatId } = props
-  const chatResult = useAtomValue(chatAtom({ projectId, chatId }))
+  const atomInput = useMemo(() => `${projectId}:${chatId}`, [projectId, chatId])
+  const chatResult = useAtomValue(chatAtom(atomInput))
 
   return Result.builder(chatResult)
     .onSuccess((chat) => (
@@ -41,22 +43,17 @@ type ChatHeaderProps = {
 
 export const ChatHeader = (props: ChatHeaderProps) => {
   const { projectId, chatId } = props
-  const chatResult = useAtomValue(chatAtom({ projectId, chatId }))
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
       <div className="flex flex-1 items-center gap-2 px-3">
-        {Result.isSuccess(chatResult) && (
-          <>
-            <SidebarTrigger />
-            <Button variant="ghost" size="icon" className="size-7" asChild>
-              <Link to="/dashboard/p/$projectId" params={{ projectId }}>
-                <ArrowLeft className="size-4" />
-                <span className="sr-only">Back to project</span>
-              </Link>
-            </Button>
-          </>
-        )}
+        <SidebarTrigger />
+        <Button variant="ghost" size="icon" className="size-7" asChild>
+          <Link to="/dashboard/p/$projectId" params={{ projectId }}>
+            <ArrowLeft className="size-4" />
+            <span className="sr-only">Back to project</span>
+          </Link>
+        </Button>
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"

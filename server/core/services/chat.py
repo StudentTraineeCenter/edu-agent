@@ -289,13 +289,9 @@ class ChatService:
                         chat.updated_at = datetime.now()
                         db.commit()
 
-                    # Yield final chunk
+                    # Yield chunk with message_id
                     chunk_data.id = assistant_message_id
-                    chunk_data.chunk = ""  # Avoid duplication
-
-                # Stream chunk with message_id
-                chunk_data.id = assistant_message_id
-                yield chunk_data
+                    yield chunk_data
             except Exception as e:
                 logger.error(
                     f"error sending streaming message to chat_id={chat_id}: {e}"

@@ -125,7 +125,7 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
   const openGenerationDialog = useGenerationDialog((state) => state.open)
 
   const handleCreateChat = async () => {
-    const chat = await createChat({ project_id: projectId })
+    const chat = await createChat({ projectId })
     navigate({
       to: '/dashboard/p/$projectId/c/$chatId',
       params: { projectId, chatId: chat.id },

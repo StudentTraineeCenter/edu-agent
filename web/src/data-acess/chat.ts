@@ -60,17 +60,20 @@ export const chatsRemoteAtom = Atom.family((projectId: string) =>
     .pipe(Atom.keepAlive),
 )
 
-export const chatRemoteAtom = Atom.family(
-  (input: { projectId: string; chatId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
+export const chatRemoteAtom = Atom.family((input: string) =>
+  runtime
+    .atom(
+      Effect.fn(function* () {
+        const [projectId, chatId] = input.split(':')
+
         const client = yield* makeApiClient
         return yield* client.getChatApiV1ProjectsProjectIdChatsChatIdGet(
-          input.projectId,
-          input.chatId,
+          projectId,
+          chatId,
         )
       }),
-    ).pipe(Atom.keepAlive),
+    )
+    .pipe(Atom.keepAlive),
 )
 
 export const chatsAtom = Atom.family((projectId: string) =>
@@ -102,66 +105,60 @@ export const chatsAtom = Atom.family((projectId: string) =>
   ),
 )
 
-export const chatAtom = Atom.family(
-  (input: { projectId: string; chatId: string }) =>
-    Object.assign(
-      Atom.writable(
-        (get: Atom.Context) => get(chatRemoteAtom(input)),
-        (ctx, action: ChatMessagesAction | ChatDto) => {
-          // Handle direct ChatDto updates (for backward compatibility)
-          if ('id' in action && 'project_id' in action) {
-            ctx.setSelf(Result.success(action as ChatDto))
-            return
-          }
+export const chatAtom = Atom.family((input: string) =>
+  Object.assign(
+    Atom.writable(
+      (get: Atom.Context) => get(chatRemoteAtom(input)),
+      (ctx, action: ChatMessagesAction | ChatDto) => {
+        // Handle direct ChatDto updates (for backward compatibility)
+        if ('id' in action && 'project_id' in action) {
+          ctx.setSelf(Result.success(action as ChatDto))
+          return
+        }
 
-          // Handle message actions
-          const result = ctx.get(chatAtom(input))
-          if (!Result.isSuccess(result)) return
+        // Handle message actions
+        const result = ctx.get(chatAtom(input))
+        if (!Result.isSuccess(result)) return
 
-          const chat = result.value
-          const messages = Array.from(chat.messages ?? [])
+        const chat = result.value
+        const messages = Array.from(chat.messages ?? [])
 
-          const update = ChatMessagesAction.$match(
-            action as ChatMessagesAction,
-            {
-              Append: ({ message }) => {
-                return [...messages, message]
-              },
-              UpdateContent: ({ messageId, content }) => {
-                return messages.map((msg) =>
-                  msg.id === messageId ? { ...msg, content } : msg,
-                )
-              },
-              UpdateSources: ({ messageId, sources }) => {
-                return messages.map((msg) =>
-                  msg.id === messageId ? { ...msg, sources } : msg,
-                )
-              },
-              UpdateTools: ({ messageId, tools }) => {
-                return messages.map((msg) =>
-                  msg.id === messageId ? { ...msg, tools } : msg,
-                )
-              },
-              RemoveTemporaryMessage: () => {
-                return messages.filter(
-                  (msg) => msg.id !== 'temporary-message-id',
-                )
-              },
-            },
-          )
+        const update = ChatMessagesAction.$match(action as ChatMessagesAction, {
+          Append: ({ message }) => {
+            return [...messages, message]
+          },
+          UpdateContent: ({ messageId, content }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, content } : msg,
+            )
+          },
+          UpdateSources: ({ messageId, sources }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, sources } : msg,
+            )
+          },
+          UpdateTools: ({ messageId, tools }) => {
+            return messages.map((msg) =>
+              msg.id === messageId ? { ...msg, tools } : msg,
+            )
+          },
+          RemoveTemporaryMessage: () => {
+            return messages.filter((msg) => msg.id !== 'temporary-message-id')
+          },
+        })
 
-          ctx.setSelf(
-            Result.success({
-              ...chat,
-              messages: update,
-            }),
-          )
-        },
-      ),
-      {
-        remote: chatRemoteAtom(input),
+        ctx.setSelf(
+          Result.success({
+            ...chat,
+            messages: update,
+          }),
+        )
       },
     ),
+    {
+      remote: chatRemoteAtom(input),
+    },
+  ),
 )
 
 const MessageChunk = Schema.Struct({
@@ -197,8 +194,9 @@ export const streamMessageAtom = Atom.fn(
       tools: undefined,
       created_at: new Date().toISOString(),
     }
+    const chatKey = `${input.projectId}:${input.chatId}`
     get.set(
-      chatAtom(input),
+      chatAtom(chatKey),
       ChatMessagesAction.Append({ chatId: input.chatId, message: userMessage }),
     )
 
@@ -214,12 +212,15 @@ export const streamMessageAtom = Atom.fn(
       .pipe(
         // If the request fails, remove the temporary message
         Effect.tapError(() =>
-          Effect.sync(() => get.refresh(chatRemoteAtom(input))),
+          Effect.sync(() => get.refresh(chatRemoteAtom(chatKey))),
         ),
       )
 
     if (resp.status === 429) {
-      registry.set(chatAtom(input), ChatMessagesAction.RemoveTemporaryMessage())
+      registry.set(
+        chatAtom(chatKey),
+        ChatMessagesAction.RemoveTemporaryMessage(),
+      )
       registry.refresh(usageAtom)
       return yield* new UsageLimitExceededError({
         message: 'Usage limit exceeded',
@@ -259,10 +260,22 @@ export const streamMessageAtom = Atom.fn(
             get.set(chatStreamStatusAtom(input.chatId), chunk.status)
           }
 
-          const chat = yield* get.result(chatAtom(input))
+          // Skip message creation/update if this is just a status update with no content/metadata
+          const hasContent = chunk.chunk && chunk.chunk.length > 0
+          const hasMetadata =
+            (chunk.sources && chunk.sources.length > 0) ||
+            (chunk.tools && chunk.tools.length > 0)
+
+          if (!hasContent && !hasMetadata) {
+            // This is just a status update - skip message processing
+            return
+          }
+
+          const chat = yield* get.result(chatAtom(chatKey))
           const messages = Array.from(chat.messages ?? [])
           const msgIdx = messages.findIndex((msg) => msg.id === messageId)
-          const content = (messages[msgIdx]?.content ?? '') + chunk.chunk
+          const content =
+            (messages[msgIdx]?.content ?? '') + (chunk.chunk || '')
 
           if (msgIdx === -1) {
             // Create new assistant message
@@ -275,7 +288,7 @@ export const streamMessageAtom = Atom.fn(
               created_at: new Date().toISOString(),
             }
             get.set(
-              chatAtom(input),
+              chatAtom(chatKey),
               ChatMessagesAction.Append({
                 chatId: input.chatId,
                 message: assistantMessage,
@@ -284,7 +297,7 @@ export const streamMessageAtom = Atom.fn(
           } else {
             // Update existing message content
             get.set(
-              chatAtom(input),
+              chatAtom(chatKey),
               ChatMessagesAction.UpdateContent({
                 chatId: input.chatId,
                 messageId,
@@ -294,7 +307,7 @@ export const streamMessageAtom = Atom.fn(
 
             // Helper to get current message state
             const getCurrentMessage = function* () {
-              const chat = yield* get.result(chatAtom(input))
+              const chat = yield* get.result(chatAtom(chatKey))
               return Array.from(chat.messages ?? []).find(
                 (msg) => msg.id === messageId,
               )
@@ -313,7 +326,7 @@ export const streamMessageAtom = Atom.fn(
 
               if (uniqueNewSources.length > 0) {
                 get.set(
-                  chatAtom(input),
+                  chatAtom(chatKey),
                   ChatMessagesAction.UpdateSources({
                     chatId: input.chatId,
                     messageId,
@@ -340,7 +353,7 @@ export const streamMessageAtom = Atom.fn(
               ]
 
               get.set(
-                chatAtom(input),
+                chatAtom(chatKey),
                 ChatMessagesAction.UpdateTools({
                   chatId: input.chatId,
                   messageId,
@@ -363,7 +376,7 @@ export const streamMessageAtom = Atom.fn(
                 input.chatId,
               )
             // Update atom with fresh data once fetched
-            get.set(chatAtom(input), freshChat)
+            get.set(chatAtom(chatKey), freshChat)
           }
         }),
       ),
@@ -404,7 +417,8 @@ export const updateChatAtom = runtime.fn(
       input,
     )
 
-    registry.set(chatAtom(input), res)
+    const chatKey = `${input.projectId}:${input.chatId}`
+    registry.set(chatAtom(chatKey), res)
     registry.set(chatsAtom(res.project_id), ChatsAction.Upsert({ chat: res }))
     return res
   }),
@@ -417,8 +431,9 @@ export const appendMessageAtom = runtime.fn(
     message: ChatMessageDto
   }) {
     const registry = yield* Registry.AtomRegistry
+    const chatKey = `${input.projectId}:${input.chatId}`
     registry.set(
-      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
+      chatAtom(chatKey),
       ChatMessagesAction.Append({
         chatId: input.chatId,
         message: input.message,
@@ -435,8 +450,9 @@ export const updateMessageContentAtom = runtime.fn(
     content: string
   }) {
     const registry = yield* Registry.AtomRegistry
+    const chatKey = `${input.projectId}:${input.chatId}`
     registry.set(
-      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
+      chatAtom(chatKey),
       ChatMessagesAction.UpdateContent({
         chatId: input.chatId,
         messageId: input.messageId,
@@ -454,8 +470,9 @@ export const updateMessageSourcesAtom = runtime.fn(
     sources: SourceDto[]
   }) {
     const registry = yield* Registry.AtomRegistry
+    const chatKey = `${input.projectId}:${input.chatId}`
     registry.set(
-      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
+      chatAtom(chatKey),
       ChatMessagesAction.UpdateSources({
         chatId: input.chatId,
         messageId: input.messageId,
@@ -473,8 +490,9 @@ export const updateMessageToolsAtom = runtime.fn(
     tools: ToolCallDto[]
   }) {
     const registry = yield* Registry.AtomRegistry
+    const chatKey = `${input.projectId}:${input.chatId}`
     registry.set(
-      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
+      chatAtom(chatKey),
       ChatMessagesAction.UpdateTools({
         chatId: input.chatId,
         messageId: input.messageId,

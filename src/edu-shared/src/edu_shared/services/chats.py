@@ -382,7 +382,6 @@ class ChatService:
 
                     # Yield chunk with message_id
                     chunk_data.id = assistant_message_id
-                    chunk_data.chunk = ""  # Avoid duplication
                     yield chunk_data
             except Exception as e:
                 yield MessageChunk(
