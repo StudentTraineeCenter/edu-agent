@@ -3,6 +3,7 @@ from uuid import uuid4
 from rich.console import Console
 
 from config import get_settings
+from edu_shared.schemas.queue import QueueTaskMessage, TaskType, FlashcardGenerationData
 from services.queue import QueueService
 
 console = Console(force_terminal=True)
@@ -18,16 +19,22 @@ def main():
         queue_name="ai-generation-tasks",  # Make sure this queue exists in Azure/Azurite
     )
 
-    task_payload = {
-        "task_type": "flashcards",
-        "group_id": str(uuid4()),
+    task_data: FlashcardGenerationData = {
         "project_id": str(uuid4()),
+        "group_id": str(uuid4()),
         "user_id": str(uuid4()),
+        "topic": "Machine Learning Fundamentals",
+        "custom_instructions": "Create flashcards for the topic of Machine Learning Fundamentals",
     }
 
-    console.print(f"[bold blue]Sending task payload:[/bold blue] {task_payload}")
+    task_message: QueueTaskMessage = {
+        "type": TaskType.FLASHCARD_GENERATION,
+        "data": task_data,
+    }
 
-    queue_svc.send_message(task_payload)
+    console.print(f"[bold blue]Sending task payload:[/bold blue] {task_message}")
+
+    queue_svc.send_message(task_message)
 
     console.print("[bold green]Task message sent to queue successfully![/bold green]")
 

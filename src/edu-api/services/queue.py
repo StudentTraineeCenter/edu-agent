@@ -4,6 +4,8 @@ import json
 from azure.storage.queue import QueueClient
 from rich.console import Console
 
+from edu_shared.schemas.queue import QueueTaskMessage
+
 console = Console(force_terminal=True)
 
 
@@ -13,14 +15,14 @@ class QueueService:
             conn_str=connection_string, queue_name=queue_name
         )
 
-    def send_message(self, message_content: dict) -> None:
+    def send_message(self, message: QueueTaskMessage) -> None:
         """
-        Sends a dictionary as a JSON message to the Azure Queue.
+        Sends a QueueTaskMessage to the Azure Queue.
         Automatically handles Base64 encoding required by Azure Functions.
         """
         try:
             # 1. Convert dict to JSON string
-            message_json = json.dumps(message_content)
+            message_json = json.dumps(message)
 
             # 2. Base64 encode the string (Required for Azure Functions triggers)
             message_bytes = message_json.encode("utf-8")

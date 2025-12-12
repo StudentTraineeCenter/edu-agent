@@ -4,8 +4,10 @@ from contextlib import contextmanager
 from typing import List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.documents import Document as LangchainDocument
 from langchain_core.embeddings import Embeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
 
 from edu_shared.db.models import Document, Project
@@ -20,7 +22,9 @@ class SearchService:
     def __init__(
         self,
         database_url: str,
-        embeddings: Embeddings,
+        azure_openai_embedding_deployment: str,
+        azure_openai_endpoint: str,
+        azure_openai_api_version: str,
     ) -> None:
         """Initialize the search service.
         
@@ -29,7 +33,17 @@ class SearchService:
             embeddings: LangChain embeddings service for vector operations
         """
         self.database_url = database_url
-        self.embeddings = embeddings
+
+        token_provider = get_bearer_token_provider(
+            DefaultAzureCredential(),
+            "https://cognitiveservices.azure.com/.default"
+        )
+        self.embeddings = AzureOpenAIEmbeddings(
+            azure_deployment=azure_openai_embedding_deployment,
+            azure_endpoint=azure_openai_endpoint,
+            api_version=azure_openai_api_version,
+            azure_ad_token_provider=token_provider
+        )
         self._vector_store: Optional[PGVectorStore] = None
 
     async def search_documents(
