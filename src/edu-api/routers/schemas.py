@@ -68,3 +68,7 @@ class FlashcardGroupUpdate(BaseModel):
     name: Optional[str] = Field(None, description="Name of the flashcard group")
     description: Optional[str] = Field(None, description="Description of the flashcard group")
 
+
+class ChatCompletionRequest(BaseModel):
+    message: str = Field(..., description="User message to process")
+

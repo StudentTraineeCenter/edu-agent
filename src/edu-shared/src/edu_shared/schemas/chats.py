@@ -46,3 +46,22 @@ class ChatDto(BaseModel):
     messages: List[ChatMessageDto] = Field(default_factory=list, description="List of messages in the chat")
     created_at: datetime = Field(..., description="Date and time the chat was created")
     updated_at: datetime = Field(..., description="Date and time the chat was updated")
+
+
+class StreamingChatMessage(BaseModel):
+    """Response model for streaming chat message chunks."""
+
+    model_config = {"from_attributes": True}
+
+    id: str = Field(default="", description="Unique ID of the message")
+    chunk: str = Field(default="", description="Text chunk of the response")
+    done: bool = Field(default=False, description="Whether this is the final chunk")
+    status: Optional[str] = Field(
+        default=None, description="Status message: thinking, searching, generating"
+    )
+    sources: Optional[List[SourceDto]] = Field(
+        default=None, description="Source documents (only included in final chunk)"
+    )
+    tools: Optional[List[ToolCallDto]] = Field(
+        default=None, description="Tool calls (streamed as they happen)"
+    )

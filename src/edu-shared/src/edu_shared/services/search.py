@@ -197,11 +197,17 @@ class SearchService:
             segment_id = top_chunks[0][0].metadata.get("id", doc_id)
 
             try:
+                # Get the best score from top chunks
+                best_score = min([c[1] for c in top_chunks]) if top_chunks else 1.0
+                # Normalize score (lower is better in similarity search, so invert)
+                normalized_score = max(0.0, min(1.0, 1.0 - best_score))
+                
                 result = SearchResultItem(
                     id=segment_id,
                     document_id=doc_id,
                     title=doc_meta.file_name if doc_meta else "Unknown Document",
                     content=combined_text,
+                    score=normalized_score,
                 )
                 results.append(result)
             except Exception as e:

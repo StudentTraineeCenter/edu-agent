@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # Supabase Auth
     supabase_jwt_secret: str = ""
 
+    # Azure OpenAI
+    azure_openai_chat_deployment: str = ""
+    azure_openai_endpoint: str = ""
+    azure_openai_api_version: str = ""
+    azure_openai_embedding_deployment: str = ""
+
     @classmethod
     def settings_customise_sources(
         cls,

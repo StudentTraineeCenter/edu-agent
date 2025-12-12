@@ -1,12 +1,16 @@
 """Router for chat CRUD operations."""
 
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 
 from auth import get_current_user
-from edu_shared.services import ChatService, NotFoundError
-from edu_shared.schemas.chats import ChatDto
+from config import get_settings
+from edu_shared.services import ChatService, SearchService, NotFoundError
+from edu_shared.schemas.chats import ChatDto, StreamingChatMessage, SourceDto, ToolCallDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import ChatCreate, ChatUpdate
+from routers.schemas import ChatCreate, ChatUpdate, ChatCompletionRequest
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/chats", tags=["chats"])
 
@@ -94,4 +98,110 @@ async def delete_chat(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/{chat_id}/messages/stream",
+    status_code=200,
+    summary="Send a streaming message to a chat",
+    description="Send a message to a chat with streaming response",
+)
+async def send_streaming_message(
+    project_id: str,
+    chat_id: str,
+    body: ChatCompletionRequest,
+    current_user: UserDto = Depends(get_current_user),
+):
+    """Send a streaming message to a chat."""
+    settings = get_settings()
+    
+    # Initialize SearchService for RAG
+    search_service = SearchService(
+        database_url=settings.database_url,
+        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
+        azure_openai_endpoint=settings.azure_openai_endpoint,
+        azure_openai_api_version=settings.azure_openai_api_version,
+    )
+    
+    # Initialize ChatService with streaming support
+    chat_service = ChatService(
+        search_service=search_service,
+        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
+        azure_openai_endpoint=settings.azure_openai_endpoint,
+        azure_openai_api_version=settings.azure_openai_api_version,
+    )
+
+    user_id = current_user.id
+
+    async def generate_stream() -> AsyncGenerator[bytes, None]:
+        """Generate streaming response chunks"""
+        try:
+            async for chunk_data in chat_service.send_streaming_message(
+                chat_id, user_id, body.message
+            ):
+                # Format sources if present
+                sources_list = None
+                if chunk_data.sources:
+                    sources_list = [
+                        SourceDto(
+                            id=source.id,
+                            citation_index=source.citation_index,
+                            content=source.content,
+                            title=source.title,
+                            document_id=source.document_id,
+                            preview_url=source.preview_url,
+                            score=source.score,
+                        )
+                        for source in chunk_data.sources
+                    ]
+
+                # Format tools if present
+                tools_list = None
+                if chunk_data.tools:
+                    tools_list = [
+                        ToolCallDto(
+                            id=tool.id,
+                            type=tool.type,
+                            name=tool.name,
+                            state=tool.state,
+                            input=tool.input,
+                            output=tool.output,
+                            error_text=tool.error_text,
+                        )
+                        for tool in chunk_data.tools
+                    ]
+
+                # Create the streaming message object
+                streaming_msg = StreamingChatMessage(
+                    chunk=chunk_data.chunk or "",
+                    done=chunk_data.done,
+                    status=chunk_data.status,
+                    sources=sources_list,
+                    tools=tools_list,
+                    id=chunk_data.id or "",
+                )
+
+                message_json = streaming_msg.model_dump_json()
+                sse_data = f"data: {message_json}\n\n"
+                yield sse_data.encode("utf-8")
+
+        except Exception as e:
+            error_msg = StreamingChatMessage(
+                chunk=f"Error: {str(e)}",
+                done=True,
+                sources=None,
+                tools=None,
+            )
+            yield f"data: {error_msg.model_dump_json()}\n\n".encode("utf-8")
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 

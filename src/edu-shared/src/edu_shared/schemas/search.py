@@ -10,6 +10,7 @@ class SearchResultItem(BaseModel):
     document_id: str = Field(..., description="ID of the document")
     title: str = Field(..., description="Title of the document")
     content: str = Field(..., description="Relevant content excerpt")
+    score: float = Field(default=1.0, description="Relevance score")
 
     @field_validator("content")
     @classmethod
