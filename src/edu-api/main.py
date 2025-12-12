@@ -2,6 +2,7 @@ from sqlalchemy import text
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
 import uvicorn
 
 from config import get_settings
@@ -40,8 +41,15 @@ class Api:
             yield
             print(f"[{self.config.name}] Shutdown: cleanup complete.")
 
-        self.app = FastAPI(title=config.name, version=config.version, lifespan=lifespan)
+        self.app = FastAPI(
+            title=config.name,
+            version=config.version,
+            lifespan=lifespan,
+            docs_url=None,
+            redoc_url=None,
+        )
         self.setup_routes()
+        self.setup_openapi()
 
     def setup_routes(self):
         @self.app.get("/health")
@@ -57,6 +65,16 @@ class Api:
         self.app.include_router(flashcard_groups_router)
         self.app.include_router(users_router)
         self.app.include_router(auth_router)
+
+    def setup_openapi(self):
+        """Setup Scalar OpenAPI documentation UI."""
+        @self.app.get("/", include_in_schema=False)
+        async def scalar_docs_ui():
+            """Scalar API documentation UI."""
+            return get_scalar_api_reference(
+                openapi_url=self.app.openapi_url,
+                title=self.app.title,
+            )
 
     def run(self):
         """
