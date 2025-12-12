@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
 from auth import get_current_user
-from config import get_settings
-from edu_shared.services import ChatService, SearchService, NotFoundError
+from dependencies import get_chat_service, get_chat_service_with_streaming
+from edu_shared.services import ChatService, NotFoundError
 from edu_shared.schemas.chats import ChatDto, StreamingChatMessage, SourceDto, ToolCallDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import ChatCreate, ChatUpdate, ChatCompletionRequest
@@ -20,9 +20,9 @@ async def create_chat(
     project_id: str,
     chat: ChatCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
 ):
     """Create a new chat."""
-    service = ChatService()
     try:
         return service.create_chat(
             project_id=project_id,
@@ -38,9 +38,9 @@ async def get_chat(
     project_id: str,
     chat_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
 ):
     """Get a chat by ID."""
-    service = ChatService()
     try:
         return service.get_chat(chat_id=chat_id, user_id=current_user.id)
     except NotFoundError as e:
@@ -53,9 +53,9 @@ async def get_chat(
 async def list_chats(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
 ):
     """List all chats for a project."""
-    service = ChatService()
     try:
         return service.list_chats(project_id=project_id, user_id=current_user.id)
     except Exception as e:
@@ -68,9 +68,9 @@ async def update_chat(
     chat_id: str,
     chat: ChatUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
 ):
     """Update a chat."""
-    service = ChatService()
     try:
         return service.update_chat(
             chat_id=chat_id,
@@ -88,9 +88,9 @@ async def delete_chat(
     project_id: str,
     chat_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
 ):
     """Delete a chat."""
-    service = ChatService()
     try:
         service.delete_chat(chat_id=chat_id, user_id=current_user.id)
         return None
@@ -111,26 +111,9 @@ async def send_streaming_message(
     chat_id: str,
     body: ChatCompletionRequest,
     current_user: UserDto = Depends(get_current_user),
+    chat_service: ChatService = Depends(get_chat_service_with_streaming),
 ):
     """Send a streaming message to a chat."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Initialize ChatService with streaming support
-    chat_service = ChatService(
-        search_service=search_service,
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-
     user_id = current_user.id
 
     async def generate_stream() -> AsyncGenerator[bytes, None]:

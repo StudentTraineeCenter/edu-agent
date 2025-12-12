@@ -6,9 +6,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from auth import get_current_user
-from config import get_settings
-from edu_shared.services import FlashcardGroupService, SearchService, NotFoundError
+from dependencies import (
+    get_flashcard_group_service,
+    get_search_service,
+    get_content_agent_config,
+)
 from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService
 from edu_shared.schemas.flashcards import FlashcardGroupDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import FlashcardGroupCreate, FlashcardGroupUpdate, GenerateRequest
@@ -21,9 +25,9 @@ async def create_flashcard_group(
     project_id: str,
     group: FlashcardGroupCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
     """Create a new flashcard group."""
-    service = FlashcardGroupService()
     try:
         return service.create_flashcard_group(
             project_id=project_id,
@@ -40,9 +44,9 @@ async def get_flashcard_group(
     project_id: str,
     group_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
     """Get a flashcard group by ID."""
-    service = FlashcardGroupService()
     try:
         return service.get_flashcard_group(group_id=group_id, project_id=project_id)
     except NotFoundError as e:
@@ -56,9 +60,9 @@ async def list_flashcard_groups(
     project_id: str,
     study_session_id: Optional[str] = Query(None, description="Filter by study session ID"),
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
     """List all flashcard groups for a project."""
-    service = FlashcardGroupService()
     try:
         return service.list_flashcard_groups(
             project_id=project_id,
@@ -74,9 +78,9 @@ async def update_flashcard_group(
     group_id: str,
     group: FlashcardGroupUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
     """Update a flashcard group."""
-    service = FlashcardGroupService()
     try:
         return service.update_flashcard_group(
             group_id=group_id,
@@ -95,9 +99,9 @@ async def delete_flashcard_group(
     project_id: str,
     group_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
     """Delete a flashcard group."""
-    service = FlashcardGroupService()
     try:
         service.delete_flashcard_group(group_id=group_id, project_id=project_id)
         return None
@@ -120,26 +124,11 @@ async def generate_flashcards(
     group_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate flashcards using AI and populate an existing flashcard group."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = FlashcardGroupService()
     try:
         return await service.generate_and_populate(
             group_id=group_id,
@@ -161,26 +150,11 @@ async def generate_flashcards_stream(
     group_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate flashcards using AI with streaming progress updates."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = FlashcardGroupService()
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""

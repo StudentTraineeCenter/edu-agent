@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 
 from auth import get_current_user
-from edu_shared.services import ProjectService, NotFoundError
+from dependencies import get_project_service
+from edu_shared.services import NotFoundError, ProjectService
 from edu_shared.schemas.projects import ProjectDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import ProjectCreate, ProjectUpdate
@@ -15,9 +16,9 @@ router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 async def create_project(
     project: ProjectCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: ProjectService = Depends(get_project_service),
 ):
     """Create a new project."""
-    service = ProjectService()
     try:
         return service.create_project(
             owner_id=current_user.id,
@@ -33,9 +34,9 @@ async def create_project(
 async def get_project(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: ProjectService = Depends(get_project_service),
 ):
     """Get a project by ID."""
-    service = ProjectService()
     try:
         return service.get_project(project_id=project_id, owner_id=current_user.id)
     except NotFoundError as e:
@@ -47,9 +48,9 @@ async def get_project(
 @router.get("", response_model=list[ProjectDto])
 async def list_projects(
     current_user: UserDto = Depends(get_current_user),
+    service: ProjectService = Depends(get_project_service),
 ):
     """List all projects for a user."""
-    service = ProjectService()
     try:
         return service.list_projects(owner_id=current_user.id)
     except Exception as e:
@@ -61,9 +62,9 @@ async def update_project(
     project_id: str,
     project: ProjectUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: ProjectService = Depends(get_project_service),
 ):
     """Update a project."""
-    service = ProjectService()
     try:
         return service.update_project(
             project_id=project_id,
@@ -82,9 +83,9 @@ async def update_project(
 async def delete_project(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: ProjectService = Depends(get_project_service),
 ):
     """Delete a project."""
-    service = ProjectService()
     try:
         service.delete_project(project_id=project_id, owner_id=current_user.id)
         return None

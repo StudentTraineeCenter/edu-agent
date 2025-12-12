@@ -6,9 +6,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from auth import get_current_user
-from config import get_settings
-from edu_shared.services import QuizService, SearchService, NotFoundError
+from dependencies import (
+    get_quiz_service,
+    get_search_service,
+    get_content_agent_config,
+)
 from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.services import NotFoundError, QuizService, SearchService
 from edu_shared.schemas.quizzes import QuizDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import QuizCreate, QuizUpdate, GenerateRequest
@@ -21,9 +25,9 @@ async def create_quiz(
     project_id: str,
     quiz: QuizCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
 ):
     """Create a new quiz."""
-    service = QuizService()
     try:
         return service.create_quiz(
             project_id=project_id,
@@ -39,9 +43,9 @@ async def get_quiz(
     project_id: str,
     quiz_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
 ):
     """Get a quiz by ID."""
-    service = QuizService()
     try:
         return service.get_quiz(quiz_id=quiz_id, project_id=project_id)
     except NotFoundError as e:
@@ -54,9 +58,9 @@ async def get_quiz(
 async def list_quizzes(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
 ):
     """List all quizzes for a project."""
-    service = QuizService()
     try:
         return service.list_quizzes(project_id=project_id)
     except Exception as e:
@@ -69,9 +73,9 @@ async def update_quiz(
     quiz_id: str,
     quiz: QuizUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
 ):
     """Update a quiz."""
-    service = QuizService()
     try:
         return service.update_quiz(
             quiz_id=quiz_id,
@@ -90,9 +94,9 @@ async def delete_quiz(
     project_id: str,
     quiz_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
 ):
     """Delete a quiz."""
-    service = QuizService()
     try:
         service.delete_quiz(quiz_id=quiz_id, project_id=project_id)
         return None
@@ -115,26 +119,11 @@ async def generate_quiz(
     quiz_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate quiz questions using AI and populate an existing quiz."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = QuizService()
     try:
         return await service.generate_and_populate(
             quiz_id=quiz_id,
@@ -156,26 +145,11 @@ async def generate_quiz_stream(
     quiz_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate quiz questions using AI with streaming progress updates."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = QuizService()
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""

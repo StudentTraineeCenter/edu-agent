@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 
 from auth import get_current_user
-from edu_shared.services import UserService, NotFoundError
+from dependencies import get_user_service
+from edu_shared.services import NotFoundError, UserService
 from edu_shared.schemas.users import UserDto
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
@@ -13,9 +14,9 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 async def get_user(
     user_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: UserService = Depends(get_user_service),
 ):
     """Get a user by ID."""
-    service = UserService()
     try:
         return service.get_user(user_id=user_id)
     except NotFoundError as e:
@@ -27,9 +28,9 @@ async def get_user(
 @router.get("", response_model=list[UserDto])
 async def list_users(
     current_user: UserDto = Depends(get_current_user),
+    service: UserService = Depends(get_user_service),
 ):
     """List all users."""
-    service = UserService()
     try:
         return service.list_users()
     except Exception as e:
@@ -40,9 +41,9 @@ async def list_users(
 async def delete_user(
     user_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: UserService = Depends(get_user_service),
 ):
     """Delete a user."""
-    service = UserService()
     try:
         service.delete_user(user_id=user_id)
         return None

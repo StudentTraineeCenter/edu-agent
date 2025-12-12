@@ -6,13 +6,17 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 
 from auth import get_current_user
-from edu_shared.services import DocumentService, DocumentProcessingService, NotFoundError
+from dependencies import (
+    get_document_service,
+    get_document_processing_service,
+    get_queue_service,
+)
+from edu_shared.services import DocumentProcessingService, DocumentService, NotFoundError
 from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
 from edu_shared.schemas.users import UserDto
 from routers.schemas import DocumentCreate, DocumentUpdate
 from services.queue import QueueService
-from config import get_settings
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["documents"])
 
@@ -22,33 +26,12 @@ async def upload_document(
     project_id: str,
     files: List[UploadFile] = File(...),
     current_user: UserDto = Depends(get_current_user),
+    processing_service: DocumentProcessingService = Depends(get_document_processing_service),
+    queue_service: QueueService = Depends(get_queue_service),
 ):
     """Upload one or more documents. Processing happens asynchronously in background."""
     if not files:
         raise HTTPException(status_code=400, detail="At least one file is required")
-
-    settings = get_settings()
-    
-    # Initialize services
-    # Note: For upload, we only need blob storage and database access
-    # The CU client and embeddings are only needed for processing (done in worker)
-    processing_service = DocumentProcessingService(
-        database_url=settings.database_url,
-        azure_storage_connection_string=settings.azure_storage_connection_string,
-        azure_storage_input_container_name=settings.azure_storage_input_container_name,
-        azure_storage_output_container_name=settings.azure_storage_output_container_name,
-        azure_cu_endpoint="",
-        azure_cu_key="",
-        azure_cu_analyzer_id="",
-        azure_openai_embedding_deployment="",  # Not used in upload
-        azure_openai_endpoint="",  # Not used in upload
-        azure_openai_api_version="",  # Not used in upload
-    )
-    
-    queue_service = QueueService(
-        connection_string=settings.azure_storage_connection_string,
-        queue_name=settings.azure_storage_queue_name,
-    )
 
     # Validate file types
     allowed_types = processing_service.get_supported_types()
@@ -128,9 +111,9 @@ async def create_document(
     project_id: str,
     document: DocumentCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
 ):
     """Create a new document."""
-    service = DocumentService()
     try:
         return service.create_document(
             owner_id=current_user.id,
@@ -150,9 +133,9 @@ async def get_document(
     project_id: str,
     document_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
 ):
     """Get a document by ID."""
-    service = DocumentService()
     try:
         return service.get_document(document_id=document_id, owner_id=current_user.id)
     except NotFoundError as e:
@@ -165,9 +148,9 @@ async def get_document(
 async def list_documents(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
 ):
     """List all documents for a project."""
-    service = DocumentService()
     try:
         return service.list_documents(owner_id=current_user.id, project_id=project_id)
     except Exception as e:
@@ -180,9 +163,9 @@ async def update_document(
     document_id: str,
     document: DocumentUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
 ):
     """Update a document."""
-    service = DocumentService()
     try:
         return service.update_document(
             document_id=document_id,
@@ -202,9 +185,9 @@ async def delete_document(
     project_id: str,
     document_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
 ):
     """Delete a document."""
-    service = DocumentService()
     try:
         service.delete_document(document_id=document_id, owner_id=current_user.id)
         return None

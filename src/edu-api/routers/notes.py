@@ -6,9 +6,13 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from auth import get_current_user
-from config import get_settings
-from edu_shared.services import NoteService, SearchService, NotFoundError
+from dependencies import (
+    get_note_service,
+    get_search_service,
+    get_content_agent_config,
+)
 from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.services import NoteService, NotFoundError, SearchService
 from edu_shared.schemas.notes import NoteDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import NoteCreate, NoteUpdate, GenerateRequest
@@ -21,9 +25,9 @@ async def create_note(
     project_id: str,
     note: NoteCreate,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
 ):
     """Create a new note."""
-    service = NoteService()
     try:
         return service.create_note(
             project_id=project_id,
@@ -40,9 +44,9 @@ async def get_note(
     project_id: str,
     note_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
 ):
     """Get a note by ID."""
-    service = NoteService()
     try:
         return service.get_note(note_id=note_id, project_id=project_id)
     except NotFoundError as e:
@@ -55,9 +59,9 @@ async def get_note(
 async def list_notes(
     project_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
 ):
     """List all notes for a project."""
-    service = NoteService()
     try:
         return service.list_notes(project_id=project_id)
     except Exception as e:
@@ -70,9 +74,9 @@ async def update_note(
     note_id: str,
     note: NoteUpdate,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
 ):
     """Update a note."""
-    service = NoteService()
     try:
         return service.update_note(
             note_id=note_id,
@@ -92,9 +96,9 @@ async def delete_note(
     project_id: str,
     note_id: str,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
 ):
     """Delete a note."""
-    service = NoteService()
     try:
         service.delete_note(note_id=note_id, project_id=project_id)
         return None
@@ -117,26 +121,11 @@ async def generate_note(
     note_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate note content using AI and populate an existing note."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = NoteService()
     try:
         return await service.generate_and_populate(
             note_id=note_id,
@@ -158,26 +147,11 @@ async def generate_note_stream(
     note_id: str,
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
+    service: NoteService = Depends(get_note_service),
+    search_service: SearchService = Depends(get_search_service),
+    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
 ):
     """Generate note content using AI with streaming progress updates."""
-    settings = get_settings()
-    
-    # Initialize SearchService for RAG
-    search_service = SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    # Create agent config
-    agent_config = ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-    
-    service = NoteService()
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""
