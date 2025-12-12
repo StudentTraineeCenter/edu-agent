@@ -2,6 +2,7 @@ from sqlalchemy import text
 from contextlib import asynccontextmanager
 from pydantic import BaseModel, ValidationError
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 import uvicorn
 
@@ -59,9 +60,20 @@ class Api:
             docs_url=None,
             redoc_url=None,
         )
+        self.setup_cors()
         self.setup_exception_handlers()
         self.setup_routes()
         self.setup_openapi()
+
+    def setup_cors(self):
+        """Configure CORS middleware."""
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # Allow all origins
+            allow_credentials=True,
+            allow_methods=["*"],  # Allow all methods
+            allow_headers=["*"],  # Allow all headers
+        )
 
     def setup_exception_handlers(self):
         """Register exception handlers."""
