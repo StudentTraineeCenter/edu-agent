@@ -1,0 +1,15 @@
+[project]
+name = "edu-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "azure-storage-queue>=12.14.1",
+    "edu-shared",
+    "fastapi>=0.124.4",
+    "uvicorn>=0.38.0",
+]
+
+[tool.uv.sources]
+edu-shared = { workspace = true }

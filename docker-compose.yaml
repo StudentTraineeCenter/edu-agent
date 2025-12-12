@@ -1,18 +1,64 @@
+# docker-compose.yml
 services:
+  # ----------------------------------------------------------------
+  # 1. API Service (FastAPI)
+  # ----------------------------------------------------------------
+  api:
+    build:
+      context: .              # Context is ROOT to allow access to shared lib
+      dockerfile: src/edu-api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Use explicit connection string for Azurite within Docker network
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+    depends_on:
+      - db
+      - azurite
+    volumes:
+      # Hot reloading: Map local source to container (optional for dev)
+      - ./src:/app/src
+
+  # ----------------------------------------------------------------
+  # 2. Worker Service (AI Processor)
+  # ----------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: src/edu-worker/Dockerfile
+    environment:
+      # Must match the API connection string exactly
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+    depends_on:
+      - azurite
+      - db
+
+  # ----------------------------------------------------------------
+  # 3. Database (Postgres with pgvector)
+  # ----------------------------------------------------------------
   db:
     image: pgvector/pgvector:pg16
-    restart: always
-    env_file:
-      - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=edu_db
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ----------------------------------------------------------------
+  # 4. Storage Queue & Blob (Azurite)
+  # ----------------------------------------------------------------
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000" # Blob
+      - "10001:10001" # Queue
+      - "10002:10002" # Table
+    volumes:
+      - azurite_data:/data
 
 volumes:
   postgres_data:
-    driver: local
+  azurite_data:
