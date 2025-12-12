@@ -10,6 +10,7 @@ class TaskType(str, Enum):
     FLASHCARD_GENERATION = "flashcard_generation"
     QUIZ_GENERATION = "quiz_generation"
     NOTE_GENERATION = "note_generation"
+    DOCUMENT_PROCESSING = "document_processing"
 
 
 class FlashcardGenerationData(TypedDict):
@@ -41,7 +42,20 @@ class NoteGenerationData(TypedDict):
     user_id: NotRequired[str]
 
 
-TaskData = Union[FlashcardGenerationData, QuizGenerationData, NoteGenerationData]
+class DocumentProcessingData(TypedDict):
+    """Data schema for document processing tasks."""
+
+    document_id: str
+    project_id: str
+    user_id: str
+
+
+TaskData = Union[
+    FlashcardGenerationData,
+    QuizGenerationData,
+    NoteGenerationData,
+    DocumentProcessingData,
+]
 
 
 class QueueTaskMessage(TypedDict):

@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     # Azure Storage connection string
     azure_storage_connection_string: str
     azure_storage_queue_name: str = "ai-generation-tasks"
+    azure_storage_input_container_name: str = "input"
+    azure_storage_output_container_name: str = "output"
+
+    # Azure Content Understanding
+    azure_cu_endpoint: str
+    azure_cu_key: str
+    azure_cu_analyzer_id: str
 
     # Azure OpenAI
     azure_openai_endpoint: str
