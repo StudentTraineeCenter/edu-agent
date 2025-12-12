@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "azure-identity>=1.25.1",
+    "azure-keyvault-secrets>=4.10.0",
     "azure-storage-queue>=12.14.1",
     "edu-shared",
     "langchain-core>=1.1.3",
