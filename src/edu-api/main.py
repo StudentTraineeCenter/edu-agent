@@ -1,12 +1,19 @@
 from sqlalchemy import text
 from contextlib import asynccontextmanager
-from pydantic import BaseModel
-from fastapi import FastAPI
+from pydantic import BaseModel, ValidationError
+from fastapi import FastAPI, HTTPException
 from scalar_fastapi import get_scalar_api_reference
 import uvicorn
 
 from config import get_settings
 from edu_shared.db.session import init_db
+from edu_shared.exceptions import NotFoundError
+from exception_handlers import (
+    not_found_error_handler,
+    http_exception_handler,
+    validation_error_handler,
+    general_exception_handler,
+)
 from routers import (
     projects_router,
     documents_router,
@@ -48,8 +55,16 @@ class Api:
             docs_url=None,
             redoc_url=None,
         )
+        self.setup_exception_handlers()
         self.setup_routes()
         self.setup_openapi()
+
+    def setup_exception_handlers(self):
+        """Register exception handlers."""
+        self.app.add_exception_handler(NotFoundError, not_found_error_handler)
+        self.app.add_exception_handler(HTTPException, http_exception_handler)
+        self.app.add_exception_handler(ValidationError, validation_error_handler)
+        self.app.add_exception_handler(Exception, general_exception_handler)
 
     def setup_routes(self):
         @self.app.get("/health")

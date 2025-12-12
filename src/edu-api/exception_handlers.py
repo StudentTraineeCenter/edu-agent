@@ -1,0 +1,110 @@
+import logging
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+from edu_shared.exceptions import NotFoundError
+
+logger = logging.getLogger(__name__)
+
+
+async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONResponse:
+    """Handle NotFoundError exceptions."""
+    logger.warning(
+        f"Resource not found: {exc.message}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": 404,
+        },
+    )
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": {
+                "message": exc.message,
+                "status_code": 404,
+            }
+        },
+    )
+
+
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle HTTP exceptions with custom error format."""
+    logger.warning(
+        f"HTTP exception: {exc.detail}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": exc.status_code,
+            "error_message": exc.detail,
+            "client_ip": request.client.host if request.client else None,
+        },
+    )
+
+    # Check if it's one of our custom exceptions with details
+    if hasattr(exc, "details") and exc.details:
+        content = {
+            "error": {
+                "message": exc.detail,
+                "status_code": exc.status_code,
+                "details": exc.details,
+            }
+        }
+    else:
+        content = {
+            "error": {
+                "message": exc.detail,
+                "status_code": exc.status_code,
+            }
+        }
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=content,
+    )
+
+
+async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
+    """Handle Pydantic validation errors."""
+    logger.warning(
+        f"Validation error: {exc.errors()}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": 422,
+        },
+    )
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "message": "Validation error",
+                "status_code": 422,
+                "details": exc.errors(),
+            }
+        },
+    )
+
+
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle general exceptions."""
+    logger.error(
+        f"Unhandled exception: {type(exc).__name__}: {str(exc)}",
+        extra={
+            "exception_type": type(exc).__name__,
+            "exception_message": str(exc),
+            "path": request.url.path,
+            "method": request.method,
+        },
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "message": "Internal server error",
+                "status_code": 500,
+            }
+        },
+    )
+
