@@ -5,13 +5,13 @@ services:
   # ----------------------------------------------------------------
   api:
     build:
-      context: .              # Context is ROOT to allow access to shared lib
+      context: . # Context is ROOT to allow access to shared lib
       dockerfile: src/edu-api/Dockerfile
     ports:
       - "8000:8000"
     environment:
-      # Use explicit connection string for Azurite within Docker network
       - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/postgres
     depends_on:
       - db
       - azurite
@@ -41,7 +41,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=edu_db
+      - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
     volumes:

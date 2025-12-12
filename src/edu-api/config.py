@@ -12,9 +12,12 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Azure Storage connection string
+    # Azure Storage
     azure_storage_connection_string: str
     azure_storage_queue_name: str = "ai-generation-tasks"
+
+    # Database
+    database_url: str
 
 
 @lru_cache
