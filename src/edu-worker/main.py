@@ -5,6 +5,8 @@ import time
 from azure.storage.queue import QueueClient, QueueMessage
 from rich.console import Console
 
+from edu_shared.agents.flashcard_agent import FlashcardAgent
+
 from config import get_settings
 
 console = Console(force_terminal=True)
@@ -16,9 +18,15 @@ def process_message(msg: QueueMessage):
         content = json.loads(base64.b64decode(msg.content).decode("utf-8"))
 
         task_type = content.get("task_type")
-        group_id = content.get("group_id")
+        project_id = content.get("project_id")
+        topic = content.get("topic")
+        custom_instructions = content.get("custom_instructions")
 
-        console.log(f"Received task: {task_type} for group: {group_id}")
+        console.log(f"Received task: {task_type} for project: {project_id}")
+
+        if task_type == "flashcard_generation":
+            flashcard_agent = FlashcardAgent(config=config, document_service=document_service)
+            flashcard_agent.generate(project_id=project_id, topic=topic, custom_instructions=custom_instructions)
 
         # Run AI Logic
         # service = FlashcardService(...)
