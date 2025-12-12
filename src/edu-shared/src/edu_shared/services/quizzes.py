@@ -5,10 +5,13 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
 
-from edu_shared.db.models import Quiz
+from edu_shared.db.models import Quiz, QuizQuestion
 from edu_shared.db.session import get_session_factory
 from edu_shared.schemas.quizzes import QuizDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.agents.quiz_agent import QuizAgent
+from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.services.search import SearchService
 
 
 class QuizService:
@@ -188,6 +191,87 @@ class QuizService:
             created_at=quiz.created_at,
             updated_at=quiz.updated_at,
         )
+
+    async def generate_and_populate(
+        self,
+        quiz_id: str,
+        project_id: str,
+        search_service: SearchService,
+        agent_config: ContentAgentConfig,
+        topic: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
+    ) -> QuizDto:
+        """Generate quiz questions using AI and populate an existing quiz.
+        
+        Args:
+            quiz_id: The quiz ID to populate
+            project_id: The project ID
+            search_service: SearchService instance for RAG
+            agent_config: ContentAgentConfig for AI generation
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            
+        Returns:
+            Updated QuizDto
+            
+        Raises:
+            NotFoundError: If quiz not found
+        """
+        with self._get_db_session() as db:
+            try:
+                # Find existing quiz
+                quiz = db.query(Quiz).filter(
+                    Quiz.id == quiz_id,
+                    Quiz.project_id == project_id,
+                ).first()
+                if not quiz:
+                    raise NotFoundError(f"Quiz {quiz_id} not found")
+
+                # Generate quiz using AI
+                quiz_agent = QuizAgent(config=agent_config, search_service=search_service)
+                result = await quiz_agent.generate(
+                    project_id=project_id,
+                    topic=topic or "",
+                    custom_instructions=custom_instructions,
+                )
+
+                # Update quiz with generated name and description
+                quiz.name = result.name
+                quiz.description = result.description
+                quiz.updated_at = datetime.now()
+                db.flush()
+
+                # Delete existing questions and create new ones
+                db.query(QuizQuestion).filter(QuizQuestion.quiz_id == quiz_id).delete()
+
+                # Save quiz questions
+                for position, question_item in enumerate(result.questions):
+                    quiz_question = QuizQuestion(
+                        id=str(uuid4()),
+                        quiz_id=quiz_id,
+                        project_id=project_id,
+                        question_text=question_item.question_text,
+                        option_a=question_item.option_a,
+                        option_b=question_item.option_b,
+                        option_c=question_item.option_c,
+                        option_d=question_item.option_d,
+                        correct_option=question_item.correct_option,
+                        explanation=question_item.explanation,
+                        difficulty_level=question_item.difficulty_level,
+                        position=position,
+                        created_at=datetime.now(),
+                    )
+                    db.add(quiz_question)
+
+                db.commit()
+                db.refresh(quiz)
+
+                return self._model_to_dto(quiz)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
 
     @contextmanager
     def _get_db_session(self):

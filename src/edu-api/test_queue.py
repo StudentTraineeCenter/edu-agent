@@ -19,9 +19,10 @@ def main():
         queue_name="ai-generation-tasks",  # Make sure this queue exists in Azure/Azurite
     )
 
+    # Note: group_id is now required - the flashcard group should already exist in the database
     task_data: FlashcardGenerationData = {
         "project_id": str(uuid4()),
-        "group_id": str(uuid4()),
+        "group_id": str(uuid4()),  # This should be an existing group_id from the database
         "user_id": str(uuid4()),
         "topic": "Machine Learning Fundamentals",
         "custom_instructions": "Create flashcards for the topic of Machine Learning Fundamentals",

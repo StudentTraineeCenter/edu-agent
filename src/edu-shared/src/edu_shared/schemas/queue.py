@@ -17,9 +17,9 @@ class FlashcardGenerationData(TypedDict):
     """Data schema for flashcard generation tasks."""
 
     project_id: str
+    group_id: str  # Required: existing flashcard group to populate
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
-    group_id: NotRequired[str]
     user_id: NotRequired[str]
 
 
@@ -27,9 +27,9 @@ class QuizGenerationData(TypedDict):
     """Data schema for quiz generation tasks."""
 
     project_id: str
+    quiz_id: str  # Required: existing quiz to populate
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
-    group_id: NotRequired[str]
     user_id: NotRequired[str]
 
 
@@ -37,6 +37,7 @@ class NoteGenerationData(TypedDict):
     """Data schema for note generation tasks."""
 
     project_id: str
+    note_id: str  # Required: existing note to populate
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
     user_id: NotRequired[str]

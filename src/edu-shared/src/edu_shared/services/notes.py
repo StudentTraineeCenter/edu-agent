@@ -9,6 +9,9 @@ from edu_shared.db.models import Note
 from edu_shared.db.session import get_session_factory
 from edu_shared.schemas.notes import NoteDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.agents.note_agent import NoteAgent
+from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.services.search import SearchService
 
 
 class NoteService:
@@ -196,6 +199,65 @@ class NoteService:
             created_at=note.created_at,
             updated_at=note.updated_at,
         )
+
+    async def generate_and_populate(
+        self,
+        note_id: str,
+        project_id: str,
+        search_service: SearchService,
+        agent_config: ContentAgentConfig,
+        topic: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
+    ) -> NoteDto:
+        """Generate note content using AI and populate an existing note.
+        
+        Args:
+            note_id: The note ID to populate
+            project_id: The project ID
+            search_service: SearchService instance for RAG
+            agent_config: ContentAgentConfig for AI generation
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            
+        Returns:
+            Updated NoteDto
+            
+        Raises:
+            NotFoundError: If note not found
+        """
+        with self._get_db_session() as db:
+            try:
+                # Find existing note
+                note = db.query(Note).filter(
+                    Note.id == note_id,
+                    Note.project_id == project_id,
+                ).first()
+                if not note:
+                    raise NotFoundError(f"Note {note_id} not found")
+
+                # Generate note using AI
+                note_agent = NoteAgent(config=agent_config, search_service=search_service)
+                result = await note_agent.generate(
+                    project_id=project_id,
+                    topic=topic or "",
+                    custom_instructions=custom_instructions,
+                )
+
+                # Update note with generated content
+                note.title = result.title
+                note.description = result.description
+                note.content = result.content
+                note.updated_at = datetime.now()
+                
+                db.commit()
+                db.refresh(note)
+
+                return self._model_to_dto(note)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
 
     @contextmanager
     def _get_db_session(self):

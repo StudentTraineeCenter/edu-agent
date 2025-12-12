@@ -7,19 +7,22 @@ from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient, QueueMessage
 from rich.console import Console
 
-from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.agents.quiz_agent import QuizAgent
-from edu_shared.agents.note_agent import NoteAgent
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.schemas.queue import (
     QueueTaskMessage,
     TaskType,
     FlashcardGenerationData,
+    QuizGenerationData,
+    NoteGenerationData,
     DocumentProcessingData,
 )
 from edu_shared.services.search import SearchService
 from edu_shared.services.document_processing import DocumentProcessingService
-from edu_shared.db.session import init_db
+from edu_shared.services.flashcard_groups import FlashcardGroupService
+from edu_shared.services.quizzes import QuizService
+from edu_shared.services.notes import NoteService
+from edu_shared.db.session import init_db, get_session_factory
+from edu_shared.db.models import Document
 
 from config import get_settings
 
@@ -47,30 +50,53 @@ async def process_message(
 
         if task_type == TaskType.FLASHCARD_GENERATION:
             flashcard_data = FlashcardGenerationData(**task_data)
-            flashcard_agent = FlashcardAgent(config=config, search_service=search_service)
-
-            result = await flashcard_agent.generate(
+            service = FlashcardGroupService()
+            
+            await service.generate_and_populate(
+                group_id=flashcard_data["group_id"],
                 project_id=flashcard_data["project_id"],
-                topic=flashcard_data.get("topic", ""),
+                search_service=search_service,
+                agent_config=config,
+                topic=flashcard_data.get("topic"),
                 custom_instructions=flashcard_data.get("custom_instructions"),
             )
+            console.log(f"Populated flashcard group {flashcard_data['group_id']}")
 
-        if task_type == TaskType.QUIZ_GENERATION:
-            quiz_agent = QuizAgent(config=config, search_service=search_service)
+        elif task_type == TaskType.QUIZ_GENERATION:
+            quiz_data = QuizGenerationData(**task_data)
+            service = QuizService()
+            
+            await service.generate_and_populate(
+                quiz_id=quiz_data["quiz_id"],
+                project_id=quiz_data["project_id"],
+                search_service=search_service,
+                agent_config=config,
+                topic=quiz_data.get("topic"),
+                custom_instructions=quiz_data.get("custom_instructions"),
+            )
+            console.log(f"Populated quiz {quiz_data['quiz_id']}")
 
-        if task_type == TaskType.NOTE_GENERATION:
-            note_agent = NoteAgent(config=config, search_service=search_service)
+        elif task_type == TaskType.NOTE_GENERATION:
+            note_data = NoteGenerationData(**task_data)
+            service = NoteService()
+            
+            result = await service.generate_and_populate(
+                note_id=note_data["note_id"],
+                project_id=note_data["project_id"],
+                search_service=search_service,
+                agent_config=config,
+                topic=note_data.get("topic"),
+                custom_instructions=note_data.get("custom_instructions"),
+            )
+            console.log(f"Populated note {note_data['note_id']}: {result.title}")
 
-        if task_type == TaskType.DOCUMENT_PROCESSING:
+        elif task_type == TaskType.DOCUMENT_PROCESSING:
             doc_data = DocumentProcessingData(**task_data)
             document_id = doc_data["document_id"]
             project_id = doc_data["project_id"]
 
             # Get file content from blob storage
             # First, get document to find blob name
-            from edu_shared.db.models import Document
-            from edu_shared.db.session import get_session_factory
-
             SessionLocal = get_session_factory()
             db = SessionLocal()
             try:
@@ -98,8 +124,11 @@ async def process_message(
                     file_content=file_content,
                     project_id=project_id,
                 )
+                console.log(f"Processed document {document_id}")
             finally:
                 db.close()
+        else:
+            raise ValueError(f"Unknown task type: {task_type}")
 
         console.log(f"Completed task: {task_type}")
 
