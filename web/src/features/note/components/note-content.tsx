@@ -6,11 +6,16 @@ import { Response } from '@/components/ai-elements/response'
 
 type NoteContentProps = {
   noteId: string
+  projectId: string
   className?: string
 }
 
-export const NoteContent = ({ noteId, className }: NoteContentProps) => {
-  const noteResult = useAtomValue(noteAtom(noteId))
+export const NoteContent = ({
+  noteId,
+  projectId,
+  className,
+}: NoteContentProps) => {
+  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
 
   return Result.builder(noteResult)
     .onInitialOrWaiting(() => (
@@ -24,8 +29,7 @@ export const NoteContent = ({ noteId, className }: NoteContentProps) => {
         <span>Failed to load note</span>
       </div>
     ))
-    .onSuccess((result) => {
-      const note = result.note
+    .onSuccess((note) => {
       if (!note) {
         return (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">

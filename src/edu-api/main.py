@@ -21,6 +21,10 @@ from routers import (
     notes_router,
     quizzes_router,
     flashcard_groups_router,
+    practice_records_router,
+    mind_maps_router,
+    study_sessions_router,
+    study_sessions_global_router,
     users_router,
     auth_router,
 )
@@ -78,6 +82,10 @@ class Api:
         self.app.include_router(notes_router)
         self.app.include_router(quizzes_router)
         self.app.include_router(flashcard_groups_router)
+        self.app.include_router(practice_records_router)
+        self.app.include_router(mind_maps_router)
+        self.app.include_router(study_sessions_router)
+        self.app.include_router(study_sessions_global_router)
         self.app.include_router(users_router)
         self.app.include_router(auth_router)
 

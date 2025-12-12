@@ -28,7 +28,9 @@ export const FlashcardContent = ({
   onClose,
 }: FlashcardContentProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const currentCard = useAtomValue(currentFlashcardAtom(flashcardGroupId))
+  const currentCard = useAtomValue(
+    currentFlashcardAtom({ projectId, flashcardGroupId }),
+  )
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
 
@@ -50,6 +52,7 @@ export const FlashcardContent = ({
         onRetryWrong={onRetryWrong}
         onClose={onClose}
         flashcardGroupId={flashcardGroupId}
+        projectId={projectId}
       />
     )
   }

@@ -26,9 +26,7 @@ export const studyResourcesAtom = Atom.family((projectId: string) =>
         .get(flashcardGroupsAtom(projectId))
         .pipe(
           Result.map((val) =>
-            val.data.map((item) =>
-              StudyResource.FlashcardGroup({ data: item }),
-            ),
+            val.map((item) => StudyResource.FlashcardGroup({ data: item })),
           ),
         )
 
@@ -36,7 +34,7 @@ export const studyResourcesAtom = Atom.family((projectId: string) =>
         .get(quizzesAtom(projectId))
         .pipe(
           Result.map((val) =>
-            val.data.map((item) => StudyResource.Quiz({ data: item })),
+            val.map((item) => StudyResource.Quiz({ data: item })),
           ),
         )
 
@@ -44,7 +42,7 @@ export const studyResourcesAtom = Atom.family((projectId: string) =>
         .get(notesAtom(projectId))
         .pipe(
           Result.map((val) =>
-            val.data.map((item) => StudyResource.Note({ data: item })),
+            val.map((item) => StudyResource.Note({ data: item })),
           ),
         )
 
@@ -52,7 +50,7 @@ export const studyResourcesAtom = Atom.family((projectId: string) =>
         .get(mindMapsAtom(projectId))
         .pipe(
           Result.map((mindMaps) =>
-            mindMaps.data.map((item) => StudyResource.MindMap({ data: item })),
+            mindMaps.map((item) => StudyResource.MindMap({ data: item })),
           ),
         )
 

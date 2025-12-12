@@ -14,8 +14,14 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
-const DocumentHeaderContent = ({ documentId }: { documentId: string }) => {
-  const documentResult = useAtomValue(documentAtom(documentId))
+const DocumentHeaderContent = ({
+  projectId,
+  documentId,
+}: {
+  projectId: string
+  documentId: string
+}) => {
+  const documentResult = useAtomValue(documentAtom({ projectId, documentId }))
 
   return Result.builder(documentResult)
     .onSuccess((document) => (
@@ -42,7 +48,7 @@ export const DocumentHeader = ({
   documentId,
   projectId,
 }: DocumentHeaderProps) => {
-  const documentResult = useAtomValue(documentAtom(documentId))
+  const documentResult = useAtomValue(documentAtom({ projectId, documentId }))
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -62,7 +68,7 @@ export const DocumentHeader = ({
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <DocumentHeaderContent documentId={documentId} />
+        <DocumentHeaderContent projectId={projectId} documentId={documentId} />
       </div>
     </header>
   )

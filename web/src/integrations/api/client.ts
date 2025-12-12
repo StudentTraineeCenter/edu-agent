@@ -7,16 +7,15 @@ import * as Effect from 'effect/Effect'
 import type { ParseError } from 'effect/ParseResult'
 import * as S from 'effect/Schema'
 
-/**
- * Response model for project data.
- */
+export class HealthCheckHealthGet200 extends S.Struct({}) {}
+
 export class ProjectDto extends S.Class<ProjectDto>('ProjectDto')({
   /**
    * Unique ID of the project
    */
   id: S.String,
   /**
-   * ID of the project owner
+   * ID of the user who owns the project
    */
   owner_id: S.String,
   /**
@@ -26,35 +25,20 @@ export class ProjectDto extends S.Class<ProjectDto>('ProjectDto')({
   /**
    * Description of the project
    */
-  description: S.NullOr(S.String),
+  description: S.optionalWith(S.String, { nullable: true }),
   /**
-   * Language code
+   * Language code for the project
    */
   language_code: S.String,
   /**
-   * Creation timestamp
+   * Date and time the project was created
    */
   created_at: S.String,
 }) {}
 
-/**
- * Response model for listing projects.
- */
-export class ProjectListResponse extends S.Class<ProjectListResponse>(
-  'ProjectListResponse',
-)({
-  /**
-   * List of projects
-   */
-  data: S.Array(ProjectDto),
-}) {}
+export class ListProjectsApiV1ProjectsGet200 extends S.Array(ProjectDto) {}
 
-/**
- * Request model for creating a new project.
- */
-export class ProjectCreateRequest extends S.Class<ProjectCreateRequest>(
-  'ProjectCreateRequest',
-)({
+export class ProjectCreate extends S.Class<ProjectCreate>('ProjectCreate')({
   /**
    * Name of the project
    */
@@ -64,7 +48,7 @@ export class ProjectCreateRequest extends S.Class<ProjectCreateRequest>(
    */
   description: S.optionalWith(S.String, { nullable: true }),
   /**
-   * Language code (e.g., 'en', 'es', 'fr')
+   * Language code for the project
    */
   language_code: S.optionalWith(S.String, {
     nullable: true,
@@ -86,12 +70,7 @@ export class HTTPValidationError extends S.Class<HTTPValidationError>(
   detail: S.optionalWith(S.Array(ValidationError), { nullable: true }),
 }) {}
 
-/**
- * Request model for updating a project.
- */
-export class ProjectUpdateRequest extends S.Class<ProjectUpdateRequest>(
-  'ProjectUpdateRequest',
-)({
+export class ProjectUpdate extends S.Class<ProjectUpdate>('ProjectUpdate')({
   /**
    * Name of the project
    */
@@ -101,27 +80,114 @@ export class ProjectUpdateRequest extends S.Class<ProjectUpdateRequest>(
    */
   description: S.optionalWith(S.String, { nullable: true }),
   /**
-   * Language code (e.g., 'en', 'es', 'fr')
+   * Language code for the project
    */
   language_code: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class ListChatsV1ChatsGetParams extends S.Struct({
-  project_id: S.String,
+export class BodyUploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost extends S.Class<BodyUploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost>(
+  'BodyUploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost',
+)({
+  files: S.Array(S.instanceOf(globalThis.Blob)),
 }) {}
 
+export class UploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost201 extends S.Struct(
+  {},
+) {}
+
 /**
- * Response model for source document data.
+ * Document processing status enum.
  */
+export class DocumentStatus extends S.Literal(
+  'uploaded',
+  'processing',
+  'processed',
+  'indexed',
+  'failed',
+) {}
+
+export class DocumentDto extends S.Class<DocumentDto>('DocumentDto')({
+  /**
+   * Unique ID of the document
+   */
+  id: S.String,
+  /**
+   * ID of the document owner
+   */
+  owner_id: S.String,
+  /**
+   * ID of the project the document belongs to
+   */
+  project_id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Name of the document file
+   */
+  file_name: S.String,
+  /**
+   * File extension (pdf, docx, txt, etc.)
+   */
+  file_type: S.String,
+  /**
+   * File size in bytes
+   */
+  file_size: S.Int.pipe(S.greaterThan(0)),
+  /**
+   * Document processing status: uploaded, processing, processed, failed, indexed
+   */
+  status: DocumentStatus,
+  /**
+   * Auto-generated summary of the document
+   */
+  summary: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the document was uploaded
+   */
+  uploaded_at: S.String,
+  /**
+   * Date and time the document was processed
+   */
+  processed_at: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class ListDocumentsApiV1ProjectsProjectIdDocumentsGet200 extends S.Array(
+  DocumentDto,
+) {}
+
+export class DocumentCreate extends S.Class<DocumentCreate>('DocumentCreate')({
+  /**
+   * Name of the document file
+   */
+  file_name: S.String,
+  /**
+   * File extension (pdf, docx, txt, etc.)
+   */
+  file_type: S.String,
+  /**
+   * File size in bytes
+   */
+  file_size: S.Int.pipe(S.greaterThan(0)),
+  /**
+   * Auto-generated summary of the document
+   */
+  summary: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class DocumentUpdate extends S.Class<DocumentUpdate>('DocumentUpdate')({
+  /**
+   * Name of the document file
+   */
+  file_name: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Auto-generated summary of the document
+   */
+  summary: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
 export class SourceDto extends S.Class<SourceDto>('SourceDto')({
   /**
    * Unique ID of the source segment
    */
   id: S.String,
-  /**
-   * Citation number for [n] references
-   */
-  citation_index: S.Int,
   /**
    * Content of the source segment
    */
@@ -134,14 +200,6 @@ export class SourceDto extends S.Class<SourceDto>('SourceDto')({
    * ID of the source document
    */
   document_id: S.String,
-  /**
-   * URL to preview/download the document
-   */
-  preview_url: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * Relevance score of the source
-   */
-  score: S.Number,
 }) {}
 
 /**
@@ -154,9 +212,6 @@ export class ToolCallDtoState extends S.Literal(
   'output-error',
 ) {}
 
-/**
- * Response model for tool call data.
- */
 export class ToolCallDto extends S.Class<ToolCallDto>('ToolCallDto')({
   /**
    * Unique ID of the tool call
@@ -193,9 +248,6 @@ export class ToolCallDto extends S.Class<ToolCallDto>('ToolCallDto')({
   error_text: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-/**
- * Response model for chat message data.
- */
 export class ChatMessageDto extends S.Class<ChatMessageDto>('ChatMessageDto')({
   /**
    * Unique ID of the message
@@ -218,38 +270,11 @@ export class ChatMessageDto extends S.Class<ChatMessageDto>('ChatMessageDto')({
    */
   tools: S.optionalWith(S.Array(ToolCallDto), { nullable: true }),
   /**
-   * Creation timestamp
+   * Date and time the message was created
    */
   created_at: S.String,
 }) {}
 
-/**
- * Response model for last chat message data.
- */
-export class LastChatMessageDto extends S.Class<LastChatMessageDto>(
-  'LastChatMessageDto',
-)({
-  /**
-   * Unique ID of the message
-   */
-  id: S.String,
-  /**
-   * Role of the message sender
-   */
-  role: S.String,
-  /**
-   * Content of the message
-   */
-  content: S.String,
-  /**
-   * Creation timestamp
-   */
-  created_at: S.String,
-}) {}
-
-/**
- * Response model for chat data.
- */
 export class ChatDto extends S.Class<ChatDto>('ChatDto')({
   /**
    * Unique ID of the chat
@@ -266,64 +291,39 @@ export class ChatDto extends S.Class<ChatDto>('ChatDto')({
   /**
    * Title of the chat
    */
-  title: S.NullOr(S.String),
+  title: S.optionalWith(S.String, { nullable: true }),
   /**
    * List of messages in the chat
    */
   messages: S.optionalWith(S.Array(ChatMessageDto), { nullable: true }),
   /**
-   * Creation timestamp
+   * Date and time the chat was created
    */
   created_at: S.String,
   /**
-   * Last update timestamp
+   * Date and time the chat was updated
    */
   updated_at: S.String,
-  /**
-   * Last message in the chat
-   */
-  last_message: S.optionalWith(LastChatMessageDto, { nullable: true }),
 }) {}
 
-/**
- * Response model for listing chats.
- */
-export class ChatListResponse extends S.Class<ChatListResponse>(
-  'ChatListResponse',
-)({
-  /**
-   * List of chats
-   */
-  data: S.Array(ChatDto),
-}) {}
+export class ListChatsApiV1ProjectsProjectIdChatsGet200 extends S.Array(
+  ChatDto,
+) {}
 
-/**
- * Request model for creating a new chat.
- */
-export class ChatCreateRequest extends S.Class<ChatCreateRequest>(
-  'ChatCreateRequest',
-)({
-  /**
-   * ID of the project this chat belongs to
-   */
-  project_id: S.String,
-}) {}
-
-/**
- * Request model for updating a chat.
- */
-export class ChatUpdateRequest extends S.Class<ChatUpdateRequest>(
-  'ChatUpdateRequest',
-)({
+export class ChatCreate extends S.Class<ChatCreate>('ChatCreate')({
   /**
    * Title of the chat
    */
   title: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-/**
- * Request model for chat completion with RAG.
- */
+export class ChatUpdate extends S.Class<ChatUpdate>('ChatUpdate')({
+  /**
+   * Title of the chat
+   */
+  title: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
 export class ChatCompletionRequest extends S.Class<ChatCompletionRequest>(
   'ChatCompletionRequest',
 )({
@@ -333,380 +333,156 @@ export class ChatCompletionRequest extends S.Class<ChatCompletionRequest>(
   message: S.String,
 }) {}
 
-export class SendStreamingMessageV1ChatsChatIdMessagesStreamPost200 extends S.Struct(
+export class SendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost200 extends S.Struct(
   {},
 ) {}
 
-export class UploadDocumentV1DocumentsUploadPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-export class BodyUploadDocumentV1DocumentsUploadPost extends S.Class<BodyUploadDocumentV1DocumentsUploadPost>(
-  'BodyUploadDocumentV1DocumentsUploadPost',
-)({
-  files: S.Array(S.instanceOf(globalThis.Blob)),
-}) {}
-
-export class DocumentUploadResponse extends S.Class<DocumentUploadResponse>(
-  'DocumentUploadResponse',
-)({
+export class NoteDto extends S.Class<NoteDto>('NoteDto')({
   /**
-   * IDs of the uploaded documents
+   * Unique ID of the note
    */
-  document_ids: S.Array(S.String),
-}) {}
-
-export class ListDocumentsV1DocumentsGetParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Document processing status enum.
- */
-export class DocumentStatus extends S.Literal(
-  'uploaded',
-  'processing',
-  'processed',
-  'indexed',
-  'failed',
-) {}
-
-export class DocumentDto extends S.Class<DocumentDto>('DocumentDto')({
   id: S.String,
-  owner_id: S.String,
-  project_id: S.NullOr(S.String),
-  file_name: S.String,
   /**
-   * File extension (pdf, docx, txt, etc.)
+   * ID of the project the note belongs to
    */
-  file_type: S.String,
-  /**
-   * File size in bytes
-   */
-  file_size: S.Int.pipe(S.greaterThan(0)),
-  /**
-   * Document processing status: uploaded, processing, processed, failed, indexed
-   */
-  status: DocumentStatus,
-  /**
-   * Auto-generated summary
-   */
-  summary: S.optionalWith(S.String, { nullable: true }),
-  uploaded_at: S.String,
-  processed_at: S.NullOr(S.String),
-}) {}
-
-export class DocumentListResponse extends S.Class<DocumentListResponse>(
-  'DocumentListResponse',
-)({
-  /**
-   * List of documents
-   */
-  data: S.Array(DocumentDto),
-}) {}
-
-export class DocumentPreviewResponse extends S.Class<DocumentPreviewResponse>(
-  'DocumentPreviewResponse',
-)({
-  /**
-   * SAS URL for direct blob access
-   */
-  preview_url: S.String,
-  /**
-   * Content type of the document
-   */
-  content_type: S.String,
-}) {}
-
-export class StreamDocumentV1DocumentsDocumentIdStreamGet200 extends S.Struct(
-  {},
-) {}
-
-export class CreateFlashcardGroupStreamV1FlashcardsStreamPostParams extends S.Struct(
-  {
-    project_id: S.String,
-  },
-) {}
-
-/**
- * Request model for creating a flashcard group.
- */
-export class CreateFlashcardGroupRequest extends S.Class<CreateFlashcardGroupRequest>(
-  'CreateFlashcardGroupRequest',
-)({
-  /**
-   * Number of flashcards to generate
-   */
-  flashcard_count: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Custom instructions including topic, format preferences, length, and any additional context. May include existing flashcards to add more to.
-   */
-  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
-  /**
-   * Length preference: less, normal, or more
-   */
-  length: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
-    { nullable: true },
-  ),
-  /**
-   * Overall difficulty level: easy, medium, or hard
-   */
-  difficulty: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true },
-  ),
-}) {}
-
-export class CreateFlashcardGroupStreamV1FlashcardsStreamPost200 extends S.Struct(
-  {},
-) {}
-
-export class ListFlashcardGroupsV1FlashcardsGetParams extends S.Struct({
   project_id: S.String,
-}) {}
-
-/**
- * Flashcard group data transfer object.
- */
-export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
-  'FlashcardGroupDto',
-)({
-  id: S.String,
-  project_id: S.String,
-  name: S.String,
+  /**
+   * Title of the note
+   */
+  title: S.String,
+  /**
+   * Description of the note
+   */
   description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Content of the note
+   */
+  content: S.String,
+  /**
+   * Date and time the note was created
+   */
   created_at: S.String,
+  /**
+   * Date and time the note was updated
+   */
   updated_at: S.String,
 }) {}
 
-/**
- * Response model for listing flashcard groups.
- */
-export class FlashcardGroupListResponse extends S.Class<FlashcardGroupListResponse>(
-  'FlashcardGroupListResponse',
-)({
-  /**
-   * List of flashcard groups
-   */
-  data: S.Array(FlashcardGroupDto),
-}) {}
-
-export class CreateFlashcardGroupV1FlashcardsPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Response model for flashcard group operations.
- */
-export class FlashcardGroupResponse extends S.Class<FlashcardGroupResponse>(
-  'FlashcardGroupResponse',
-)({
-  flashcard_group: FlashcardGroupDto,
-  message: S.String,
-}) {}
-
-/**
- * Flashcard data transfer object.
- */
-export class FlashcardDto extends S.Class<FlashcardDto>('FlashcardDto')({
-  id: S.String,
-  group_id: S.String,
-  project_id: S.String,
-  question: S.String,
-  answer: S.String,
-  difficulty_level: S.String,
-  position: S.Int,
-  created_at: S.String,
-}) {}
-
-/**
- * Response model for listing flashcards.
- */
-export class FlashcardListResponse extends S.Class<FlashcardListResponse>(
-  'FlashcardListResponse',
-)({
-  /**
-   * List of flashcards
-   */
-  data: S.Array(FlashcardDto),
-}) {}
-
-/**
- * Request model for creating a flashcard.
- */
-export class CreateFlashcardRequest extends S.Class<CreateFlashcardRequest>(
-  'CreateFlashcardRequest',
-)({
-  /**
-   * Flashcard question
-   */
-  question: S.String.pipe(S.minLength(1)),
-  /**
-   * Flashcard answer
-   */
-  answer: S.String.pipe(S.minLength(1)),
-  /**
-   * Difficulty level
-   */
-  difficulty_level: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true, default: () => 'medium' as const },
-  ),
-  /**
-   * Position for ordering within group
-   */
-  position: S.optionalWith(S.Int.pipe(S.greaterThanOrEqualTo(0)), {
-    nullable: true,
-  }),
-}) {}
-
-/**
- * Response model for flashcard operations.
- */
-export class FlashcardResponse extends S.Class<FlashcardResponse>(
-  'FlashcardResponse',
-)({
-  flashcard: FlashcardDto,
-  message: S.String,
-}) {}
-
-export class GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams extends S.Struct(
-  {
-    /**
-     * Whether to include mastered cards
-     */
-    include_mastered: S.optionalWith(S.Boolean, {
-      nullable: true,
-      default: () => false as const,
-    }),
-  },
+export class ListNotesApiV1ProjectsProjectIdNotesGet200 extends S.Array(
+  NoteDto,
 ) {}
 
-/**
- * Request model for updating a flashcard.
- */
-export class UpdateFlashcardRequest extends S.Class<UpdateFlashcardRequest>(
-  'UpdateFlashcardRequest',
-)({
+export class NoteCreate extends S.Class<NoteCreate>('NoteCreate')({
   /**
-   * Flashcard question
+   * Title of the note
    */
-  question: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  title: S.String,
   /**
-   * Flashcard answer
+   * Content of the note
    */
-  answer: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  content: S.String,
   /**
-   * Difficulty level
+   * Description of the note
    */
-  difficulty_level: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true },
-  ),
+  description: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-/**
- * Request model for reordering flashcards.
- */
-export class ReorderFlashcardsRequest extends S.Class<ReorderFlashcardsRequest>(
-  'ReorderFlashcardsRequest',
-)({
+export class NoteUpdate extends S.Class<NoteUpdate>('NoteUpdate')({
   /**
-   * List of flashcard IDs in the desired order
+   * Title of the note
    */
-  flashcard_ids: S.Array(S.String),
+  title: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Content of the note
+   */
+  content: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Description of the note
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class ExportFlashcardGroupV1FlashcardsGroupIdExportGet200 extends S.Struct(
+export class GenerateRequest extends S.Class<GenerateRequest>(
+  'GenerateRequest',
+)({
+  /**
+   * Topic for generation
+   */
+  topic: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Custom instructions for generation
+   */
+  custom_instructions: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Number of items to generate (for flashcards/quizzes)
+   */
+  count: S.optionalWith(S.Int, { nullable: true }),
+  /**
+   * Difficulty level (for flashcards/quizzes)
+   */
+  difficulty: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class GenerateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost200 extends S.Struct(
   {},
 ) {}
 
-export class CreateQuizStreamV1QuizzesStreamPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a quiz.
- */
-export class CreateQuizRequest extends S.Class<CreateQuizRequest>(
-  'CreateQuizRequest',
-)({
-  /**
-   * Number of quiz questions to generate
-   */
-  question_count: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Custom instructions including topic, format preferences, length, and any additional context.
-   */
-  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
-  /**
-   * Length preference: less, normal, or more
-   */
-  length: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
-    { nullable: true },
-  ),
-  /**
-   * Overall difficulty level: easy, medium, or hard
-   */
-  difficulty: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true },
-  ),
-}) {}
-
-export class CreateQuizStreamV1QuizzesStreamPost200 extends S.Struct({}) {}
-
-export class ListQuizzesV1QuizzesGetParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Quiz data transfer object.
- */
 export class QuizDto extends S.Class<QuizDto>('QuizDto')({
+  /**
+   * Unique ID of the quiz
+   */
   id: S.String,
+  /**
+   * ID of the project the quiz belongs to
+   */
   project_id: S.String,
+  /**
+   * Name of the quiz
+   */
   name: S.String,
+  /**
+   * Description of the quiz
+   */
   description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the quiz was created
+   */
   created_at: S.String,
+  /**
+   * Date and time the quiz was updated
+   */
   updated_at: S.String,
 }) {}
 
-/**
- * Response model for listing quizzes.
- */
-export class QuizListResponse extends S.Class<QuizListResponse>(
-  'QuizListResponse',
-)({
+export class ListQuizzesApiV1ProjectsProjectIdQuizzesGet200 extends S.Array(
+  QuizDto,
+) {}
+
+export class QuizCreate extends S.Class<QuizCreate>('QuizCreate')({
   /**
-   * List of quizzes
+   * Name of the quiz
    */
-  data: S.Array(QuizDto),
+  name: S.String,
+  /**
+   * Description of the quiz
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class CreateQuizV1QuizzesPostParams extends S.Struct({
-  project_id: S.String,
+export class QuizUpdate extends S.Class<QuizUpdate>('QuizUpdate')({
+  /**
+   * Name of the quiz
+   */
+  name: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Description of the quiz
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-/**
- * Response model for quiz operations.
- */
-export class QuizResponse extends S.Class<QuizResponse>('QuizResponse')({
-  quiz: QuizDto,
-  message: S.String,
-}) {}
+export class GenerateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost200 extends S.Struct(
+  {},
+) {}
 
 /**
  * Quiz question data transfer object.
@@ -714,145 +490,151 @@ export class QuizResponse extends S.Class<QuizResponse>('QuizResponse')({
 export class QuizQuestionDto extends S.Class<QuizQuestionDto>(
   'QuizQuestionDto',
 )({
+  /**
+   * Unique ID of the quiz question
+   */
   id: S.String,
+  /**
+   * ID of the quiz this question belongs to
+   */
   quiz_id: S.String,
+  /**
+   * ID of the project
+   */
   project_id: S.String,
+  /**
+   * The quiz question text
+   */
   question_text: S.String,
-  option_a: S.String,
-  option_b: S.String,
-  option_c: S.String,
-  option_d: S.String,
-  correct_option: S.String,
-  explanation: S.optionalWith(S.String, { nullable: true }),
-  difficulty_level: S.String,
-  position: S.Int,
-  created_at: S.String,
-}) {}
-
-/**
- * Response model for listing quiz questions.
- */
-export class QuizQuestionListResponse extends S.Class<QuizQuestionListResponse>(
-  'QuizQuestionListResponse',
-)({
-  /**
-   * List of quiz questions
-   */
-  data: S.Array(QuizQuestionDto),
-}) {}
-
-/**
- * Request model for creating a quiz question.
- */
-export class CreateQuizQuestionRequest extends S.Class<CreateQuizQuestionRequest>(
-  'CreateQuizQuestionRequest',
-)({
-  /**
-   * Question text
-   */
-  question_text: S.String.pipe(S.minLength(1)),
   /**
    * Option A
    */
-  option_a: S.String.pipe(S.minLength(1)),
+  option_a: S.String,
   /**
    * Option B
    */
-  option_b: S.String.pipe(S.minLength(1)),
+  option_b: S.String,
   /**
    * Option C
    */
-  option_c: S.String.pipe(S.minLength(1)),
+  option_c: S.String,
   /**
    * Option D
    */
-  option_d: S.String.pipe(S.minLength(1)),
+  option_d: S.String,
   /**
-   * Correct option (a, b, c, or d)
+   * Correct option: a, b, c, or d
    */
-  correct_option: S.String.pipe(S.pattern(new RegExp('^(a|b|c|d)$'))),
+  correct_option: S.String,
   /**
-   * Explanation for the answer
+   * Explanation for the correct answer
    */
   explanation: S.optionalWith(S.String, { nullable: true }),
   /**
-   * Difficulty level
+   * Difficulty level: easy, medium, or hard
    */
-  difficulty_level: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true, default: () => 'medium' as const },
-  ),
+  difficulty_level: S.String,
   /**
    * Position for ordering within quiz
    */
-  position: S.optionalWith(S.Int.pipe(S.greaterThanOrEqualTo(0)), {
-    nullable: true,
-  }),
+  position: S.Int,
+  /**
+   * Date and time the question was created
+   */
+  created_at: S.String,
 }) {}
 
-/**
- * Response model for quiz question operations.
- */
-export class QuizQuestionResponse extends S.Class<QuizQuestionResponse>(
-  'QuizQuestionResponse',
-)({
-  question: QuizQuestionDto,
-  message: S.String,
-}) {}
+export class ListQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet200 extends S.Array(
+  QuizQuestionDto,
+) {}
 
-/**
- * Request model for updating a quiz question.
- */
-export class UpdateQuizQuestionRequest extends S.Class<UpdateQuizQuestionRequest>(
-  'UpdateQuizQuestionRequest',
+export class QuizQuestionCreate extends S.Class<QuizQuestionCreate>(
+  'QuizQuestionCreate',
 )({
   /**
-   * Question text
+   * The quiz question text
    */
-  question_text: S.optionalWith(S.String.pipe(S.minLength(1)), {
-    nullable: true,
-  }),
+  question_text: S.String,
   /**
    * Option A
    */
-  option_a: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  option_a: S.String,
   /**
    * Option B
    */
-  option_b: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  option_b: S.String,
   /**
    * Option C
    */
-  option_c: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  option_c: S.String,
   /**
    * Option D
    */
-  option_d: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  option_d: S.String,
   /**
-   * Correct option (a, b, c, or d)
+   * Correct option: a, b, c, or d
    */
-  correct_option: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(a|b|c|d)$'))),
-    { nullable: true },
-  ),
+  correct_option: S.String,
   /**
-   * Explanation for the answer
+   * Explanation for the correct answer
    */
   explanation: S.optionalWith(S.String, { nullable: true }),
   /**
-   * Difficulty level
+   * Difficulty level (easy, medium, hard)
    */
-  difficulty_level: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(easy|medium|hard)$'))),
-    { nullable: true },
-  ),
+  difficulty_level: S.optionalWith(S.String, {
+    nullable: true,
+    default: () => 'medium' as const,
+  }),
+  /**
+   * Position for ordering within the quiz
+   */
+  position: S.optionalWith(S.Int, { nullable: true }),
 }) {}
 
-/**
- * Request model for reordering quiz questions.
- */
-export class ReorderQuizQuestionsRequest extends S.Class<ReorderQuizQuestionsRequest>(
-  'ReorderQuizQuestionsRequest',
+export class QuizQuestionUpdate extends S.Class<QuizQuestionUpdate>(
+  'QuizQuestionUpdate',
+)({
+  /**
+   * The quiz question text
+   */
+  question_text: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Option A
+   */
+  option_a: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Option B
+   */
+  option_b: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Option C
+   */
+  option_c: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Option D
+   */
+  option_d: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Correct option: a, b, c, or d
+   */
+  correct_option: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Explanation for the correct answer
+   */
+  explanation: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Difficulty level (easy, medium, hard)
+   */
+  difficulty_level: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Position for ordering within the quiz
+   */
+  position: S.optionalWith(S.Int, { nullable: true }),
+}) {}
+
+export class QuizQuestionReorder extends S.Class<QuizQuestionReorder>(
+  'QuizQuestionReorder',
 )({
   /**
    * List of question IDs in the desired order
@@ -860,105 +642,172 @@ export class ReorderQuizQuestionsRequest extends S.Class<ReorderQuizQuestionsReq
   question_ids: S.Array(S.String),
 }) {}
 
-export class ExportQuizV1QuizzesQuizIdExportGet200 extends S.Struct({}) {}
+export class ReorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch200 extends S.Array(
+  QuizQuestionDto,
+) {}
 
-export class CreateNoteStreamV1NotesStreamPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
+export class ListFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGetParams extends S.Struct(
+  {
+    /**
+     * Filter by study session ID
+     */
+    study_session_id: S.optionalWith(S.String, { nullable: true }),
+  },
+) {}
 
-/**
- * Request model for creating a note.
- */
-export class CreateNoteRequest extends S.Class<CreateNoteRequest>(
-  'CreateNoteRequest',
+export class FlashcardGroupDto extends S.Class<FlashcardGroupDto>(
+  'FlashcardGroupDto',
 )({
   /**
-   * Custom instructions including topic, format preferences, length, and any additional context.
+   * Unique ID of the flashcard group
    */
-  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
-  /**
-   * Length preference: less, normal, or more
-   */
-  length: S.optionalWith(
-    S.String.pipe(S.pattern(new RegExp('^(less|normal|more)$'))),
-    { nullable: true },
-  ),
-}) {}
-
-export class CreateNoteStreamV1NotesStreamPost200 extends S.Struct({}) {}
-
-export class ListNotesV1NotesGetParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Note data transfer object.
- */
-export class NoteDto extends S.Class<NoteDto>('NoteDto')({
   id: S.String,
+  /**
+   * ID of the project the flashcard group belongs to
+   */
   project_id: S.String,
-  title: S.String,
+  /**
+   * Name of the flashcard group
+   */
+  name: S.String,
+  /**
+   * Description of the flashcard group
+   */
   description: S.optionalWith(S.String, { nullable: true }),
-  content: S.String,
+  /**
+   * ID of the study session if this group belongs to one
+   */
+  study_session_id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the flashcard group was created
+   */
   created_at: S.String,
+  /**
+   * Date and time the flashcard group was updated
+   */
   updated_at: S.String,
 }) {}
 
-/**
- * Response model for listing notes.
- */
-export class NoteListResponse extends S.Class<NoteListResponse>(
-  'NoteListResponse',
+export class ListFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet200 extends S.Array(
+  FlashcardGroupDto,
+) {}
+
+export class FlashcardGroupCreate extends S.Class<FlashcardGroupCreate>(
+  'FlashcardGroupCreate',
 )({
   /**
-   * List of notes
+   * Name of the flashcard group
    */
-  data: S.Array(NoteDto),
+  name: S.String,
+  /**
+   * Description of the flashcard group
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * ID of the study session if this group belongs to one
+   */
+  study_session_id: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class CreateNoteV1NotesPostParams extends S.Struct({
+export class FlashcardGroupUpdate extends S.Class<FlashcardGroupUpdate>(
+  'FlashcardGroupUpdate',
+)({
+  /**
+   * Name of the flashcard group
+   */
+  name: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Description of the flashcard group
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class GenerateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost200 extends S.Struct(
+  {},
+) {}
+
+export class FlashcardDto extends S.Class<FlashcardDto>('FlashcardDto')({
+  /**
+   * Unique ID of the flashcard
+   */
+  id: S.String,
+  /**
+   * ID of the flashcard group
+   */
+  group_id: S.String,
+  /**
+   * ID of the project the flashcard belongs to
+   */
   project_id: S.String,
+  /**
+   * Question of the flashcard
+   */
+  question: S.String,
+  /**
+   * Answer of the flashcard
+   */
+  answer: S.String,
+  /**
+   * Difficulty level of the flashcard
+   */
+  difficulty_level: S.String,
+  /**
+   * Position of the flashcard within the group
+   */
+  position: S.Int,
+  /**
+   * Date and time the flashcard was created
+   */
+  created_at: S.String,
 }) {}
 
-/**
- * Response model for note operations.
- */
-export class NoteResponse extends S.Class<NoteResponse>('NoteResponse')({
-  note: NoteDto,
-  message: S.String,
-}) {}
+export class ListFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet200 extends S.Array(
+  FlashcardDto,
+) {}
 
-/**
- * Request model for updating a note.
- */
-export class UpdateNoteRequest extends S.Class<UpdateNoteRequest>(
-  'UpdateNoteRequest',
+export class FlashcardCreate extends S.Class<FlashcardCreate>(
+  'FlashcardCreate',
 )({
   /**
-   * Title of the note
+   * Question of the flashcard
    */
-  title: S.optionalWith(S.String.pipe(S.minLength(1), S.maxLength(255)), {
+  question: S.String,
+  /**
+   * Answer of the flashcard
+   */
+  answer: S.String,
+  /**
+   * Difficulty level (easy, medium, hard)
+   */
+  difficulty_level: S.optionalWith(S.String, {
     nullable: true,
+    default: () => 'medium' as const,
   }),
   /**
-   * Description of the note
+   * Position for ordering within the group
    */
-  description: S.optionalWith(S.String.pipe(S.maxLength(1000)), {
-    nullable: true,
-  }),
-  /**
-   * Markdown content of the note
-   */
-  content: S.optionalWith(S.String.pipe(S.minLength(1)), { nullable: true }),
+  position: S.optionalWith(S.Int, { nullable: true }),
 }) {}
 
-export class ListPracticeRecordsV1PracticeRecordsGetParams extends S.Struct({
+export class FlashcardUpdate extends S.Class<FlashcardUpdate>(
+  'FlashcardUpdate',
+)({
   /**
-   * Optional project ID filter
+   * Question of the flashcard
    */
-  project_id: S.optionalWith(S.String, { nullable: true }),
+  question: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Answer of the flashcard
+   */
+  answer: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Difficulty level (easy, medium, hard)
+   */
+  difficulty_level: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Position for ordering within the group
+   */
+  position: S.optionalWith(S.Int, { nullable: true }),
 }) {}
 
 /**
@@ -967,39 +816,54 @@ export class ListPracticeRecordsV1PracticeRecordsGetParams extends S.Struct({
 export class PracticeRecordDto extends S.Class<PracticeRecordDto>(
   'PracticeRecordDto',
 )({
+  /**
+   * Unique ID of the practice record
+   */
   id: S.String,
+  /**
+   * ID of the user
+   */
   user_id: S.String,
+  /**
+   * ID of the project
+   */
   project_id: S.String,
+  /**
+   * Type of study resource: flashcard or quiz
+   */
   item_type: S.String,
+  /**
+   * ID of the study resource (flashcard or quiz question)
+   */
   item_id: S.String,
+  /**
+   * Topic extracted from question
+   */
   topic: S.String,
+  /**
+   * User's answer (only for quizzes, null for flashcards)
+   */
   user_answer: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * The correct answer
+   */
   correct_answer: S.String,
+  /**
+   * Whether the user got it right
+   */
   was_correct: S.Boolean,
+  /**
+   * Date and time the practice record was created
+   */
   created_at: S.String,
 }) {}
 
-/**
- * Response model for listing practice records.
- */
-export class PracticeRecordListResponse extends S.Class<PracticeRecordListResponse>(
-  'PracticeRecordListResponse',
-)({
-  /**
-   * List of practice records
-   */
-  data: S.Array(PracticeRecordDto),
-}) {}
+export class ListPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet200 extends S.Array(
+  PracticeRecordDto,
+) {}
 
-export class CreatePracticeRecordV1PracticeRecordsPostParams extends S.Struct({
-  project_id: S.String,
-}) {}
-
-/**
- * Request model for creating a practice record.
- */
-export class CreatePracticeRecordRequest extends S.Class<CreatePracticeRecordRequest>(
-  'CreatePracticeRecordRequest',
+export class PracticeRecordCreate extends S.Class<PracticeRecordCreate>(
+  'PracticeRecordCreate',
 )({
   /**
    * Type of study resource: flashcard or quiz
@@ -1025,146 +889,90 @@ export class CreatePracticeRecordRequest extends S.Class<CreatePracticeRecordReq
    * Whether the user got it right
    */
   was_correct: S.Boolean,
-  /**
-   * Quality rating for spaced repetition (0-5). Only for flashcards with SR enabled.
-   */
-  quality_rating: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(0), S.lessThanOrEqualTo(5)),
-    { nullable: true },
-  ),
 }) {}
 
-/**
- * Response model for practice record operations.
- */
-export class PracticeRecordResponse extends S.Class<PracticeRecordResponse>(
-  'PracticeRecordResponse',
-)({
-  practice_record: PracticeRecordDto,
-  message: S.String,
-}) {}
-
-export class CreatePracticeRecordsBatchV1PracticeRecordsBatchPostParams extends S.Struct(
-  {
-    project_id: S.String,
-  },
-) {}
-
-/**
- * Request model for creating multiple practice records.
- */
-export class CreatePracticeRecordBatchRequest extends S.Class<CreatePracticeRecordBatchRequest>(
-  'CreatePracticeRecordBatchRequest',
+export class PracticeRecordBatchCreate extends S.Class<PracticeRecordBatchCreate>(
+  'PracticeRecordBatchCreate',
 )({
   /**
    * List of practice records to create
    */
-  practice_records: S.NonEmptyArray(CreatePracticeRecordRequest).pipe(
+  practice_records: S.NonEmptyArray(PracticeRecordCreate).pipe(
     S.minItems(1),
     S.maxItems(100),
   ),
 }) {}
 
-export class UserDto extends S.Class<UserDto>('UserDto')({
-  id: S.String,
-  name: S.optionalWith(S.String, { nullable: true }),
-  email: S.optionalWith(S.String, { nullable: true }),
-  created_at: S.String,
-  updated_at: S.String,
-}) {}
-
-/**
- * DTO for usage limit information.
- */
-export class UsageLimitDto extends S.Class<UsageLimitDto>('UsageLimitDto')({
-  /**
-   * Number of operations used today
-   */
-  used: S.Int,
-  /**
-   * Maximum number of operations allowed per day
-   */
-  limit: S.Int,
-}) {}
-
-/**
- * DTO for user usage statistics.
- */
-export class UsageDto extends S.Class<UsageDto>('UsageDto')({
-  /**
-   * Chat message usage statistics
-   */
-  chat_messages: UsageLimitDto,
-  /**
-   * Flashcard generation usage statistics
-   */
-  flashcard_generations: UsageLimitDto,
-  /**
-   * Quiz generation usage statistics
-   */
-  quiz_generations: UsageLimitDto,
-  /**
-   * Document upload usage statistics
-   */
-  document_uploads: UsageLimitDto,
-}) {}
-
-/**
- * Response model for usage statistics.
- */
-export class UsageResponse extends S.Class<UsageResponse>('UsageResponse')({
-  /**
-   * User usage statistics
-   */
-  usage: UsageDto,
-}) {}
-
-/**
- * Request model for creating a mind map.
- */
-export class CreateMindMapRequest extends S.Class<CreateMindMapRequest>(
-  'CreateMindMapRequest',
-)({
-  /**
-   * Custom instructions including topic, format preferences, and any additional context.
-   */
-  custom_instructions: S.optionalWith(S.String.pipe(S.maxLength(2000)), {
-    nullable: true,
-  }),
-}) {}
-
-export class GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200 extends S.Struct(
-  {},
+export class CreatePracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost201 extends S.Array(
+  PracticeRecordDto,
 ) {}
 
 /**
  * Mind map data transfer object.
  */
 export class MindMapDto extends S.Class<MindMapDto>('MindMapDto')({
+  /**
+   * Unique ID of the mind map
+   */
   id: S.String,
+  /**
+   * ID of the user
+   */
   user_id: S.String,
+  /**
+   * ID of the project
+   */
   project_id: S.String,
+  /**
+   * Title of the mind map
+   */
   title: S.String,
+  /**
+   * Description of the mind map
+   */
   description: S.optionalWith(S.String, { nullable: true }),
   /**
    * Structured mind map data (nodes, edges)
    */
   map_data: S.Record({ key: S.String, value: S.Unknown }),
+  /**
+   * Date and time the mind map was generated
+   */
   generated_at: S.String,
+  /**
+   * Date and time the mind map was updated
+   */
   updated_at: S.String,
 }) {}
 
-/**
- * Response model for listing mind maps.
- */
-export class MindMapListResponse extends S.Class<MindMapListResponse>(
-  'MindMapListResponse',
-)({
-  data: S.Array(MindMapDto),
+export class ListMindMapsApiV1ProjectsProjectIdMindMapsGet200 extends S.Array(
+  MindMapDto,
+) {}
+
+export class MindMapCreate extends S.Class<MindMapCreate>('MindMapCreate')({
+  /**
+   * Title of the mind map
+   */
+  title: S.String,
+  /**
+   * Description of the mind map
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Custom instructions for AI generation
+   */
+  custom_instructions: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams extends S.Struct(
+export class CreateMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost200 extends S.Struct(
+  {},
+) {}
+
+export class ListStudySessionsApiV1ProjectsProjectIdStudySessionsGetParams extends S.Struct(
   {
+    /**
+     * Maximum number of sessions to return
+     */
     limit: S.optionalWith(
       S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
       { nullable: true, default: () => 50 as const },
@@ -1172,53 +980,98 @@ export class ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams extends 
   },
 ) {}
 
-export class StudySessionResponse extends S.Class<StudySessionResponse>(
-  'StudySessionResponse',
+/**
+ * Study session data transfer object.
+ */
+export class StudySessionDto extends S.Class<StudySessionDto>(
+  'StudySessionDto',
 )({
-  session_id: S.String,
-  flashcard_group_id: S.optionalWith(S.String, { nullable: true }),
-  flashcards: S.Array(S.Record({ key: S.String, value: S.Unknown })),
-  estimated_time_minutes: S.Int,
-  focus_topics: S.Array(S.String),
-  learning_objectives: S.Array(S.String),
-  generated_at: S.String,
-}) {}
-
-export class ListStudySessionsV1ProjectsProjectIdStudySessionsGet200 extends S.Array(
-  StudySessionResponse,
-) {}
-
-export class GenerateStudySessionV1ProjectsProjectIdStudySessionsPostParams extends S.Struct(
-  {
-    session_length_minutes: S.optionalWith(
-      S.Int.pipe(S.greaterThanOrEqualTo(10), S.lessThanOrEqualTo(120)),
-      { nullable: true, default: () => 30 as const },
-    ),
-    focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
-  },
-) {}
-
-export class BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost extends S.Class<BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost>(
-  'BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost',
-)({
-  file: S.instanceOf(globalThis.Blob),
-  group_name: S.String,
-  group_description: S.optionalWith(S.String, { nullable: true }),
-}) {}
-
-export class ImportResponse extends S.Class<ImportResponse>('ImportResponse')({
+  /**
+   * Unique ID of the study session
+   */
   id: S.String,
+  /**
+   * ID of the user
+   */
+  user_id: S.String,
+  /**
+   * ID of the project
+   */
+  project_id: S.String,
+  /**
+   * Session data containing flashcards, focus_topics, learning_objectives
+   */
+  session_data: S.Record({ key: S.String, value: S.Unknown }),
+  /**
+   * Estimated time in minutes
+   */
+  estimated_time_minutes: S.Int,
+  /**
+   * Requested session length in minutes
+   */
+  session_length_minutes: S.Int,
+  /**
+   * Optional focus topics
+   */
+  focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
+  /**
+   * Date and time the session was generated
+   */
+  generated_at: S.String,
+  /**
+   * Date and time the session was started
+   */
+  started_at: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the session was completed
+   */
+  completed_at: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class BodyImportQuizV1ProjectsProjectIdQuizzesImportPost extends S.Class<BodyImportQuizV1ProjectsProjectIdQuizzesImportPost>(
-  'BodyImportQuizV1ProjectsProjectIdQuizzesImportPost',
+export class ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200 extends S.Array(
+  StudySessionDto,
+) {}
+
+export class StudySessionCreate extends S.Class<StudySessionCreate>(
+  'StudySessionCreate',
 )({
-  file: S.instanceOf(globalThis.Blob),
-  quiz_name: S.String,
-  quiz_description: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Length of the study session in minutes
+   */
+  session_length_minutes: S.optionalWith(
+    S.Int.pipe(S.greaterThanOrEqualTo(10), S.lessThanOrEqualTo(120)),
+    { nullable: true, default: () => 30 as const },
+  ),
+  /**
+   * Optional focus topics
+   */
+  focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
 }) {}
 
-export class HealthCheckHealthGet200 extends S.Struct({}) {}
+export class UserDto extends S.Class<UserDto>('UserDto')({
+  /**
+   * Unique ID of the user
+   */
+  id: S.String,
+  /**
+   * Name of the user
+   */
+  name: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Email of the user
+   */
+  email: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the user was created
+   */
+  created_at: S.String,
+  /**
+   * Date and time the user was updated
+   */
+  updated_at: S.String,
+}) {}
+
+export class ListUsersApiV1UsersGet200 extends S.Array(UserDto) {}
 
 export const make = (
   httpClient: HttpClient.HttpClient,
@@ -1272,17 +1125,26 @@ export const make = (
       )
   return {
     httpClient,
-    listProjectsV1ProjectsGet: () =>
-      HttpClientRequest.get(`/v1/projects`).pipe(
+    healthCheckHealthGet: () =>
+      HttpClientRequest.get(`/health`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ProjectListResponse),
+            '2xx': decodeSuccess(HealthCheckHealthGet200),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    createProjectV1ProjectsPost: (options) =>
-      HttpClientRequest.post(`/v1/projects`).pipe(
+    listProjectsApiV1ProjectsGet: () =>
+      HttpClientRequest.get(`/api/v1/projects`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ListProjectsApiV1ProjectsGet200),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createProjectApiV1ProjectsPost: (options) =>
+      HttpClientRequest.post(`/api/v1/projects`).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
@@ -1292,8 +1154,8 @@ export const make = (
           }),
         ),
       ),
-    getProjectV1ProjectsProjectIdGet: (projectId) =>
-      HttpClientRequest.get(`/v1/projects/${projectId}`).pipe(
+    getProjectApiV1ProjectsProjectIdGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(ProjectDto),
@@ -1302,19 +1164,8 @@ export const make = (
           }),
         ),
       ),
-    updateProjectV1ProjectsProjectIdPut: (projectId, options) =>
-      HttpClientRequest.put(`/v1/projects/${projectId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ProjectDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteProjectV1ProjectsProjectIdDeletePost: (projectId) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/delete`).pipe(
+    deleteProjectApiV1ProjectsProjectIdDelete: (projectId) =>
+      HttpClientRequest.del(`/api/v1/projects/${projectId}`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
             '422': decodeError('HTTPValidationError', HTTPValidationError),
@@ -1323,103 +1174,50 @@ export const make = (
           }),
         ),
       ),
-    listChatsV1ChatsGet: (options) =>
-      HttpClientRequest.get(`/v1/chats`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ChatListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createChatV1ChatsPost: (options) =>
-      HttpClientRequest.post(`/v1/chats`).pipe(
+    updateProjectApiV1ProjectsProjectIdPatch: (projectId, options) =>
+      HttpClientRequest.patch(`/api/v1/projects/${projectId}`).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ChatDto),
+            '2xx': decodeSuccess(ProjectDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    getChatV1ChatsChatIdGet: (chatId) =>
-      HttpClientRequest.get(`/v1/chats/${chatId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ChatDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    updateChatV1ChatsChatIdPut: (chatId, options) =>
-      HttpClientRequest.put(`/v1/chats/${chatId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ChatDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteChatV1ChatsChatIdDeletePost: (chatId) =>
-      HttpClientRequest.post(`/v1/chats/${chatId}/delete`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    sendStreamingMessageV1ChatsChatIdMessagesStreamPost: (chatId, options) =>
-      HttpClientRequest.post(`/v1/chats/${chatId}/messages/stream`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
+    uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/documents/upload`,
+      ).pipe(
+        HttpClientRequest.bodyFormDataRecord(options as any),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(
-              SendStreamingMessageV1ChatsChatIdMessagesStreamPost200,
+              UploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost201,
             ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    uploadDocumentV1DocumentsUploadPost: (options) =>
-      HttpClientRequest.post(`/v1/documents/upload`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyFormDataRecord(options.payload as any),
+    listDocumentsApiV1ProjectsProjectIdDocumentsGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/documents`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(DocumentUploadResponse),
+            '2xx': decodeSuccess(
+              ListDocumentsApiV1ProjectsProjectIdDocumentsGet200,
+            ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    listDocumentsV1DocumentsGet: (options) =>
-      HttpClientRequest.get(`/v1/documents`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(DocumentListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getDocumentV1DocumentsDocumentIdGet: (documentId) =>
-      HttpClientRequest.get(`/v1/documents/${documentId}`).pipe(
+    createDocumentApiV1ProjectsProjectIdDocumentsPost: (projectId, options) =>
+      HttpClientRequest.post(`/api/v1/projects/${projectId}/documents`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(DocumentDto),
@@ -1428,270 +1226,27 @@ export const make = (
           }),
         ),
       ),
-    deleteDocumentV1DocumentsDocumentIdDelete: (documentId) =>
-      HttpClientRequest.del(`/v1/documents/${documentId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    previewDocumentV1DocumentsDocumentIdPreviewGet: (documentId) =>
-      HttpClientRequest.get(`/v1/documents/${documentId}/preview`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(DocumentPreviewResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    streamDocumentV1DocumentsDocumentIdStreamGet: (documentId) =>
-      HttpClientRequest.get(`/v1/documents/${documentId}/stream`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(
-              StreamDocumentV1DocumentsDocumentIdStreamGet200,
-            ),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createFlashcardGroupStreamV1FlashcardsStreamPost: (options) =>
-      HttpClientRequest.post(`/v1/flashcards/stream`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(
-              CreateFlashcardGroupStreamV1FlashcardsStreamPost200,
-            ),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listFlashcardGroupsV1FlashcardsGet: (options) =>
-      HttpClientRequest.get(`/v1/flashcards`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createFlashcardGroupV1FlashcardsPost: (options) =>
-      HttpClientRequest.post(`/v1/flashcards`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getFlashcardGroupV1FlashcardsGroupIdGet: (groupId) =>
-      HttpClientRequest.get(`/v1/flashcards/${groupId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardGroupResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteFlashcardGroupV1FlashcardsGroupIdDelete: (groupId) =>
-      HttpClientRequest.del(`/v1/flashcards/${groupId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listFlashcardsV1FlashcardsGroupIdFlashcardsGet: (groupId) =>
-      HttpClientRequest.get(`/v1/flashcards/${groupId}/flashcards`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createFlashcardV1FlashcardsGroupIdFlashcardsPost: (groupId, options) =>
-      HttpClientRequest.post(`/v1/flashcards/${groupId}/flashcards`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (groupId, options) =>
-      HttpClientRequest.get(`/v1/flashcards/${groupId}/study-queue`).pipe(
-        HttpClientRequest.setUrlParams({
-          include_mastered: options?.['include_mastered'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    updateFlashcardV1FlashcardsFlashcardsFlashcardIdPut: (
-      flashcardId,
-      options,
+    getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet: (
+      projectId,
+      documentId,
     ) =>
-      HttpClientRequest.put(`/v1/flashcards/flashcards/${flashcardId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/documents/${documentId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardResponse),
+            '2xx': decodeSuccess(DocumentDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    deleteFlashcardV1FlashcardsFlashcardsFlashcardIdDelete: (flashcardId) =>
-      HttpClientRequest.del(`/v1/flashcards/flashcards/${flashcardId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    reorderFlashcardsV1FlashcardsGroupIdReorderPatch: (groupId, options) =>
-      HttpClientRequest.patch(`/v1/flashcards/${groupId}/reorder`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(FlashcardListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    exportFlashcardGroupV1FlashcardsGroupIdExportGet: (groupId) =>
-      HttpClientRequest.get(`/v1/flashcards/${groupId}/export`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(
-              ExportFlashcardGroupV1FlashcardsGroupIdExportGet200,
-            ),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createQuizStreamV1QuizzesStreamPost: (options) =>
-      HttpClientRequest.post(`/v1/quizzes/stream`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(CreateQuizStreamV1QuizzesStreamPost200),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listQuizzesV1QuizzesGet: (options) =>
-      HttpClientRequest.get(`/v1/quizzes`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createQuizV1QuizzesPost: (options) =>
-      HttpClientRequest.post(`/v1/quizzes`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getQuizV1QuizzesQuizIdGet: (quizId) =>
-      HttpClientRequest.get(`/v1/quizzes/${quizId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteQuizV1QuizzesQuizIdDelete: (quizId) =>
-      HttpClientRequest.del(`/v1/quizzes/${quizId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            '204': () => Effect.void,
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listQuizQuestionsV1QuizzesQuizIdQuestionsGet: (quizId) =>
-      HttpClientRequest.get(`/v1/quizzes/${quizId}/questions`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizQuestionListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createQuizQuestionV1QuizzesQuizIdQuestionsPost: (quizId, options) =>
-      HttpClientRequest.post(`/v1/quizzes/${quizId}/questions`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizQuestionResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete: (
-      quizId,
-      questionId,
+    deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete: (
+      projectId,
+      documentId,
     ) =>
       HttpClientRequest.del(
-        `/v1/quizzes/${quizId}/questions/${questionId}`,
+        `/api/v1/projects/${projectId}/documents/${documentId}`,
       ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
@@ -1701,111 +1256,60 @@ export const make = (
           }),
         ),
       ),
-    updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch: (
-      quizId,
-      questionId,
+    updateDocumentApiV1ProjectsProjectIdDocumentsDocumentIdPatch: (
+      projectId,
+      documentId,
       options,
     ) =>
       HttpClientRequest.patch(
-        `/v1/quizzes/${quizId}/questions/${questionId}`,
+        `/api/v1/projects/${projectId}/documents/${documentId}`,
       ).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizQuestionResponse),
+            '2xx': decodeSuccess(DocumentDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch: (
-      quizId,
-      options,
-    ) =>
-      HttpClientRequest.patch(`/v1/quizzes/${quizId}/questions/reorder`).pipe(
+    listChatsApiV1ProjectsProjectIdChatsGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/chats`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ListChatsApiV1ProjectsProjectIdChatsGet200),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createChatApiV1ProjectsProjectIdChatsPost: (projectId, options) =>
+      HttpClientRequest.post(`/api/v1/projects/${projectId}/chats`).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(QuizQuestionListResponse),
+            '2xx': decodeSuccess(ChatDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    exportQuizV1QuizzesQuizIdExportGet: (quizId) =>
-      HttpClientRequest.get(`/v1/quizzes/${quizId}/export`).pipe(
+    getChatApiV1ProjectsProjectIdChatsChatIdGet: (projectId, chatId) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/chats/${chatId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ExportQuizV1QuizzesQuizIdExportGet200),
+            '2xx': decodeSuccess(ChatDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    createNoteStreamV1NotesStreamPost: (options) =>
-      HttpClientRequest.post(`/v1/notes/stream`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(CreateNoteStreamV1NotesStreamPost200),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    listNotesV1NotesGet: (options) =>
-      HttpClientRequest.get(`/v1/notes`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(NoteListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createNoteV1NotesPost: (options) =>
-      HttpClientRequest.post(`/v1/notes`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(NoteResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getNoteV1NotesNoteIdGet: (noteId) =>
-      HttpClientRequest.get(`/v1/notes/${noteId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(NoteResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    updateNoteV1NotesNoteIdPut: (noteId, options) =>
-      HttpClientRequest.put(`/v1/notes/${noteId}`).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(NoteResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    deleteNoteV1NotesNoteIdDelete: (noteId) =>
-      HttpClientRequest.del(`/v1/notes/${noteId}`).pipe(
+    deleteChatApiV1ProjectsProjectIdChatsChatIdDelete: (projectId, chatId) =>
+      HttpClientRequest.del(
+        `/api/v1/projects/${projectId}/chats/${chatId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
             '422': decodeError('HTTPValidationError', HTTPValidationError),
@@ -1814,187 +1318,702 @@ export const make = (
           }),
         ),
       ),
-    listPracticeRecordsV1PracticeRecordsGet: (options) =>
-      HttpClientRequest.get(`/v1/practice-records`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options?.['project_id'] as any,
-        }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(PracticeRecordListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createPracticeRecordV1PracticeRecordsPost: (options) =>
-      HttpClientRequest.post(`/v1/practice-records`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(PracticeRecordResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createPracticeRecordsBatchV1PracticeRecordsBatchPost: (options) =>
-      HttpClientRequest.post(`/v1/practice-records/batch`).pipe(
-        HttpClientRequest.setUrlParams({
-          project_id: options.params?.['project_id'] as any,
-        }),
-        HttpClientRequest.bodyUnsafeJson(options.payload),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(PracticeRecordListResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getCurrentUserInfoV1AuthMeGet: () =>
-      HttpClientRequest.get(`/v1/auth/me`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(UserDto),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getUsageV1UsageGet: () =>
-      HttpClientRequest.get(`/v1/usage`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(UsageResponse),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    generateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost: (
+    updateChatApiV1ProjectsProjectIdChatsChatIdPatch: (
       projectId,
+      chatId,
       options,
     ) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/mind-maps/stream`).pipe(
+      HttpClientRequest.patch(
+        `/api/v1/projects/${projectId}/chats/${chatId}`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ChatDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    sendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost: (
+      projectId,
+      chatId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/chats/${chatId}/messages/stream`,
+      ).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(
-              GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200,
+              SendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost200,
             ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    listMindMapsV1ProjectsProjectIdMindMapsGet: (projectId) =>
-      HttpClientRequest.get(`/v1/projects/${projectId}/mind-maps`).pipe(
+    listNotesApiV1ProjectsProjectIdNotesGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/notes`).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(MindMapListResponse),
+            '2xx': decodeSuccess(ListNotesApiV1ProjectsProjectIdNotesGet200),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    generateMindMapV1ProjectsProjectIdMindMapsPost: (projectId, options) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/mind-maps`).pipe(
+    createNoteApiV1ProjectsProjectIdNotesPost: (projectId, options) =>
+      HttpClientRequest.post(`/api/v1/projects/${projectId}/notes`).pipe(
         HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(MindMapDto),
+            '2xx': decodeSuccess(NoteDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    getMindMapV1MindMapsMindMapIdGet: (mindMapId) =>
-      HttpClientRequest.get(`/v1/mind-maps/${mindMapId}`).pipe(
+    getNoteApiV1ProjectsProjectIdNotesNoteIdGet: (projectId, noteId) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/notes/${noteId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(MindMapDto),
+            '2xx': decodeSuccess(NoteDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    listStudySessionsV1ProjectsProjectIdStudySessionsGet: (
+    deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete: (projectId, noteId) =>
+      HttpClientRequest.del(
+        `/api/v1/projects/${projectId}/notes/${noteId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateNoteApiV1ProjectsProjectIdNotesNoteIdPatch: (
       projectId,
+      noteId,
       options,
     ) =>
-      HttpClientRequest.get(`/v1/projects/${projectId}/study-sessions`).pipe(
-        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
+      HttpClientRequest.patch(
+        `/api/v1/projects/${projectId}/notes/${noteId}`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateNoteApiV1ProjectsProjectIdNotesNoteIdGeneratePost: (
+      projectId,
+      noteId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/notes/${noteId}/generate`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(NoteDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost: (
+      projectId,
+      noteId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/notes/${noteId}/generate/stream`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(
-              ListStudySessionsV1ProjectsProjectIdStudySessionsGet200,
+              GenerateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost200,
             ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    generateStudySessionV1ProjectsProjectIdStudySessionsPost: (
+    listQuizzesApiV1ProjectsProjectIdQuizzesGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/quizzes`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListQuizzesApiV1ProjectsProjectIdQuizzesGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createQuizApiV1ProjectsProjectIdQuizzesPost: (projectId, options) =>
+      HttpClientRequest.post(`/api/v1/projects/${projectId}/quizzes`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getQuizApiV1ProjectsProjectIdQuizzesQuizIdGet: (projectId, quizId) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteQuizApiV1ProjectsProjectIdQuizzesQuizIdDelete: (projectId, quizId) =>
+      HttpClientRequest.del(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateQuizApiV1ProjectsProjectIdQuizzesQuizIdPatch: (
+      projectId,
+      quizId,
+      options,
+    ) =>
+      HttpClientRequest.patch(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateQuizApiV1ProjectsProjectIdQuizzesQuizIdGeneratePost: (
+      projectId,
+      quizId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}/generate`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost: (
+      projectId,
+      quizId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}/generate/stream`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              GenerateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet: (
+      projectId,
+      quizId,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}/questions`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsPost: (
+      projectId,
+      quizId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}/questions`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizQuestionDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdGet: (
+      projectId,
+      quizId,
+      questionId,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/quizzes/${quizId}/questions/${questionId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(QuizQuestionDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdDelete:
+      (projectId, quizId, questionId) =>
+        HttpClientRequest.del(
+          `/api/v1/projects/${projectId}/quizzes/${quizId}/questions/${questionId}`,
+        ).pipe(
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              '204': () => Effect.void,
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    updateQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdPatch:
+      (projectId, quizId, questionId, options) =>
+        HttpClientRequest.patch(
+          `/api/v1/projects/${projectId}/quizzes/${quizId}/questions/${questionId}`,
+        ).pipe(
+          HttpClientRequest.bodyUnsafeJson(options),
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(QuizQuestionDto),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    reorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch:
+      (projectId, quizId, options) =>
+        HttpClientRequest.patch(
+          `/api/v1/projects/${projectId}/quizzes/${quizId}/questions/reorder`,
+        ).pipe(
+          HttpClientRequest.bodyUnsafeJson(options),
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(
+                ReorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch200,
+              ),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    listFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet: (
       projectId,
       options,
     ) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/study-sessions`).pipe(
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/flashcard-groups`,
+      ).pipe(
         HttpClientRequest.setUrlParams({
-          session_length_minutes: options?.['session_length_minutes'] as any,
-          focus_topics: options?.['focus_topics'] as any,
+          study_session_id: options?.['study_session_id'] as any,
         }),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudySessionResponse),
+            '2xx': decodeSuccess(
+              ListFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet200,
+            ),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    getStudySessionV1StudySessionsSessionIdGet: (sessionId) =>
-      HttpClientRequest.get(`/v1/study-sessions/${sessionId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudySessionResponse),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    importFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost: (
+    createFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsPost: (
       projectId,
       options,
     ) =>
       HttpClientRequest.post(
-        `/v1/projects/${projectId}/flashcard-groups/import`,
+        `/api/v1/projects/${projectId}/flashcard-groups`,
       ).pipe(
-        HttpClientRequest.bodyFormDataRecord(options as any),
+        HttpClientRequest.bodyUnsafeJson(options),
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ImportResponse),
+            '2xx': decodeSuccess(FlashcardGroupDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    importQuizV1ProjectsProjectIdQuizzesImportPost: (projectId, options) =>
-      HttpClientRequest.post(`/v1/projects/${projectId}/quizzes/import`).pipe(
-        HttpClientRequest.bodyFormDataRecord(options as any),
+    getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet: (
+      projectId,
+      groupId,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/flashcard-groups/${groupId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ImportResponse),
+            '2xx': decodeSuccess(FlashcardGroupDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
       ),
-    healthCheckHealthGet: () =>
-      HttpClientRequest.get(`/health`).pipe(
+    deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete: (
+      projectId,
+      groupId,
+    ) =>
+      HttpClientRequest.del(
+        `/api/v1/projects/${projectId}/flashcard-groups/${groupId}`,
+      ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(HealthCheckHealthGet200),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    updateFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdPatch: (
+      projectId,
+      groupId,
+      options,
+    ) =>
+      HttpClientRequest.patch(
+        `/api/v1/projects/${projectId}/flashcard-groups/${groupId}`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardGroupDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdGeneratePost:
+      (projectId, groupId, options) =>
+        HttpClientRequest.post(
+          `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/generate`,
+        ).pipe(
+          HttpClientRequest.bodyUnsafeJson(options),
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(FlashcardGroupDto),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    generateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost:
+      (projectId, groupId, options) =>
+        HttpClientRequest.post(
+          `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/generate/stream`,
+        ).pipe(
+          HttpClientRequest.bodyUnsafeJson(options),
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(
+                GenerateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost200,
+              ),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet: (
+      projectId,
+      groupId,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/flashcards`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsPost: (
+      projectId,
+      groupId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/flashcards`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(FlashcardDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdGet:
+      (projectId, groupId, flashcardId) =>
+        HttpClientRequest.get(
+          `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/flashcards/${flashcardId}`,
+        ).pipe(
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(FlashcardDto),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    deleteFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdDelete:
+      (projectId, groupId, flashcardId) =>
+        HttpClientRequest.del(
+          `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/flashcards/${flashcardId}`,
+        ).pipe(
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              '204': () => Effect.void,
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    updateFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdPatch:
+      (projectId, groupId, flashcardId, options) =>
+        HttpClientRequest.patch(
+          `/api/v1/projects/${projectId}/flashcard-groups/${groupId}/flashcards/${flashcardId}`,
+        ).pipe(
+          HttpClientRequest.bodyUnsafeJson(options),
+          withResponse(
+            HttpClientResponse.matchStatus({
+              '2xx': decodeSuccess(FlashcardDto),
+              '422': decodeError('HTTPValidationError', HTTPValidationError),
+              orElse: unexpectedStatus,
+            }),
+          ),
+        ),
+    listPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet: (projectId) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/practice-records`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createPracticeRecordApiV1ProjectsProjectIdPracticeRecordsPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/practice-records`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(PracticeRecordDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createPracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/practice-records/batch`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              CreatePracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost201,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listMindMapsApiV1ProjectsProjectIdMindMapsGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/mind-maps`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListMindMapsApiV1ProjectsProjectIdMindMapsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createMindMapApiV1ProjectsProjectIdMindMapsPost: (projectId, options) =>
+      HttpClientRequest.post(`/api/v1/projects/${projectId}/mind-maps`).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(MindMapDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getMindMapApiV1ProjectsProjectIdMindMapsMindMapIdGet: (
+      projectId,
+      mindMapId,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/mind-maps/${mindMapId}`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(MindMapDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/mind-maps/stream`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              CreateMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listStudySessionsApiV1ProjectsProjectIdStudySessionsGet: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/study-sessions`,
+      ).pipe(
+        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    createStudySessionApiV1ProjectsProjectIdStudySessionsPost: (
+      projectId,
+      options,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/study-sessions`,
+      ).pipe(
+        HttpClientRequest.bodyUnsafeJson(options),
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudySessionDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getStudySessionApiV1StudySessionsSessionIdGet: (sessionId) =>
+      HttpClientRequest.get(`/api/v1/study-sessions/${sessionId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudySessionDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getUserApiV1UsersUserIdGet: (userId) =>
+      HttpClientRequest.get(`/api/v1/users/${userId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(UserDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    deleteUserApiV1UsersUserIdDelete: (userId) =>
+      HttpClientRequest.del(`/api/v1/users/${userId}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            '204': () => Effect.void,
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listUsersApiV1UsersGet: () =>
+      HttpClientRequest.get(`/api/v1/users`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(ListUsersApiV1UsersGet200),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    getCurrentUserInfoApiV1AuthMeGet: () =>
+      HttpClientRequest.get(`/api/v1/auth/me`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(UserDto),
             orElse: unexpectedStatus,
           }),
         ),
@@ -2005,17 +2024,24 @@ export const make = (
 export interface Client {
   readonly httpClient: HttpClient.HttpClient
   /**
-   * List all projects
+   * Health Check
    */
-  readonly listProjectsV1ProjectsGet: () => Effect.Effect<
-    typeof ProjectListResponse.Type,
+  readonly healthCheckHealthGet: () => Effect.Effect<
+    typeof HealthCheckHealthGet200.Type,
     HttpClientError.HttpClientError | ParseError
   >
   /**
-   * Create a new project
+   * List all projects for a user.
    */
-  readonly createProjectV1ProjectsPost: (
-    options: typeof ProjectCreateRequest.Encoded,
+  readonly listProjectsApiV1ProjectsGet: () => Effect.Effect<
+    typeof ListProjectsApiV1ProjectsGet200.Type,
+    HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Create a new project.
+   */
+  readonly createProjectApiV1ProjectsPost: (
+    options: typeof ProjectCreate.Encoded,
   ) => Effect.Effect<
     typeof ProjectDto.Type,
     | HttpClientError.HttpClientError
@@ -2023,9 +2049,9 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a project by id
+   * Get a project by ID.
    */
-  readonly getProjectV1ProjectsProjectIdGet: (
+  readonly getProjectApiV1ProjectsProjectIdGet: (
     projectId: string,
   ) => Effect.Effect<
     typeof ProjectDto.Type,
@@ -2034,21 +2060,9 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update a project
+   * Delete a project.
    */
-  readonly updateProjectV1ProjectsProjectIdPut: (
-    projectId: string,
-    options: typeof ProjectUpdateRequest.Encoded,
-  ) => Effect.Effect<
-    typeof ProjectDto.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Delete a project by id
-   */
-  readonly deleteProjectV1ProjectsProjectIdDeletePost: (
+  readonly deleteProjectApiV1ProjectsProjectIdDelete: (
     projectId: string,
   ) => Effect.Effect<
     void,
@@ -2057,100 +2071,57 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List all chats
+   * Update a project.
    */
-  readonly listChatsV1ChatsGet: (
-    options: typeof ListChatsV1ChatsGetParams.Encoded,
+  readonly updateProjectApiV1ProjectsProjectIdPatch: (
+    projectId: string,
+    options: typeof ProjectUpdate.Encoded,
   ) => Effect.Effect<
-    typeof ChatListResponse.Type,
+    typeof ProjectDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new project
+   * Upload one or more documents. Processing happens asynchronously in background.
    */
-  readonly createChatV1ChatsPost: (
-    options: typeof ChatCreateRequest.Encoded,
+  readonly uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost: (
+    projectId: string,
+    options: typeof BodyUploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost.Encoded,
   ) => Effect.Effect<
-    typeof ChatDto.Type,
+    typeof UploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost201.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a chat by id
+   * List all documents for a project.
    */
-  readonly getChatV1ChatsChatIdGet: (
-    chatId: string,
+  readonly listDocumentsApiV1ProjectsProjectIdDocumentsGet: (
+    projectId: string,
   ) => Effect.Effect<
-    typeof ChatDto.Type,
+    typeof ListDocumentsApiV1ProjectsProjectIdDocumentsGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update a chat by id
+   * Create a new document.
    */
-  readonly updateChatV1ChatsChatIdPut: (
-    chatId: string,
-    options: typeof ChatUpdateRequest.Encoded,
+  readonly createDocumentApiV1ProjectsProjectIdDocumentsPost: (
+    projectId: string,
+    options: typeof DocumentCreate.Encoded,
   ) => Effect.Effect<
-    typeof ChatDto.Type,
+    typeof DocumentDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Delete a chat by id
+   * Get a document by ID.
    */
-  readonly deleteChatV1ChatsChatIdDeletePost: (
-    chatId: string,
-  ) => Effect.Effect<
-    void,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Send a message to a chat with streaming response
-   */
-  readonly sendStreamingMessageV1ChatsChatIdMessagesStreamPost: (
-    chatId: string,
-    options: typeof ChatCompletionRequest.Encoded,
-  ) => Effect.Effect<
-    typeof SendStreamingMessageV1ChatsChatIdMessagesStreamPost200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Upload one or more documents for the project. Processing happens asynchronously.
-   */
-  readonly uploadDocumentV1DocumentsUploadPost: (options: {
-    readonly params: typeof UploadDocumentV1DocumentsUploadPostParams.Encoded
-    readonly payload: typeof BodyUploadDocumentV1DocumentsUploadPost.Encoded
-  }) => Effect.Effect<
-    typeof DocumentUploadResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List all documents for a project
-   */
-  readonly listDocumentsV1DocumentsGet: (
-    options: typeof ListDocumentsV1DocumentsGetParams.Encoded,
-  ) => Effect.Effect<
-    typeof DocumentListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get a document by id
-   */
-  readonly getDocumentV1DocumentsDocumentIdGet: (
+  readonly getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet: (
+    projectId: string,
     documentId: string,
   ) => Effect.Effect<
     typeof DocumentDto.Type,
@@ -2159,9 +2130,10 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Delete a document by id
+   * Delete a document.
    */
-  readonly deleteDocumentV1DocumentsDocumentIdDelete: (
+  readonly deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete: (
+    projectId: string,
     documentId: string,
   ) => Effect.Effect<
     void,
@@ -2170,78 +2142,59 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a URL for previewing the document (streamed through backend with inline disposition)
+   * Update a document.
    */
-  readonly previewDocumentV1DocumentsDocumentIdPreviewGet: (
+  readonly updateDocumentApiV1ProjectsProjectIdDocumentsDocumentIdPatch: (
+    projectId: string,
     documentId: string,
+    options: typeof DocumentUpdate.Encoded,
   ) => Effect.Effect<
-    typeof DocumentPreviewResponse.Type,
+    typeof DocumentDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Stream document content with Content-Disposition: inline for browser preview
+   * List all chats for a project.
    */
-  readonly streamDocumentV1DocumentsDocumentIdStreamGet: (
-    documentId: string,
+  readonly listChatsApiV1ProjectsProjectIdChatsGet: (
+    projectId: string,
   ) => Effect.Effect<
-    typeof StreamDocumentV1DocumentsDocumentIdStreamGet200.Type,
+    typeof ListChatsApiV1ProjectsProjectIdChatsGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new flashcard group with AI-generated flashcards and stream progress updates
+   * Create a new chat.
    */
-  readonly createFlashcardGroupStreamV1FlashcardsStreamPost: (options: {
-    readonly params: typeof CreateFlashcardGroupStreamV1FlashcardsStreamPostParams.Encoded
-    readonly payload: typeof CreateFlashcardGroupRequest.Encoded
-  }) => Effect.Effect<
-    typeof CreateFlashcardGroupStreamV1FlashcardsStreamPost200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List all flashcard groups for a project
-   */
-  readonly listFlashcardGroupsV1FlashcardsGet: (
-    options: typeof ListFlashcardGroupsV1FlashcardsGetParams.Encoded,
+  readonly createChatApiV1ProjectsProjectIdChatsPost: (
+    projectId: string,
+    options: typeof ChatCreate.Encoded,
   ) => Effect.Effect<
-    typeof FlashcardGroupListResponse.Type,
+    typeof ChatDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new flashcard group with AI-generated flashcards
+   * Get a chat by ID.
    */
-  readonly createFlashcardGroupV1FlashcardsPost: (options: {
-    readonly params: typeof CreateFlashcardGroupV1FlashcardsPostParams.Encoded
-    readonly payload: typeof CreateFlashcardGroupRequest.Encoded
-  }) => Effect.Effect<
-    typeof FlashcardGroupResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get a specific flashcard group by ID
-   */
-  readonly getFlashcardGroupV1FlashcardsGroupIdGet: (
-    groupId: string,
+  readonly getChatApiV1ProjectsProjectIdChatsChatIdGet: (
+    projectId: string,
+    chatId: string,
   ) => Effect.Effect<
-    typeof FlashcardGroupResponse.Type,
+    typeof ChatDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Delete a flashcard group and all its flashcards
+   * Delete a chat.
    */
-  readonly deleteFlashcardGroupV1FlashcardsGroupIdDelete: (
-    groupId: string,
+  readonly deleteChatApiV1ProjectsProjectIdChatsChatIdDelete: (
+    projectId: string,
+    chatId: string,
   ) => Effect.Effect<
     void,
     | HttpClientError.HttpClientError
@@ -2249,139 +2202,72 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List all flashcards in a group
+   * Update a chat.
    */
-  readonly listFlashcardsV1FlashcardsGroupIdFlashcardsGet: (
-    groupId: string,
+  readonly updateChatApiV1ProjectsProjectIdChatsChatIdPatch: (
+    projectId: string,
+    chatId: string,
+    options: typeof ChatUpdate.Encoded,
   ) => Effect.Effect<
-    typeof FlashcardListResponse.Type,
+    typeof ChatDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new flashcard in a group
+   * Send a message to a chat with streaming response
    */
-  readonly createFlashcardV1FlashcardsGroupIdFlashcardsPost: (
-    groupId: string,
-    options: typeof CreateFlashcardRequest.Encoded,
+  readonly sendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost: (
+    projectId: string,
+    chatId: string,
+    options: typeof ChatCompletionRequest.Encoded,
   ) => Effect.Effect<
-    typeof FlashcardResponse.Type,
+    typeof SendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get flashcards for study session. Returns un-mastered cards by default, with option to include mastered cards.
+   * List all notes for a project.
    */
-  readonly getStudyQueueV1FlashcardsGroupIdStudyQueueGet: (
-    groupId: string,
-    options?:
-      | typeof GetStudyQueueV1FlashcardsGroupIdStudyQueueGetParams.Encoded
-      | undefined,
+  readonly listNotesApiV1ProjectsProjectIdNotesGet: (
+    projectId: string,
   ) => Effect.Effect<
-    typeof FlashcardListResponse.Type,
+    typeof ListNotesApiV1ProjectsProjectIdNotesGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update an existing flashcard
+   * Create a new note.
    */
-  readonly updateFlashcardV1FlashcardsFlashcardsFlashcardIdPut: (
-    flashcardId: string,
-    options: typeof UpdateFlashcardRequest.Encoded,
+  readonly createNoteApiV1ProjectsProjectIdNotesPost: (
+    projectId: string,
+    options: typeof NoteCreate.Encoded,
   ) => Effect.Effect<
-    typeof FlashcardResponse.Type,
+    typeof NoteDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Delete a flashcard
+   * Get a note by ID.
    */
-  readonly deleteFlashcardV1FlashcardsFlashcardsFlashcardIdDelete: (
-    flashcardId: string,
+  readonly getNoteApiV1ProjectsProjectIdNotesNoteIdGet: (
+    projectId: string,
+    noteId: string,
   ) => Effect.Effect<
-    void,
+    typeof NoteDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Reorder flashcards in a group
+   * Delete a note.
    */
-  readonly reorderFlashcardsV1FlashcardsGroupIdReorderPatch: (
-    groupId: string,
-    options: typeof ReorderFlashcardsRequest.Encoded,
-  ) => Effect.Effect<
-    typeof FlashcardListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Export a flashcard group to CSV format
-   */
-  readonly exportFlashcardGroupV1FlashcardsGroupIdExportGet: (
-    groupId: string,
-  ) => Effect.Effect<
-    typeof ExportFlashcardGroupV1FlashcardsGroupIdExportGet200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Create a new quiz with AI-generated questions and stream progress updates
-   */
-  readonly createQuizStreamV1QuizzesStreamPost: (options: {
-    readonly params: typeof CreateQuizStreamV1QuizzesStreamPostParams.Encoded
-    readonly payload: typeof CreateQuizRequest.Encoded
-  }) => Effect.Effect<
-    typeof CreateQuizStreamV1QuizzesStreamPost200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List all quizzes for a project
-   */
-  readonly listQuizzesV1QuizzesGet: (
-    options: typeof ListQuizzesV1QuizzesGetParams.Encoded,
-  ) => Effect.Effect<
-    typeof QuizListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Create a new quiz with AI-generated questions
-   */
-  readonly createQuizV1QuizzesPost: (options: {
-    readonly params: typeof CreateQuizV1QuizzesPostParams.Encoded
-    readonly payload: typeof CreateQuizRequest.Encoded
-  }) => Effect.Effect<
-    typeof QuizResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get a specific quiz by ID
-   */
-  readonly getQuizV1QuizzesQuizIdGet: (
-    quizId: string,
-  ) => Effect.Effect<
-    typeof QuizResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Delete a quiz and all its questions
-   */
-  readonly deleteQuizV1QuizzesQuizIdDelete: (
-    quizId: string,
+  readonly deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete: (
+    projectId: string,
+    noteId: string,
   ) => Effect.Effect<
     void,
     | HttpClientError.HttpClientError
@@ -2389,32 +2275,173 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List all questions in a quiz
+   * Update a note.
    */
-  readonly listQuizQuestionsV1QuizzesQuizIdQuestionsGet: (
-    quizId: string,
+  readonly updateNoteApiV1ProjectsProjectIdNotesNoteIdPatch: (
+    projectId: string,
+    noteId: string,
+    options: typeof NoteUpdate.Encoded,
   ) => Effect.Effect<
-    typeof QuizQuestionListResponse.Type,
+    typeof NoteDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new quiz question in a quiz
+   * Generate note content using AI and populate an existing note.
    */
-  readonly createQuizQuestionV1QuizzesQuizIdQuestionsPost: (
-    quizId: string,
-    options: typeof CreateQuizQuestionRequest.Encoded,
+  readonly generateNoteApiV1ProjectsProjectIdNotesNoteIdGeneratePost: (
+    projectId: string,
+    noteId: string,
+    options: typeof GenerateRequest.Encoded,
   ) => Effect.Effect<
-    typeof QuizQuestionResponse.Type,
+    typeof NoteDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Delete a quiz question
+   * Generate note content using AI with streaming progress updates.
    */
-  readonly deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete: (
+  readonly generateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost: (
+    projectId: string,
+    noteId: string,
+    options: typeof GenerateRequest.Encoded,
+  ) => Effect.Effect<
+    typeof GenerateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all quizzes for a project.
+   */
+  readonly listQuizzesApiV1ProjectsProjectIdQuizzesGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof ListQuizzesApiV1ProjectsProjectIdQuizzesGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new quiz.
+   */
+  readonly createQuizApiV1ProjectsProjectIdQuizzesPost: (
+    projectId: string,
+    options: typeof QuizCreate.Encoded,
+  ) => Effect.Effect<
+    typeof QuizDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a quiz by ID.
+   */
+  readonly getQuizApiV1ProjectsProjectIdQuizzesQuizIdGet: (
+    projectId: string,
+    quizId: string,
+  ) => Effect.Effect<
+    typeof QuizDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a quiz.
+   */
+  readonly deleteQuizApiV1ProjectsProjectIdQuizzesQuizIdDelete: (
+    projectId: string,
+    quizId: string,
+  ) => Effect.Effect<
+    void,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Update a quiz.
+   */
+  readonly updateQuizApiV1ProjectsProjectIdQuizzesQuizIdPatch: (
+    projectId: string,
+    quizId: string,
+    options: typeof QuizUpdate.Encoded,
+  ) => Effect.Effect<
+    typeof QuizDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate quiz questions using AI and populate an existing quiz.
+   */
+  readonly generateQuizApiV1ProjectsProjectIdQuizzesQuizIdGeneratePost: (
+    projectId: string,
+    quizId: string,
+    options: typeof GenerateRequest.Encoded,
+  ) => Effect.Effect<
+    typeof QuizDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate quiz questions using AI with streaming progress updates.
+   */
+  readonly generateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost: (
+    projectId: string,
+    quizId: string,
+    options: typeof GenerateRequest.Encoded,
+  ) => Effect.Effect<
+    typeof GenerateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all questions in a quiz.
+   */
+  readonly listQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet: (
+    projectId: string,
+    quizId: string,
+  ) => Effect.Effect<
+    typeof ListQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new question in a quiz.
+   */
+  readonly createQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsPost: (
+    projectId: string,
+    quizId: string,
+    options: typeof QuizQuestionCreate.Encoded,
+  ) => Effect.Effect<
+    typeof QuizQuestionDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a question by ID.
+   */
+  readonly getQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdGet: (
+    projectId: string,
+    quizId: string,
+    questionId: string,
+  ) => Effect.Effect<
+    typeof QuizQuestionDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a question.
+   */
+  readonly deleteQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdDelete: (
+    projectId: string,
     quizId: string,
     questionId: string,
   ) => Effect.Effect<
@@ -2424,104 +2451,76 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update an existing quiz question
+   * Update a question.
    */
-  readonly updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch: (
+  readonly updateQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdPatch: (
+    projectId: string,
     quizId: string,
     questionId: string,
-    options: typeof UpdateQuizQuestionRequest.Encoded,
+    options: typeof QuizQuestionUpdate.Encoded,
   ) => Effect.Effect<
-    typeof QuizQuestionResponse.Type,
+    typeof QuizQuestionDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Reorder quiz questions in a quiz
+   * Reorder questions in a quiz.
    */
-  readonly reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch: (
+  readonly reorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch: (
+    projectId: string,
     quizId: string,
-    options: typeof ReorderQuizQuestionsRequest.Encoded,
+    options: typeof QuizQuestionReorder.Encoded,
   ) => Effect.Effect<
-    typeof QuizQuestionListResponse.Type,
+    typeof ReorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Export a quiz to CSV format
+   * List all flashcard groups for a project.
    */
-  readonly exportQuizV1QuizzesQuizIdExportGet: (
-    quizId: string,
+  readonly listFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet: (
+    projectId: string,
+    options?:
+      | typeof ListFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGetParams.Encoded
+      | undefined,
   ) => Effect.Effect<
-    typeof ExportQuizV1QuizzesQuizIdExportGet200.Type,
+    typeof ListFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new note with AI-generated markdown content and stream progress updates
+   * Create a new flashcard group.
    */
-  readonly createNoteStreamV1NotesStreamPost: (options: {
-    readonly params: typeof CreateNoteStreamV1NotesStreamPostParams.Encoded
-    readonly payload: typeof CreateNoteRequest.Encoded
-  }) => Effect.Effect<
-    typeof CreateNoteStreamV1NotesStreamPost200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List all notes for a project
-   */
-  readonly listNotesV1NotesGet: (
-    options: typeof ListNotesV1NotesGetParams.Encoded,
+  readonly createFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsPost: (
+    projectId: string,
+    options: typeof FlashcardGroupCreate.Encoded,
   ) => Effect.Effect<
-    typeof NoteListResponse.Type,
+    typeof FlashcardGroupDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Create a new note with AI-generated markdown content
+   * Get a flashcard group by ID.
    */
-  readonly createNoteV1NotesPost: (options: {
-    readonly params: typeof CreateNoteV1NotesPostParams.Encoded
-    readonly payload: typeof CreateNoteRequest.Encoded
-  }) => Effect.Effect<
-    typeof NoteResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get a specific note by ID
-   */
-  readonly getNoteV1NotesNoteIdGet: (
-    noteId: string,
+  readonly getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet: (
+    projectId: string,
+    groupId: string,
   ) => Effect.Effect<
-    typeof NoteResponse.Type,
+    typeof FlashcardGroupDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Update a note
+   * Delete a flashcard group.
    */
-  readonly updateNoteV1NotesNoteIdPut: (
-    noteId: string,
-    options: typeof UpdateNoteRequest.Encoded,
-  ) => Effect.Effect<
-    typeof NoteResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Delete a note
-   */
-  readonly deleteNoteV1NotesNoteIdDelete: (
-    noteId: string,
+  readonly deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete: (
+    projectId: string,
+    groupId: string,
   ) => Effect.Effect<
     void,
     | HttpClientError.HttpClientError
@@ -2529,85 +2528,164 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List practice records for the current user, optionally filtered by project
+   * Update a flashcard group.
    */
-  readonly listPracticeRecordsV1PracticeRecordsGet: (
-    options?:
-      | typeof ListPracticeRecordsV1PracticeRecordsGetParams.Encoded
-      | undefined,
-  ) => Effect.Effect<
-    typeof PracticeRecordListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Create a new practice record for a flashcard or quiz question
-   */
-  readonly createPracticeRecordV1PracticeRecordsPost: (options: {
-    readonly params: typeof CreatePracticeRecordV1PracticeRecordsPostParams.Encoded
-    readonly payload: typeof CreatePracticeRecordRequest.Encoded
-  }) => Effect.Effect<
-    typeof PracticeRecordResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Create multiple practice records in a single batch operation
-   */
-  readonly createPracticeRecordsBatchV1PracticeRecordsBatchPost: (options: {
-    readonly params: typeof CreatePracticeRecordsBatchV1PracticeRecordsBatchPostParams.Encoded
-    readonly payload: typeof CreatePracticeRecordBatchRequest.Encoded
-  }) => Effect.Effect<
-    typeof PracticeRecordListResponse.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get authenticated user information (requires auth)
-   */
-  readonly getCurrentUserInfoV1AuthMeGet: () => Effect.Effect<
-    typeof UserDto.Type,
-    HttpClientError.HttpClientError | ParseError
-  >
-  /**
-   * Get current usage statistics for the authenticated user
-   */
-  readonly getUsageV1UsageGet: () => Effect.Effect<
-    typeof UsageResponse.Type,
-    HttpClientError.HttpClientError | ParseError
-  >
-  /**
-   * Generate a new mind map from project documents with streaming progress updates
-   */
-  readonly generateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost: (
+  readonly updateFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdPatch: (
     projectId: string,
-    options: typeof CreateMindMapRequest.Encoded,
+    groupId: string,
+    options: typeof FlashcardGroupUpdate.Encoded,
   ) => Effect.Effect<
-    typeof GenerateMindMapStreamV1ProjectsProjectIdMindMapsStreamPost200.Type,
+    typeof FlashcardGroupDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List all mind maps for a project
+   * Generate flashcards using AI and populate an existing flashcard group.
    */
-  readonly listMindMapsV1ProjectsProjectIdMindMapsGet: (
+  readonly generateFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdGeneratePost: (
     projectId: string,
+    groupId: string,
+    options: typeof GenerateRequest.Encoded,
   ) => Effect.Effect<
-    typeof MindMapListResponse.Type,
+    typeof FlashcardGroupDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate a new mind map from project documents
+   * Generate flashcards using AI with streaming progress updates.
    */
-  readonly generateMindMapV1ProjectsProjectIdMindMapsPost: (
+  readonly generateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost: (
     projectId: string,
-    options: typeof CreateMindMapRequest.Encoded,
+    groupId: string,
+    options: typeof GenerateRequest.Encoded,
+  ) => Effect.Effect<
+    typeof GenerateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all flashcards in a group.
+   */
+  readonly listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet: (
+    projectId: string,
+    groupId: string,
+  ) => Effect.Effect<
+    typeof ListFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a new flashcard in a group.
+   */
+  readonly createFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsPost: (
+    projectId: string,
+    groupId: string,
+    options: typeof FlashcardCreate.Encoded,
+  ) => Effect.Effect<
+    typeof FlashcardDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a flashcard by ID.
+   */
+  readonly getFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdGet: (
+    projectId: string,
+    groupId: string,
+    flashcardId: string,
+  ) => Effect.Effect<
+    typeof FlashcardDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Delete a flashcard.
+   */
+  readonly deleteFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdDelete: (
+    projectId: string,
+    groupId: string,
+    flashcardId: string,
+  ) => Effect.Effect<
+    void,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Update a flashcard.
+   */
+  readonly updateFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdPatch: (
+    projectId: string,
+    groupId: string,
+    flashcardId: string,
+    options: typeof FlashcardUpdate.Encoded,
+  ) => Effect.Effect<
+    typeof FlashcardDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List practice records for a project.
+   */
+  readonly listPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof ListPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create a single practice record.
+   */
+  readonly createPracticeRecordApiV1ProjectsProjectIdPracticeRecordsPost: (
+    projectId: string,
+    options: typeof PracticeRecordCreate.Encoded,
+  ) => Effect.Effect<
+    typeof PracticeRecordDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Create multiple practice records.
+   */
+  readonly createPracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost: (
+    projectId: string,
+    options: typeof PracticeRecordBatchCreate.Encoded,
+  ) => Effect.Effect<
+    typeof CreatePracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost201.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all mind maps for a project.
+   */
+  readonly listMindMapsApiV1ProjectsProjectIdMindMapsGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof ListMindMapsApiV1ProjectsProjectIdMindMapsGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate/create a mind map.
+   *
+   * Note: AI generation is not yet implemented in edu-shared service.
+   * This endpoint creates a basic mind map structure.
+   */
+  readonly createMindMapApiV1ProjectsProjectIdMindMapsPost: (
+    projectId: string,
+    options: typeof MindMapCreate.Encoded,
   ) => Effect.Effect<
     typeof MindMapDto.Type,
     | HttpClientError.HttpClientError
@@ -2615,9 +2693,10 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a specific mind map by ID
+   * Get a mind map by ID.
    */
-  readonly getMindMapV1MindMapsMindMapIdGet: (
+  readonly getMindMapApiV1ProjectsProjectIdMindMapsMindMapIdGet: (
+    projectId: string,
     mindMapId: string,
   ) => Effect.Effect<
     typeof MindMapDto.Type,
@@ -2626,73 +2705,94 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * List all study sessions for a project
+   * Generate mind map with streaming progress updates.
+   *
+   * Note: AI generation is not yet implemented in edu-shared service.
+   * This endpoint provides a streaming interface but returns a basic structure.
    */
-  readonly listStudySessionsV1ProjectsProjectIdStudySessionsGet: (
+  readonly createMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost: (
     projectId: string,
-    options?:
-      | typeof ListStudySessionsV1ProjectsProjectIdStudySessionsGetParams.Encoded
-      | undefined,
+    options: typeof MindMapCreate.Encoded,
   ) => Effect.Effect<
-    typeof ListStudySessionsV1ProjectsProjectIdStudySessionsGet200.Type,
+    typeof CreateMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate a personalized study session based on performance and spaced repetition
+   * List study sessions for a project.
    */
-  readonly generateStudySessionV1ProjectsProjectIdStudySessionsPost: (
+  readonly listStudySessionsApiV1ProjectsProjectIdStudySessionsGet: (
     projectId: string,
     options?:
-      | typeof GenerateStudySessionV1ProjectsProjectIdStudySessionsPostParams.Encoded
+      | typeof ListStudySessionsApiV1ProjectsProjectIdStudySessionsGetParams.Encoded
       | undefined,
   ) => Effect.Effect<
-    typeof StudySessionResponse.Type,
+    typeof ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a study session by ID
+   * Generate/create a study session.
+   *
+   * Note: AI generation is not yet implemented in edu-shared service.
+   * This endpoint creates a basic study session structure.
    */
-  readonly getStudySessionV1StudySessionsSessionIdGet: (
+  readonly createStudySessionApiV1ProjectsProjectIdStudySessionsPost: (
+    projectId: string,
+    options: typeof StudySessionCreate.Encoded,
+  ) => Effect.Effect<
+    typeof StudySessionDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get a study session by ID.
+   */
+  readonly getStudySessionApiV1StudySessionsSessionIdGet: (
     sessionId: string,
   ) => Effect.Effect<
-    typeof StudySessionResponse.Type,
+    typeof StudySessionDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Import flashcards from CSV file
+   * Get a user by ID.
    */
-  readonly importFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost: (
-    projectId: string,
-    options: typeof BodyImportFlashcardGroupV1ProjectsProjectIdFlashcardGroupsImportPost.Encoded,
+  readonly getUserApiV1UsersUserIdGet: (
+    userId: string,
   ) => Effect.Effect<
-    typeof ImportResponse.Type,
+    typeof UserDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Import quiz from CSV file
+   * Delete a user.
    */
-  readonly importQuizV1ProjectsProjectIdQuizzesImportPost: (
-    projectId: string,
-    options: typeof BodyImportQuizV1ProjectsProjectIdQuizzesImportPost.Encoded,
+  readonly deleteUserApiV1UsersUserIdDelete: (
+    userId: string,
   ) => Effect.Effect<
-    typeof ImportResponse.Type,
+    void,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Simple health check that doesn't require database
+   * List all users.
    */
-  readonly healthCheckHealthGet: () => Effect.Effect<
-    typeof HealthCheckHealthGet200.Type,
+  readonly listUsersApiV1UsersGet: () => Effect.Effect<
+    typeof ListUsersApiV1UsersGet200.Type,
+    HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Get authenticated user information (requires auth)
+   */
+  readonly getCurrentUserInfoApiV1AuthMeGet: () => Effect.Effect<
+    typeof UserDto.Type,
     HttpClientError.HttpClientError | ParseError
   >
 }

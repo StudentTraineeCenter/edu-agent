@@ -26,7 +26,9 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
   const navigate = useNavigate()
 
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const currentCard = useAtomValue(currentFlashcardAtom(flashcardGroupId))
+  const currentCard = useAtomValue(
+    currentFlashcardAtom({ projectId, flashcardGroupId }),
+  )
 
   const reset = useAtomSet(resetAtom)
   const initializeQueue = useAtomSet(initializeQueueAtom)
@@ -55,7 +57,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
 
   const handleRetry = () => {
     reset({ flashcardGroupId })
-    initializeQueue({ flashcardGroupId, includeMastered: false })
+    initializeQueue({ projectId, flashcardGroupId, includeMastered: false })
   }
 
   const handleRetryWrong = (wrongIds: string[]) => {
@@ -112,7 +114,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
     reset({ flashcardGroupId })
     // Small delay to ensure flashcardsAtom has started loading
     const timer = setTimeout(() => {
-      initializeQueue({ flashcardGroupId, includeMastered: false })
+      initializeQueue({ projectId, flashcardGroupId, includeMastered: false })
     }, 100)
     return () => clearTimeout(timer)
   }, [flashcardGroupId, reset, initializeQueue])

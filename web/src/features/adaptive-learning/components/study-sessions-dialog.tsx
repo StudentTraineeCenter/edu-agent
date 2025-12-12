@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button'
 import { Loader2Icon, PlusIcon, Clock, BrainIcon } from 'lucide-react'
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { Result } from '@effect-atom/atom-react'
-import { listStudySessionsAtom } from '@/data-acess/adaptive-learning'
-import { generateStudySessionAtom } from '@/data-acess/adaptive-learning'
+import {
+  listStudySessionsAtom,
+  generateStudySessionAtom,
+  StudySessionDto,
+} from '@/data-acess/adaptive-learning'
 import { useNavigate } from '@tanstack/react-router'
-import type { StudySessionResponse } from '@/integrations/api/client'
 
 type StudySessionsDialogStore = {
   isOpen: boolean
@@ -55,7 +57,7 @@ export function StudySessionsDialog() {
       close()
       navigate({
         to: '/dashboard/p/$projectId/study-session/$sessionId',
-        params: { projectId, sessionId: session.session_id },
+        params: { projectId, sessionId: session.id },
       })
     } catch (error) {
       console.error('Failed to create study session:', error)
@@ -102,7 +104,7 @@ export function StudySessionsDialog() {
                   <div className="space-y-3">
                     {sessions.map((session) => (
                       <StudySessionItem
-                        key={session.session_id}
+                        key={session.id}
                         session={session}
                         projectId={projectId || ''}
                       />
@@ -143,7 +145,7 @@ export function StudySessionsDialog() {
 }
 
 type StudySessionItemProps = {
-  session: StudySessionResponse
+  session: StudySessionDto
   projectId: string
 }
 
@@ -168,7 +170,7 @@ function StudySessionItem({ session, projectId }: StudySessionItemProps) {
       onClick={() =>
         navigate({
           to: '/dashboard/p/$projectId/study-session/$sessionId',
-          params: { projectId, sessionId: session.session_id },
+          params: { projectId, sessionId: session.id },
         })
       }
       className="w-full text-left p-3 rounded-md border hover:bg-muted/50 transition-colors"
@@ -186,7 +188,7 @@ function StudySessionItem({ session, projectId }: StudySessionItemProps) {
             </div>
             <div className="flex items-center gap-1">
               <BrainIcon className="size-3" />
-              <span>{session.flashcards.length} flashcards</span>
+              <span>TODO COUNT flashcards</span>
             </div>
           </div>
           <div className="text-xs text-muted-foreground mt-1">

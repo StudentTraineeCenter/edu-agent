@@ -14,7 +14,9 @@ type QuizContentProps = {
 }
 
 export const QuizContent = ({ quizId, projectId }: QuizContentProps) => {
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom({ projectId, quizId }),
+  )
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
 
   return Result.builder(questionsResult)
@@ -47,9 +49,9 @@ export const QuizContent = ({ quizId, projectId }: QuizContentProps) => {
 
       return (
         <div className="flex flex-col space-y-12 flex-1 min-h-0 overflow-auto p-4">
-          <QuizProgress quizId={quizId} />
+          <QuizProgress quizId={quizId} projectId={projectId} />
 
-          <QuizQuestionCard quizId={quizId} />
+          <QuizQuestionCard quizId={quizId} projectId={projectId} />
 
           <QuizControls quizId={quizId} projectId={projectId} />
         </div>

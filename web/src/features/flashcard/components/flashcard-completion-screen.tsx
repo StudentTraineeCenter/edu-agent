@@ -16,6 +16,7 @@ import { Option } from 'effect'
 
 type FlashcardCompletionScreenProps = {
   flashcardGroupId: string
+  projectId: string
   onSubmit: () => void
   onRetry: () => void
   onRetryWrong: (wrongIds: string[]) => void
@@ -24,13 +25,16 @@ type FlashcardCompletionScreenProps = {
 
 export const FlashcardCompletionScreen = ({
   flashcardGroupId,
+  projectId,
   onSubmit,
   onRetry,
   onRetryWrong,
   onClose,
 }: FlashcardCompletionScreenProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const answeredCardsResult = useAtomValue(answeredCardsAtom(flashcardGroupId))
+  const answeredCardsResult = useAtomValue(
+    answeredCardsAtom({ projectId, flashcardGroupId }),
+  )
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
   const hasPendingPracticeRecords =

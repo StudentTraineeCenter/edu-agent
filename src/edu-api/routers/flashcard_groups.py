@@ -13,9 +13,9 @@ from dependencies import (
 )
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService
-from edu_shared.schemas.flashcards import FlashcardGroupDto
+from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import FlashcardGroupCreate, FlashcardGroupUpdate, GenerateRequest
+from routers.schemas import FlashcardGroupCreate, FlashcardGroupUpdate, FlashcardCreate, FlashcardUpdate, GenerateRequest
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/flashcard-groups", tags=["flashcard-groups"])
 
@@ -221,4 +221,111 @@ async def generate_flashcards_stream(
             "Access-Control-Allow-Headers": "*",
         },
     )
+
+
+@router.post("/{group_id}/flashcards", response_model=FlashcardDto, status_code=201)
+async def create_flashcard(
+    project_id: str,
+    group_id: str,
+    flashcard: FlashcardCreate,
+    current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+):
+    """Create a new flashcard in a group."""
+    try:
+        return service.create_flashcard(
+            group_id=group_id,
+            project_id=project_id,
+            question=flashcard.question,
+            answer=flashcard.answer,
+            difficulty_level=flashcard.difficulty_level,
+            position=flashcard.position,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{group_id}/flashcards", response_model=list[FlashcardDto])
+async def list_flashcards(
+    project_id: str,
+    group_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+):
+    """List all flashcards in a group."""
+    try:
+        return service.list_flashcards(group_id=group_id, project_id=project_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{group_id}/flashcards/{flashcard_id}", response_model=FlashcardDto)
+async def get_flashcard(
+    project_id: str,
+    group_id: str,
+    flashcard_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+):
+    """Get a flashcard by ID."""
+    try:
+        return service.get_flashcard(
+            flashcard_id=flashcard_id,
+            group_id=group_id,
+            project_id=project_id,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{group_id}/flashcards/{flashcard_id}", response_model=FlashcardDto)
+async def update_flashcard(
+    project_id: str,
+    group_id: str,
+    flashcard_id: str,
+    flashcard: FlashcardUpdate,
+    current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+):
+    """Update a flashcard."""
+    try:
+        return service.update_flashcard(
+            flashcard_id=flashcard_id,
+            group_id=group_id,
+            project_id=project_id,
+            question=flashcard.question,
+            answer=flashcard.answer,
+            difficulty_level=flashcard.difficulty_level,
+            position=flashcard.position,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{group_id}/flashcards/{flashcard_id}", status_code=204)
+async def delete_flashcard(
+    project_id: str,
+    group_id: str,
+    flashcard_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: FlashcardGroupService = Depends(get_flashcard_group_service),
+):
+    """Delete a flashcard."""
+    try:
+        service.delete_flashcard(
+            flashcard_id=flashcard_id,
+            group_id=group_id,
+            project_id=project_id,
+        )
+        return None
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

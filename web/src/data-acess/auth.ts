@@ -4,12 +4,10 @@ import { makeApiClient } from '@/integrations/api/http'
 import { supabase } from '@/lib/supabase'
 import type { Session, User } from '@supabase/supabase-js'
 
-export const ME_QUERY_KEY = () => ['me']
-
 export const currentUserAtom = Atom.make(
   Effect.gen(function* () {
     const client = yield* makeApiClient
-    const resp = yield* client.getCurrentUserInfoV1AuthMeGet()
+    const resp = yield* client.getCurrentUserInfoApiV1AuthMeGet()
 
     const name = resp.name?.trim() ?? resp.email?.split('@')[0] ?? 'User'
 

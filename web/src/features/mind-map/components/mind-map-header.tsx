@@ -27,8 +27,14 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-const MindMapHeaderContent = ({ mindMapId }: { mindMapId: string }) => {
-  const mindMapsResult = useAtomValue(mindMapAtom(mindMapId))
+const MindMapHeaderContent = ({
+  mindMapId,
+  projectId,
+}: {
+  mindMapId: string
+  projectId: string
+}) => {
+  const mindMapsResult = useAtomValue(mindMapAtom({ projectId, mindMapId }))
 
   return Result.builder(mindMapsResult)
     .onSuccess((mindMap) => {
@@ -118,7 +124,7 @@ export const MindMapHeader = ({ projectId, mindMapId }: MindMapHeaderProps) => {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <MindMapHeaderContent mindMapId={mindMapId} />
+        <MindMapHeaderContent mindMapId={mindMapId} projectId={projectId} />
       </div>
       <div className="flex items-center gap-2 px-3">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

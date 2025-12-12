@@ -16,18 +16,19 @@ import { Link } from '@tanstack/react-router'
 
 type NoteHeaderContentProps = {
   noteId: string
+  projectId: string
 }
 
-const NoteHeaderContent = ({ noteId }: NoteHeaderContentProps) => {
-  const noteResult = useAtomValue(noteAtom(noteId))
+const NoteHeaderContent = ({ noteId, projectId }: NoteHeaderContentProps) => {
+  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
 
   return Result.builder(noteResult)
-    .onSuccess((res) => (
+    .onSuccess((note) => (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage className="line-clamp-1 font-medium">
-              {res.note?.title || 'Note'}
+              {note.title || 'Note'}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -54,7 +55,7 @@ type NoteHeaderProps = {
 }
 
 export const NoteHeader = ({ noteId, projectId }: NoteHeaderProps) => {
-  const noteResult = useAtomValue(noteAtom(noteId))
+  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -74,7 +75,7 @@ export const NoteHeader = ({ noteId, projectId }: NoteHeaderProps) => {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <NoteHeaderContent noteId={noteId} />
+        <NoteHeaderContent noteId={noteId} projectId={projectId} />
       </div>
     </header>
   )

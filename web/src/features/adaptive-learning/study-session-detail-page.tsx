@@ -115,9 +115,7 @@ export const StudySessionDetailPage = ({
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-bold">
-                        {sessionData.flashcards.length}
-                      </p>
+                      <p className="text-2xl font-bold">TODO COUNT</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -146,15 +144,15 @@ export const StudySessionDetailPage = ({
                     </Card>
                   )}
 
-                {sessionData.learning_objectives &&
-                  sessionData.learning_objectives.length > 0 && (
+                {sessionData.session_data.learning_objectives &&
+                  sessionData.session_data.learning_objectives.length > 0 && (
                     <Card>
                       <CardHeader>
                         <CardTitle>Learning Objectives</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="space-y-2">
-                          {sessionData.learning_objectives.map(
+                          {sessionData.session_data.learning_objectives.map(
                             (objective, idx) => (
                               <li key={idx} className="flex items-start gap-2">
                                 <span className="text-primary mt-1">•</span>

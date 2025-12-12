@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from edu_shared.db.models import FlashcardGroup, Flashcard
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.flashcards import FlashcardGroupDto
+from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
 from edu_shared.exceptions import NotFoundError
 from edu_shared.agents.flashcard_agent import FlashcardAgent
 from edu_shared.agents.base import ContentAgentConfig
@@ -285,6 +285,248 @@ class FlashcardGroupService:
             except Exception as e:
                 db.rollback()
                 raise
+
+    def create_flashcard(
+        self,
+        group_id: str,
+        project_id: str,
+        question: str,
+        answer: str,
+        difficulty_level: str = "medium",
+        position: Optional[int] = None,
+    ) -> FlashcardDto:
+        """Create a new flashcard in a group.
+
+        Args:
+            group_id: The flashcard group ID
+            project_id: The project ID
+            question: The flashcard question
+            answer: The flashcard answer
+            difficulty_level: The difficulty level (easy, medium, hard)
+            position: Optional position for ordering (auto-assigned if None)
+
+        Returns:
+            Created FlashcardDto
+
+        Raises:
+            NotFoundError: If flashcard group not found
+        """
+        with self._get_db_session() as db:
+            try:
+                # Verify group exists
+                group = (
+                    db.query(FlashcardGroup)
+                    .filter(
+                        FlashcardGroup.id == group_id,
+                        FlashcardGroup.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not group:
+                    raise NotFoundError(f"Flashcard group {group_id} not found")
+
+                # Auto-assign position if not provided
+                if position is None:
+                    max_position = (
+                        db.query(Flashcard.position)
+                        .filter(Flashcard.group_id == group_id)
+                        .order_by(Flashcard.position.desc())
+                        .limit(1)
+                        .scalar()
+                    )
+                    position = (max_position + 1) if max_position is not None else 0
+
+                flashcard = Flashcard(
+                    id=str(uuid4()),
+                    group_id=group_id,
+                    project_id=project_id,
+                    question=question,
+                    answer=answer,
+                    difficulty_level=difficulty_level,
+                    position=position,
+                    created_at=datetime.now(),
+                )
+                db.add(flashcard)
+                db.commit()
+                db.refresh(flashcard)
+
+                return self._flashcard_model_to_dto(flashcard)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def get_flashcard(
+        self, flashcard_id: str, group_id: str, project_id: str
+    ) -> FlashcardDto:
+        """Get a flashcard by ID.
+
+        Args:
+            flashcard_id: The flashcard ID
+            group_id: The flashcard group ID
+            project_id: The project ID
+
+        Returns:
+            FlashcardDto
+
+        Raises:
+            NotFoundError: If flashcard not found
+        """
+        with self._get_db_session() as db:
+            try:
+                flashcard = (
+                    db.query(Flashcard)
+                    .filter(
+                        Flashcard.id == flashcard_id,
+                        Flashcard.group_id == group_id,
+                        Flashcard.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not flashcard:
+                    raise NotFoundError(f"Flashcard {flashcard_id} not found")
+
+                return self._flashcard_model_to_dto(flashcard)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                raise
+
+    def list_flashcards(
+        self, group_id: str, project_id: str
+    ) -> List[FlashcardDto]:
+        """List all flashcards in a group.
+
+        Args:
+            group_id: The flashcard group ID
+            project_id: The project ID
+
+        Returns:
+            List of FlashcardDto instances
+        """
+        with self._get_db_session() as db:
+            try:
+                flashcards = (
+                    db.query(Flashcard)
+                    .filter(
+                        Flashcard.group_id == group_id,
+                        Flashcard.project_id == project_id,
+                    )
+                    .order_by(Flashcard.position.asc())
+                    .all()
+                )
+                return [self._flashcard_model_to_dto(flashcard) for flashcard in flashcards]
+            except Exception as e:
+                raise
+
+    def update_flashcard(
+        self,
+        flashcard_id: str,
+        group_id: str,
+        project_id: str,
+        question: Optional[str] = None,
+        answer: Optional[str] = None,
+        difficulty_level: Optional[str] = None,
+        position: Optional[int] = None,
+    ) -> FlashcardDto:
+        """Update a flashcard.
+
+        Args:
+            flashcard_id: The flashcard ID
+            group_id: The flashcard group ID
+            project_id: The project ID
+            question: Optional new question
+            answer: Optional new answer
+            difficulty_level: Optional new difficulty level
+            position: Optional new position
+
+        Returns:
+            Updated FlashcardDto
+
+        Raises:
+            NotFoundError: If flashcard not found
+        """
+        with self._get_db_session() as db:
+            try:
+                flashcard = (
+                    db.query(Flashcard)
+                    .filter(
+                        Flashcard.id == flashcard_id,
+                        Flashcard.group_id == group_id,
+                        Flashcard.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not flashcard:
+                    raise NotFoundError(f"Flashcard {flashcard_id} not found")
+
+                if question is not None:
+                    flashcard.question = question
+                if answer is not None:
+                    flashcard.answer = answer
+                if difficulty_level is not None:
+                    flashcard.difficulty_level = difficulty_level
+                if position is not None:
+                    flashcard.position = position
+
+                db.commit()
+                db.refresh(flashcard)
+
+                return self._flashcard_model_to_dto(flashcard)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def delete_flashcard(
+        self, flashcard_id: str, group_id: str, project_id: str
+    ) -> None:
+        """Delete a flashcard.
+
+        Args:
+            flashcard_id: The flashcard ID
+            group_id: The flashcard group ID
+            project_id: The project ID
+
+        Raises:
+            NotFoundError: If flashcard not found
+        """
+        with self._get_db_session() as db:
+            try:
+                flashcard = (
+                    db.query(Flashcard)
+                    .filter(
+                        Flashcard.id == flashcard_id,
+                        Flashcard.group_id == group_id,
+                        Flashcard.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not flashcard:
+                    raise NotFoundError(f"Flashcard {flashcard_id} not found")
+
+                db.delete(flashcard)
+                db.commit()
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def _flashcard_model_to_dto(self, flashcard: Flashcard) -> FlashcardDto:
+        """Convert Flashcard model to FlashcardDto."""
+        return FlashcardDto(
+            id=flashcard.id,
+            group_id=flashcard.group_id,
+            project_id=flashcard.project_id,
+            question=flashcard.question,
+            answer=flashcard.answer,
+            difficulty_level=flashcard.difficulty_level,
+            position=flashcard.position,
+            created_at=flashcard.created_at,
+        )
 
     @contextmanager
     def _get_db_session(self):

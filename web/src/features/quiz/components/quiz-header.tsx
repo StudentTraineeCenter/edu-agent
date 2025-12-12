@@ -14,8 +14,14 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
-const QuizHeaderContent = ({ quizId }: { quizId: string }) => {
-  const quizResult = useAtomValue(quizAtom(quizId))
+const QuizHeaderContent = ({
+  quizId,
+  projectId,
+}: {
+  quizId: string
+  projectId: string
+}) => {
+  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
 
   return Result.builder(quizResult)
     .onSuccess((quiz) => (
@@ -23,7 +29,7 @@ const QuizHeaderContent = ({ quizId }: { quizId: string }) => {
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage className="line-clamp-1 font-medium">
-              {quiz.quiz?.name ?? 'Quiz'}
+              {quiz.name ?? 'Quiz'}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -50,7 +56,7 @@ type QuizHeaderProps = {
 }
 
 export const QuizHeader = ({ quizId, projectId }: QuizHeaderProps) => {
-  const quizResult = useAtomValue(quizAtom(quizId))
+  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -70,7 +76,7 @@ export const QuizHeader = ({ quizId, projectId }: QuizHeaderProps) => {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <QuizHeaderContent quizId={quizId} />
+        <QuizHeaderContent quizId={quizId} projectId={projectId} />
       </div>
     </header>
   )

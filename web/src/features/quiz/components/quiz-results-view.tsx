@@ -70,8 +70,14 @@ const StatCard = ({ icon, value, label, valueColor }: StatCardProps) => (
   </div>
 )
 
-const StatsGrid = ({ quizId }: { quizId: string }) => {
-  const statsResult = useAtomValue(quizStatsAtom(quizId))
+const StatsGrid = ({
+  quizId,
+  projectId,
+}: {
+  quizId: string
+  projectId: string
+}) => {
+  const statsResult = useAtomValue(quizStatsAtom({ projectId, quizId }))
 
   return Result.builder(statsResult)
     .onSuccess((stats) => {
@@ -309,8 +315,10 @@ export const QuizResultsView = ({
   const [showIncorrect, setShowIncorrect] = useState(false)
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const statsResult = useAtomValue(quizStatsAtom(quizId))
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
+  const statsResult = useAtomValue(quizStatsAtom({ projectId, quizId }))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom({ projectId, quizId }),
+  )
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
   if (!state) return null
@@ -359,7 +367,7 @@ export const QuizResultsView = ({
         <div className="max-w-3xl mx-auto w-full space-y-8 py-8">
           <CompletionHeader total={total} />
 
-          <StatsGrid quizId={quizId} />
+          <StatsGrid quizId={quizId} projectId={projectId} />
 
           <Separator />
 

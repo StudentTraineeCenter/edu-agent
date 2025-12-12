@@ -17,12 +17,16 @@ import { Link } from '@tanstack/react-router'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string
+  projectId: string
 }
 
 const FlashcardHeaderContent = ({
   flashcardGroupId,
-}: FlashcardHeaderContentProps) => {
-  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
+  projectId,
+}: FlashcardHeaderContentProps & { projectId: string }) => {
+  const groupResult = useAtomValue(
+    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  )
 
   return Result.builder(groupResult)
     .onSuccess((res) => (
@@ -60,13 +64,15 @@ export const FlashcardHeader = ({
   flashcardGroupId,
   projectId,
 }: FlashcardHeaderProps) => {
-  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
+  const groupResult = useAtomValue(
+    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  )
   const initializeQueue = useAtomSet(initializeQueueAtom, {
     mode: 'promise',
   })
 
   const handleShuffle = async () => {
-    await initializeQueue({ flashcardGroupId, includeMastered: false })
+    await initializeQueue({ projectId, flashcardGroupId, includeMastered: false })
   }
 
   return (
@@ -87,7 +93,10 @@ export const FlashcardHeader = ({
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <FlashcardHeaderContent flashcardGroupId={flashcardGroupId} />
+        <FlashcardHeaderContent
+          flashcardGroupId={flashcardGroupId}
+          projectId={projectId}
+        />
       </div>
       <div className="flex items-center gap-2 px-3">
         <Button

@@ -12,14 +12,16 @@ import { Loader2Icon } from 'lucide-react'
 
 type MindMapContentProps = {
   mindMapId: string
+  projectId: string
   className?: string
 }
 
 export const MindMapContent = ({
   mindMapId,
+  projectId,
   className,
 }: MindMapContentProps) => {
-  const mindMapResult = useAtomValue(mindMapAtom(mindMapId))
+  const mindMapResult = useAtomValue(mindMapAtom({ projectId, mindMapId }))
 
   return Result.builder(mindMapResult)
     .onSuccess((mindMap) => {

@@ -20,7 +20,9 @@ export const FlashcardControls = ({
   projectId,
 }: FlashcardControlsProps) => {
   const stateResult = useAtomValue(flashcardDetailStateAtom(flashcardGroupId))
-  const currentCard = useAtomValue(currentFlashcardAtom(flashcardGroupId))
+  const currentCard = useAtomValue(
+    currentFlashcardAtom({ projectId, flashcardGroupId }),
+  )
 
   const setShowAnswer = useAtomSet(setShowAnswerAtom)
   const gotItRight = useAtomSet(gotItRightAtom)

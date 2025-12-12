@@ -3,36 +3,34 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
+import { MindMapCreate } from '@/integrations/api/client'
 
 export const mindMapsAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const apiClient = yield* makeApiClient
       const mindMaps =
-        yield* apiClient.listMindMapsV1ProjectsProjectIdMindMapsGet(projectId)
+        yield* apiClient.listMindMapsApiV1ProjectsProjectIdMindMapsGet(
+          projectId,
+        )
       return mindMaps
     }),
   ).pipe(Atom.keepAlive),
 )
 
-export const mindMapAtom = Atom.family((mindMapId: string) =>
-  Atom.make(
-    Effect.gen(function* () {
-      const apiClient = yield* makeApiClient
-      const mindMap = yield* apiClient
-        .getMindMapV1MindMapsMindMapIdGet(mindMapId)
-        .pipe(
-          Effect.catchTag('ResponseError', (error) => {
-            if (error.response.status === 404) {
-              return Effect.succeed(null)
-            }
-            return Effect.fail(error)
-          }),
-        )
-
-      return mindMap
-    }),
-  ).pipe(Atom.keepAlive),
+export const mindMapAtom = Atom.family(
+  (input: { projectId: string; mindMapId: string }) =>
+    Atom.make(
+      Effect.gen(function* () {
+        const apiClient = yield* makeApiClient
+        const mindMap =
+          yield* apiClient.getMindMapApiV1ProjectsProjectIdMindMapsMindMapIdGet(
+            input.projectId,
+            input.mindMapId,
+          )
+        return mindMap
+      }),
+    ).pipe(Atom.keepAlive),
 )
 
 const MindMapProgressUpdate = Schema.Struct({
@@ -58,7 +56,7 @@ export const generateMindMapStreamAtom = Atom.fn(
       custom_instructions: input.customInstructions || null,
     })
     const resp = yield* httpClient.post(
-      `/v1/projects/${input.projectId}/mind-maps/stream`,
+      `/api/v1/projects/${input.projectId}/mind-maps/stream`,
       { body },
     )
 
@@ -111,20 +109,27 @@ export const generateMindMapStreamAtom = Atom.fn(
 export const generateMindMapAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
+    title?: string
+    description?: string
     customInstructions?: string
   }) {
     const registry = yield* Registry.AtomRegistry
     const apiClient = yield* makeApiClient
     const mindMap =
-      yield* apiClient.generateMindMapV1ProjectsProjectIdMindMapsPost(
+      yield* apiClient.createMindMapApiV1ProjectsProjectIdMindMapsPost(
         input.projectId,
-        {
+        new MindMapCreate({
+          title: input.title ?? 'New Mind Map',
+          description: input.description,
           custom_instructions: input.customInstructions,
-        },
+        }),
       )
+
     // Refresh both the list and the individual mind map atom
     registry.refresh(mindMapsAtom(input.projectId))
-    registry.refresh(mindMapAtom(mindMap.id))
+    registry.refresh(
+      mindMapAtom({ projectId: input.projectId, mindMapId: mindMap.id }),
+    )
     return mindMap
   }),
 )

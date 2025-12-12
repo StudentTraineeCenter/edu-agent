@@ -14,7 +14,7 @@ type ChatContentProps = {
 }
 
 const ChatContent = ({ chatId, projectId }: ChatContentProps) => {
-  const chatResult = useAtomValue(chatAtom(chatId))
+  const chatResult = useAtomValue(chatAtom({ projectId, chatId }))
 
   const [prompt, setPrompt] = useState<string>('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -48,6 +48,7 @@ const ChatContent = ({ chatId, projectId }: ChatContentProps) => {
     try {
       await streamMessage({
         message: value,
+        projectId,
         chatId,
       })
     } catch {

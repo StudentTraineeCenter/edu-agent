@@ -27,18 +27,21 @@ import { useAtom } from '@effect-atom/atom-react'
 type EditChatDialogStore = {
   isOpen: boolean
   chatId: string | null
+  projectId: string | null
   currentTitle: string | null
-  open: (chatId: string, currentTitle: string | null) => void
+  open: (projectId: string, chatId: string, currentTitle: string | null) => void
   close: () => void
 }
 
 export const useEditChatDialog = create<EditChatDialogStore>((set) => ({
   isOpen: false,
   chatId: null,
+  projectId: null,
   currentTitle: null,
-  open: (chatId: string, currentTitle: string | null) =>
-    set({ isOpen: true, chatId, currentTitle }),
-  close: () => set({ isOpen: false, chatId: null, currentTitle: null }),
+  open: (projectId: string, chatId: string, currentTitle: string | null) =>
+    set({ isOpen: true, projectId, chatId, currentTitle }),
+  close: () =>
+    set({ isOpen: false, projectId: null, chatId: null, currentTitle: null }),
 }))
 
 const editChatSchema = z.object({
@@ -48,7 +51,7 @@ const editChatSchema = z.object({
 type EditChatForm = z.infer<typeof editChatSchema>
 
 export function EditChatDialog() {
-  const { isOpen, chatId, currentTitle, close } = useEditChatDialog()
+  const { isOpen, projectId, chatId, currentTitle, close } = useEditChatDialog()
 
   const [updateChatResult, updateChatMutation] = useAtom(updateChatAtom, {
     mode: 'promise',
@@ -74,10 +77,11 @@ export function EditChatDialog() {
   }
 
   const onSubmit = async (data: EditChatForm) => {
-    if (!chatId) return
+    if (!projectId || !chatId) return
 
     await updateChatMutation({
       chatId,
+      projectId,
       title: data.title,
     })
 

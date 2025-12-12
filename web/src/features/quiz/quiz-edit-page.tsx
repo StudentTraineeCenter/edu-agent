@@ -67,16 +67,22 @@ type LocalQuestion = {
   originalId?: string
 }
 
-const QuizHeaderContent = ({ quizId }: { quizId: string }) => {
-  const quizResult = useAtomValue(quizAtom(quizId))
+const QuizHeaderContent = ({
+  quizId,
+  projectId,
+}: {
+  quizId: string
+  projectId: string
+}) => {
+  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
 
   return Result.builder(quizResult)
-    .onSuccess((res) => (
+    .onSuccess((quiz) => (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage className="line-clamp-1 font-medium">
-              Edit: {res.quiz?.name || 'Quiz'}
+              Edit: {quiz.name || 'Quiz'}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -98,8 +104,8 @@ const QuizHeaderContent = ({ quizId }: { quizId: string }) => {
 }
 
 export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
-  const quizResult = useAtomValue(quizAtom(quizId))
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
+  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
   const [createQuestionResult, createQuestion] = useAtom(
     createQuizQuestionAtom,
     { mode: 'promise' },
@@ -306,6 +312,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
         await deleteQuestion({
           questionId: question.id,
           quizId,
+          projectId,
         })
       }
 
@@ -323,6 +330,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
           explanation: question.explanation || undefined,
           difficultyLevel: question.difficulty_level,
           position: question.position,
+          projectId,
         })
       }
 
@@ -354,6 +362,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
           correctOption: question.correct_option,
           explanation: question.explanation || undefined,
           difficultyLevel: question.difficulty_level,
+          projectId,
         })
       }
 
@@ -368,6 +377,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
       if (hasReordered) {
         await reorderQuestions({
           quizId,
+          projectId,
           questionIds: activeQuestions.filter((q) => !q.isNew).map((q) => q.id),
         })
       }
@@ -400,7 +410,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <QuizHeaderContent quizId={quizId} />
+          <QuizHeaderContent quizId={quizId} projectId={projectId} />
         </div>
         <div className="flex items-center gap-2 px-3">
           {hasUnsavedChanges && (

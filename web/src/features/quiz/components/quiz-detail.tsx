@@ -18,7 +18,7 @@ type Props = React.ComponentProps<'div'> & {
 }
 
 export const QuizDetail = ({ quizId, projectId, ...props }: Props) => {
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
 
   const resetQuiz = useAtomSet(resetQuizAtom)
@@ -57,7 +57,7 @@ export const QuizDetail = ({ quizId, projectId, ...props }: Props) => {
         if (event.key === 'ArrowLeft') {
           goToPrevious({ quizId })
         } else {
-          goToNext({ quizId })
+          goToNext({ quizId, projectId })
         }
         return
       }
@@ -86,7 +86,7 @@ export const QuizDetail = ({ quizId, projectId, ...props }: Props) => {
           state.currentQuestionIndex === questions.length - 1
         if (allAnswered && isLastQuestion) {
           event.preventDefault()
-          submitQuiz({ quizId })
+          submitQuiz({ quizId, projectId })
         }
       }
     }

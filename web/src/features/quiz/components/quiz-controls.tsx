@@ -16,13 +16,10 @@ type QuizControlsProps = {
   projectId: string
 }
 
-export const QuizControls = ({
-  quizId,
-  projectId: _projectId,
-}: QuizControlsProps) => {
+export const QuizControls = ({ quizId, projectId }: QuizControlsProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
-  const canSubmitResult = useAtomValue(canSubmitQuizAtom(quizId))
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
+  const canSubmitResult = useAtomValue(canSubmitQuizAtom({ projectId, quizId }))
 
   const goToNext = useAtomSet(goToNextQuestionAtom, { mode: 'promise' })
   const goToPrevious = useAtomSet(goToPreviousQuestionAtom, { mode: 'promise' })
@@ -43,7 +40,7 @@ export const QuizControls = ({
   const showResults = state.showResults
 
   const handleNext = async () => {
-    await goToNext({ quizId })
+    await goToNext({ quizId, projectId })
   }
 
   const handlePrevious = async () => {
@@ -51,7 +48,7 @@ export const QuizControls = ({
   }
 
   const handleSubmit = async () => {
-    await submitQuiz({ quizId })
+    await submitQuiz({ quizId, projectId })
   }
 
   if (showResults) return null

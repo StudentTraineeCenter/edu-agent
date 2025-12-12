@@ -16,7 +16,11 @@ export const MindMapDetailPage = ({
 
       <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
         <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0 p-4">
-          <MindMapContent mindMapId={mindMapId} className="flex-1" />
+          <MindMapContent
+            mindMapId={mindMapId}
+            projectId={projectId}
+            className="flex-1"
+          />
         </div>
       </div>
     </div>

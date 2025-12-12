@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from edu_shared.db.models import Quiz, QuizQuestion
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.quizzes import QuizDto
+from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.exceptions import NotFoundError
 from edu_shared.agents.quiz_agent import QuizAgent
 from edu_shared.agents.base import ContentAgentConfig
@@ -272,6 +272,340 @@ class QuizService:
             except Exception as e:
                 db.rollback()
                 raise
+
+    def create_quiz_question(
+        self,
+        quiz_id: str,
+        project_id: str,
+        question_text: str,
+        option_a: str,
+        option_b: str,
+        option_c: str,
+        option_d: str,
+        correct_option: str,
+        explanation: Optional[str] = None,
+        difficulty_level: str = "medium",
+        position: Optional[int] = None,
+    ) -> QuizQuestionDto:
+        """Create a new quiz question.
+
+        Args:
+            quiz_id: The quiz ID
+            project_id: The project ID
+            question_text: The question text
+            option_a: Option A
+            option_b: Option B
+            option_c: Option C
+            option_d: Option D
+            correct_option: Correct option (a, b, c, or d)
+            explanation: Optional explanation
+            difficulty_level: Difficulty level (easy, medium, hard)
+            position: Optional position for ordering (auto-assigned if None)
+
+        Returns:
+            Created QuizQuestionDto
+
+        Raises:
+            NotFoundError: If quiz not found
+        """
+        with self._get_db_session() as db:
+            try:
+                # Verify quiz exists
+                quiz = (
+                    db.query(Quiz)
+                    .filter(Quiz.id == quiz_id, Quiz.project_id == project_id)
+                    .first()
+                )
+                if not quiz:
+                    raise NotFoundError(f"Quiz {quiz_id} not found")
+
+                # Auto-assign position if not provided
+                if position is None:
+                    max_position = (
+                        db.query(QuizQuestion.position)
+                        .filter(QuizQuestion.quiz_id == quiz_id)
+                        .order_by(QuizQuestion.position.desc())
+                        .limit(1)
+                        .scalar()
+                    )
+                    position = (max_position + 1) if max_position is not None else 0
+
+                question = QuizQuestion(
+                    id=str(uuid4()),
+                    quiz_id=quiz_id,
+                    project_id=project_id,
+                    question_text=question_text,
+                    option_a=option_a,
+                    option_b=option_b,
+                    option_c=option_c,
+                    option_d=option_d,
+                    correct_option=correct_option,
+                    explanation=explanation,
+                    difficulty_level=difficulty_level,
+                    position=position,
+                    created_at=datetime.now(),
+                )
+                db.add(question)
+                db.commit()
+                db.refresh(question)
+
+                return self._question_model_to_dto(question)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def get_quiz_question(
+        self, question_id: str, quiz_id: str, project_id: str
+    ) -> QuizQuestionDto:
+        """Get a quiz question by ID.
+
+        Args:
+            question_id: The question ID
+            quiz_id: The quiz ID
+            project_id: The project ID
+
+        Returns:
+            QuizQuestionDto
+
+        Raises:
+            NotFoundError: If question not found
+        """
+        with self._get_db_session() as db:
+            try:
+                question = (
+                    db.query(QuizQuestion)
+                    .filter(
+                        QuizQuestion.id == question_id,
+                        QuizQuestion.quiz_id == quiz_id,
+                        QuizQuestion.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not question:
+                    raise NotFoundError(f"Quiz question {question_id} not found")
+
+                return self._question_model_to_dto(question)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                raise
+
+    def list_quiz_questions(
+        self, quiz_id: str, project_id: str
+    ) -> List[QuizQuestionDto]:
+        """List all questions in a quiz.
+
+        Args:
+            quiz_id: The quiz ID
+            project_id: The project ID
+
+        Returns:
+            List of QuizQuestionDto instances
+        """
+        with self._get_db_session() as db:
+            try:
+                questions = (
+                    db.query(QuizQuestion)
+                    .filter(
+                        QuizQuestion.quiz_id == quiz_id,
+                        QuizQuestion.project_id == project_id,
+                    )
+                    .order_by(QuizQuestion.position.asc())
+                    .all()
+                )
+                return [self._question_model_to_dto(q) for q in questions]
+            except Exception as e:
+                raise
+
+    def update_quiz_question(
+        self,
+        question_id: str,
+        quiz_id: str,
+        project_id: str,
+        question_text: Optional[str] = None,
+        option_a: Optional[str] = None,
+        option_b: Optional[str] = None,
+        option_c: Optional[str] = None,
+        option_d: Optional[str] = None,
+        correct_option: Optional[str] = None,
+        explanation: Optional[str] = None,
+        difficulty_level: Optional[str] = None,
+        position: Optional[int] = None,
+    ) -> QuizQuestionDto:
+        """Update a quiz question.
+
+        Args:
+            question_id: The question ID
+            quiz_id: The quiz ID
+            project_id: The project ID
+            question_text: Optional new question text
+            option_a: Optional new option A
+            option_b: Optional new option B
+            option_c: Optional new option C
+            option_d: Optional new option D
+            correct_option: Optional new correct option
+            explanation: Optional new explanation
+            difficulty_level: Optional new difficulty level
+            position: Optional new position
+
+        Returns:
+            Updated QuizQuestionDto
+
+        Raises:
+            NotFoundError: If question not found
+        """
+        with self._get_db_session() as db:
+            try:
+                question = (
+                    db.query(QuizQuestion)
+                    .filter(
+                        QuizQuestion.id == question_id,
+                        QuizQuestion.quiz_id == quiz_id,
+                        QuizQuestion.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not question:
+                    raise NotFoundError(f"Quiz question {question_id} not found")
+
+                if question_text is not None:
+                    question.question_text = question_text
+                if option_a is not None:
+                    question.option_a = option_a
+                if option_b is not None:
+                    question.option_b = option_b
+                if option_c is not None:
+                    question.option_c = option_c
+                if option_d is not None:
+                    question.option_d = option_d
+                if correct_option is not None:
+                    question.correct_option = correct_option
+                if explanation is not None:
+                    question.explanation = explanation
+                if difficulty_level is not None:
+                    question.difficulty_level = difficulty_level
+                if position is not None:
+                    question.position = position
+
+                db.commit()
+                db.refresh(question)
+
+                return self._question_model_to_dto(question)
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def delete_quiz_question(
+        self, question_id: str, quiz_id: str, project_id: str
+    ) -> None:
+        """Delete a quiz question.
+
+        Args:
+            question_id: The question ID
+            quiz_id: The quiz ID
+            project_id: The project ID
+
+        Raises:
+            NotFoundError: If question not found
+        """
+        with self._get_db_session() as db:
+            try:
+                question = (
+                    db.query(QuizQuestion)
+                    .filter(
+                        QuizQuestion.id == question_id,
+                        QuizQuestion.quiz_id == quiz_id,
+                        QuizQuestion.project_id == project_id,
+                    )
+                    .first()
+                )
+                if not question:
+                    raise NotFoundError(f"Quiz question {question_id} not found")
+
+                db.delete(question)
+                db.commit()
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def reorder_quiz_questions(
+        self, quiz_id: str, project_id: str, question_ids: List[str]
+    ) -> List[QuizQuestionDto]:
+        """Reorder quiz questions.
+
+        Args:
+            quiz_id: The quiz ID
+            project_id: The project ID
+            question_ids: List of question IDs in the desired order
+
+        Returns:
+            List of updated QuizQuestionDto instances
+
+        Raises:
+            NotFoundError: If quiz or any question not found
+        """
+        with self._get_db_session() as db:
+            try:
+                # Verify quiz exists
+                quiz = (
+                    db.query(Quiz)
+                    .filter(Quiz.id == quiz_id, Quiz.project_id == project_id)
+                    .first()
+                )
+                if not quiz:
+                    raise NotFoundError(f"Quiz {quiz_id} not found")
+
+                # Update positions
+                questions = []
+                for position, question_id in enumerate(question_ids):
+                    question = (
+                        db.query(QuizQuestion)
+                        .filter(
+                            QuizQuestion.id == question_id,
+                            QuizQuestion.quiz_id == quiz_id,
+                            QuizQuestion.project_id == project_id,
+                        )
+                        .first()
+                    )
+                    if not question:
+                        raise NotFoundError(f"Quiz question {question_id} not found")
+                    question.position = position
+                    questions.append(question)
+
+                db.commit()
+                for q in questions:
+                    db.refresh(q)
+
+                return [self._question_model_to_dto(q) for q in questions]
+            except NotFoundError:
+                raise
+            except Exception as e:
+                db.rollback()
+                raise
+
+    def _question_model_to_dto(self, question: QuizQuestion) -> QuizQuestionDto:
+        """Convert QuizQuestion model to QuizQuestionDto."""
+        return QuizQuestionDto(
+            id=question.id,
+            quiz_id=question.quiz_id,
+            project_id=question.project_id,
+            question_text=question.question_text,
+            option_a=question.option_a,
+            option_b=question.option_b,
+            option_c=question.option_c,
+            option_d=question.option_d,
+            correct_option=question.correct_option,
+            explanation=question.explanation,
+            difficulty_level=question.difficulty_level,
+            position=question.position,
+            created_at=question.created_at,
+        )
 
     @contextmanager
     def _get_db_session(self):

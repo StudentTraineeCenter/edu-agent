@@ -10,11 +10,17 @@ import {
 
 type QuizQuestionCardProps = {
   quizId: string
+  projectId: string
 }
 
-export const QuizQuestionCard = ({ quizId }: QuizQuestionCardProps) => {
+export const QuizQuestionCard = ({
+  quizId,
+  projectId,
+}: QuizQuestionCardProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const currentQuestionResult = useAtomValue(currentQuestionAtom(quizId))
+  const currentQuestionResult = useAtomValue(
+    currentQuestionAtom({ projectId, quizId }),
+  )
 
   const setSelectedAnswer = useAtomSet(setSelectedAnswerAtom, {
     mode: 'promise',

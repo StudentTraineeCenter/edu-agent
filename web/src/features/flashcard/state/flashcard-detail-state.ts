@@ -1,6 +1,6 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
-import type { CreatePracticeRecordRequest } from '@/integrations/api'
+import type { PracticeRecordCreate } from '@/integrations/api'
 import { runtime } from '@/data-acess/runtime'
 import { submitPracticeRecordsBatchAtom } from '@/data-acess/practice'
 import { flashcardsAtom } from '@/data-acess/flashcard'
@@ -11,7 +11,7 @@ export type FlashcardDetailState = {
   readonly queue: readonly CardId[] // Ordered queue of cards still in play
   readonly currentCardId: CardId | null
   readonly showAnswer: boolean
-  readonly pendingPracticeRecords: Record<string, CreatePracticeRecordRequest>
+  readonly pendingPracticeRecords: Record<string, PracticeRecordCreate>
   readonly isCompleted: boolean
   // Progress within this session
   readonly sessionCorrectIds: ReadonlySet<CardId>
@@ -28,7 +28,7 @@ type FlashcardDetailAction = Data.TaggedEnum<{
   SetShowAnswer: { readonly show: boolean }
   AddPracticeRecord: {
     readonly cardId: string
-    readonly practiceRecord: CreatePracticeRecordRequest
+    readonly practiceRecord: PracticeRecordCreate
   }
   MarkCorrect: { readonly cardId: CardId }
   MarkWrong: { readonly cardId: CardId }
@@ -186,61 +186,67 @@ export const flashcardStatsAtom = Atom.family((flashcardGroupId: string) =>
   ),
 )
 
-export const currentFlashcardAtom = Atom.family((flashcardGroupId: string) =>
-  Atom.make(
-    Effect.fn(function* (get) {
-      const state = get(flashcardDetailStateAtom(flashcardGroupId))
-      const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
+export const currentFlashcardAtom = Atom.family(
+  (input: { projectId: string; flashcardGroupId: string }) =>
+    Atom.make(
+      Effect.fn(function* (get) {
+        const state = get(flashcardDetailStateAtom(input.flashcardGroupId))
+        const flashcardsResult = get(flashcardsAtom(input))
 
-      if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
-        return null
-      }
+        if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
+          return null
+        }
 
-      const { currentCardId } = state.value
-      if (!currentCardId) {
-        console.log('No currentCardId in state', {
-          flashcardGroupId,
-          queueLength: state.value.queue.length,
-        })
-        return null
-      }
+        const { currentCardId } = state.value
+        if (!currentCardId) {
+          console.log('No currentCardId in state', {
+            flashcardGroupId: input.flashcardGroupId,
+            queueLength: state.value.queue.length,
+          })
+          return null
+        }
 
-      const flashcards = flashcardsResult.value.data
-      const card = flashcards.find((f) => f.id === currentCardId)
+        const flashcards = flashcardsResult.value
+        const card = flashcards.find((f) => f.id === currentCardId)
 
-      if (!card) {
-        console.warn('Current card not found in flashcards', {
-          currentCardId,
-          flashcardGroupId,
-          availableIds: flashcards.map((f) => f.id).slice(0, 5),
-          totalFlashcards: flashcards.length,
-        })
-      }
+        if (!card) {
+          console.warn('Current card not found in flashcards', {
+            currentCardId,
+            flashcardGroupId: input.flashcardGroupId,
+            availableIds: flashcards.map((f) => f.id).slice(0, 5),
+            totalFlashcards: flashcards.length,
+          })
+        }
 
-      return card ?? null
-    }),
-  ),
+        return card ?? null
+      }),
+    ),
 )
 
-export const answeredCardsAtom = Atom.family((flashcardGroupId: string) =>
-  Atom.make(
-    Effect.fn(function* (get) {
-      const state = get(flashcardDetailStateAtom(flashcardGroupId))
-      const flashcardsResult = get(flashcardsAtom(flashcardGroupId))
+export const answeredCardsAtom = Atom.family(
+  (input: { projectId: string; flashcardGroupId: string }) =>
+    Atom.make(
+      Effect.fn(function* (get) {
+        const state = get(flashcardDetailStateAtom(input.flashcardGroupId))
+        const flashcardsResult = get(flashcardsAtom(input))
 
-      if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
-        return { correct: [], incorrect: [] }
-      }
+        if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
+          return { correct: [], incorrect: [] }
+        }
 
-      const flashcards = flashcardsResult.value.data
-      const { sessionCorrectIds, sessionWrongIds } = state.value
+        const flashcards = flashcardsResult.value
+        const { sessionCorrectIds, sessionWrongIds } = state.value
 
-      const correct = flashcards.filter((f) => sessionCorrectIds.has(f.id))
-      const incorrect = flashcards.filter((f) => sessionWrongIds.has(f.id))
+        const correct = flashcards.filter((f: { id: string }) =>
+          sessionCorrectIds.has(f.id),
+        )
+        const incorrect = flashcards.filter((f: { id: string }) =>
+          sessionWrongIds.has(f.id),
+        )
 
-      return { correct, incorrect }
-    }),
-  ),
+        return { correct, incorrect }
+      }),
+    ),
 )
 
 export const setShowAnswerAtom = runtime.fn(
@@ -257,7 +263,7 @@ export const addPracticeRecordAtom = runtime.fn(
   Effect.fn(function* (input: {
     flashcardGroupId: string
     cardId: string
-    practiceRecord: CreatePracticeRecordRequest
+    practiceRecord: PracticeRecordCreate
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
@@ -335,8 +341,8 @@ export const submitPendingPracticeRecordsAtom = runtime.fn(
     registry.set(submitPracticeRecordsBatchAtom, {
       projectId: input.projectId,
       practice_records: pendingPracticeRecords as unknown as [
-        CreatePracticeRecordRequest,
-        ...CreatePracticeRecordRequest[],
+        PracticeRecordCreate,
+        ...PracticeRecordCreate[],
       ],
     })
 
@@ -363,13 +369,17 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 export const initializeQueueAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     flashcardGroupId: string
     includeMastered?: boolean
   }) {
     const registry = yield* Registry.AtomRegistry
 
     // Get flashcards atom and wait for it to be ready
-    const flashcardsAtomInstance = flashcardsAtom(input.flashcardGroupId)
+    const flashcardsAtomInstance = flashcardsAtom({
+      projectId: input.projectId,
+      flashcardGroupId: input.flashcardGroupId,
+    })
 
     // Wait for flashcards to load
     const flashcardsResult = yield* Effect.gen(function* () {
@@ -395,7 +405,7 @@ export const initializeQueueAtom = runtime.fn(
       return
     }
 
-    const flashcards = flashcardsResult.value.data
+    const flashcards = flashcardsResult.value
 
     if (!flashcards || flashcards.length === 0) {
       console.warn('No flashcards found for queue initialization', {
@@ -417,7 +427,9 @@ export const initializeQueueAtom = runtime.fn(
     // Filter to un-mastered by default (unless includeMastered is true)
     let cardsToInclude = flashcards
     if (!input.includeMastered) {
-      cardsToInclude = flashcards.filter((f) => !state.masteredIds.has(f.id))
+      cardsToInclude = flashcards.filter(
+        (f: { id: string }) => !state.masteredIds.has(f.id),
+      )
     }
 
     if (cardsToInclude.length === 0) {
@@ -426,7 +438,9 @@ export const initializeQueueAtom = runtime.fn(
     }
 
     // Shuffle the cards
-    const cardIds = shuffleArray(cardsToInclude.map((card) => card.id))
+    const cardIds = shuffleArray(
+      cardsToInclude.map((card: { id: string }) => card.id),
+    ) as string[]
 
     console.log('Setting queue', {
       queueLength: cardIds.length,
@@ -455,15 +469,20 @@ export const gotItRightAtom = runtime.fn(
     if (!currentCardId) return
 
     const flashcardsResult = registry.get(
-      flashcardsAtom(input.flashcardGroupId),
+      flashcardsAtom({
+        projectId: input.projectId,
+        flashcardGroupId: input.flashcardGroupId,
+      }),
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const flashcards = flashcardsResult.value.data
-    const currentCard = flashcards.find((f) => f.id === currentCardId)
+    const flashcards = flashcardsResult.value
+    const currentCard = flashcards.find(
+      (f: { id: string }) => f.id === currentCardId,
+    )
     if (!currentCard) return
 
-    const practiceRecord: CreatePracticeRecordRequest = {
+    const practiceRecord: PracticeRecordCreate = {
       item_type: 'flashcard',
       item_id: currentCard.id,
       topic: extractTopic(currentCard.question),
@@ -514,15 +533,20 @@ export const gotItWrongAtom = runtime.fn(
     if (!currentCardId) return
 
     const flashcardsResult = registry.get(
-      flashcardsAtom(input.flashcardGroupId),
+      flashcardsAtom({
+        projectId: input.projectId,
+        flashcardGroupId: input.flashcardGroupId,
+      }),
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
-    const flashcards = flashcardsResult.value.data
-    const currentCard = flashcards.find((f) => f.id === currentCardId)
+    const flashcards = flashcardsResult.value
+    const currentCard = flashcards.find(
+      (f: { id: string }) => f.id === currentCardId,
+    )
     if (!currentCard) return
 
-    const practiceRecord: CreatePracticeRecordRequest = {
+    const practiceRecord: PracticeRecordCreate = {
       item_type: 'flashcard',
       item_id: currentCard.id,
       topic: extractTopic(currentCard.question),

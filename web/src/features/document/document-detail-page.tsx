@@ -5,10 +5,13 @@ import { DocumentHeader } from './components/document-header'
 
 type DocumentContentProps = {
   documentId: string
+  projectId: string
 }
 
-const DocumentContent = ({ documentId }: DocumentContentProps) => {
-  const previewResult = useAtomValue(documentPreviewAtom(documentId))
+const DocumentContent = ({ projectId, documentId }: DocumentContentProps) => {
+  const previewResult = useAtomValue(
+    documentPreviewAtom({ projectId, documentId }),
+  )
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
@@ -50,7 +53,7 @@ export const DocumentDetailPage = ({
   return (
     <div className="flex h-full flex-col">
       <DocumentHeader documentId={documentId} projectId={projectId} />
-      <DocumentContent documentId={documentId} />
+      <DocumentContent projectId={projectId} documentId={documentId} />
     </div>
   )
 }

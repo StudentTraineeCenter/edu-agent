@@ -3,13 +3,13 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Data, Effect, Schema, Stream, Array as Arr, Order } from 'effect'
 import { HttpBody } from '@effect/platform'
 import {
+  ChatCreate,
   ChatDto,
   ChatMessageDto,
+  ChatUpdate,
   SourceDto,
   ToolCallDto,
   type ChatCompletionRequest,
-  type ChatCreateRequest,
-  type ChatUpdateRequest,
 } from '@/integrations/api/client'
 import { runtime, UsageLimitExceededError } from './runtime'
 import { usageAtom } from './usage'
@@ -42,7 +42,8 @@ type ChatMessagesAction = Data.TaggedEnum<{
 const ChatMessagesAction = Data.taggedEnum<ChatMessagesAction>()
 
 const byLastMessageCreatedAt = Order.mapInput(Order.Date, (chat: ChatDto) => {
-  const val = chat.last_message?.created_at
+  // const val = chat.last_message?.created_at
+  const val = chat.messages?.at(-1)?.created_at
   return val ? new Date(val) : new Date(chat.created_at)
 })
 
@@ -51,23 +52,25 @@ export const chatsRemoteAtom = Atom.family((projectId: string) =>
     .atom(
       Effect.fn(function* () {
         const client = yield* makeApiClient
-        const resp = yield* client.listChatsV1ChatsGet({
-          project_id: projectId,
-        })
-        return Arr.sort(byLastMessageCreatedAt)(resp.data)
+        const resp =
+          yield* client.listChatsApiV1ProjectsProjectIdChatsGet(projectId)
+        return Arr.sort(byLastMessageCreatedAt)(resp)
       }),
     )
     .pipe(Atom.keepAlive),
 )
 
-export const chatRemoteAtom = Atom.family((chatId: string) =>
-  Atom.make(
-    Effect.gen(function* () {
-      const client = yield* makeApiClient
-      yield* Effect.sleep(1000)
-      return yield* client.getChatV1ChatsChatIdGet(chatId)
-    }),
-  ).pipe(Atom.keepAlive),
+export const chatRemoteAtom = Atom.family(
+  (input: { projectId: string; chatId: string }) =>
+    Atom.make(
+      Effect.gen(function* () {
+        const client = yield* makeApiClient
+        return yield* client.getChatApiV1ProjectsProjectIdChatsChatIdGet(
+          input.projectId,
+          input.chatId,
+        )
+      }),
+    ).pipe(Atom.keepAlive),
 )
 
 export const chatsAtom = Atom.family((projectId: string) =>
@@ -99,60 +102,66 @@ export const chatsAtom = Atom.family((projectId: string) =>
   ),
 )
 
-export const chatAtom = Atom.family((chatId: string) =>
-  Object.assign(
-    Atom.writable(
-      (get: Atom.Context) => get(chatRemoteAtom(chatId)),
-      (ctx, action: ChatMessagesAction | ChatDto) => {
-        // Handle direct ChatDto updates (for backward compatibility)
-        if ('id' in action && 'project_id' in action) {
-          ctx.setSelf(Result.success(action as ChatDto))
-          return
-        }
+export const chatAtom = Atom.family(
+  (input: { projectId: string; chatId: string }) =>
+    Object.assign(
+      Atom.writable(
+        (get: Atom.Context) => get(chatRemoteAtom(input)),
+        (ctx, action: ChatMessagesAction | ChatDto) => {
+          // Handle direct ChatDto updates (for backward compatibility)
+          if ('id' in action && 'project_id' in action) {
+            ctx.setSelf(Result.success(action as ChatDto))
+            return
+          }
 
-        // Handle message actions
-        const result = ctx.get(chatAtom(chatId))
-        if (!Result.isSuccess(result)) return
+          // Handle message actions
+          const result = ctx.get(chatAtom(input))
+          if (!Result.isSuccess(result)) return
 
-        const chat = result.value
-        const messages = Array.from(chat.messages ?? [])
+          const chat = result.value
+          const messages = Array.from(chat.messages ?? [])
 
-        const update = ChatMessagesAction.$match(action as ChatMessagesAction, {
-          Append: ({ message }) => {
-            return [...messages, message]
-          },
-          UpdateContent: ({ messageId, content }) => {
-            return messages.map((msg) =>
-              msg.id === messageId ? { ...msg, content } : msg,
-            )
-          },
-          UpdateSources: ({ messageId, sources }) => {
-            return messages.map((msg) =>
-              msg.id === messageId ? { ...msg, sources } : msg,
-            )
-          },
-          UpdateTools: ({ messageId, tools }) => {
-            return messages.map((msg) =>
-              msg.id === messageId ? { ...msg, tools } : msg,
-            )
-          },
-          RemoveTemporaryMessage: () => {
-            return messages.filter((msg) => msg.id !== 'temporary-message-id')
-          },
-        })
+          const update = ChatMessagesAction.$match(
+            action as ChatMessagesAction,
+            {
+              Append: ({ message }) => {
+                return [...messages, message]
+              },
+              UpdateContent: ({ messageId, content }) => {
+                return messages.map((msg) =>
+                  msg.id === messageId ? { ...msg, content } : msg,
+                )
+              },
+              UpdateSources: ({ messageId, sources }) => {
+                return messages.map((msg) =>
+                  msg.id === messageId ? { ...msg, sources } : msg,
+                )
+              },
+              UpdateTools: ({ messageId, tools }) => {
+                return messages.map((msg) =>
+                  msg.id === messageId ? { ...msg, tools } : msg,
+                )
+              },
+              RemoveTemporaryMessage: () => {
+                return messages.filter(
+                  (msg) => msg.id !== 'temporary-message-id',
+                )
+              },
+            },
+          )
 
-        ctx.setSelf(
-          Result.success({
-            ...chat,
-            messages: update,
-          }),
-        )
+          ctx.setSelf(
+            Result.success({
+              ...chat,
+              messages: update,
+            }),
+          )
+        },
+      ),
+      {
+        remote: chatRemoteAtom(input),
       },
     ),
-    {
-      remote: chatRemoteAtom(chatId),
-    },
-  ),
 )
 
 const MessageChunk = Schema.Struct({
@@ -171,7 +180,10 @@ export const chatStreamStatusAtom = Atom.family((_chatId: string) =>
 
 export const streamMessageAtom = Atom.fn(
   Effect.fn(function* (
-    input: typeof ChatCompletionRequest.Encoded & { chatId: string },
+    input: typeof ChatCompletionRequest.Encoded & {
+      projectId: string
+      chatId: string
+    },
     get: Atom.FnContext,
   ) {
     const registry = yield* Registry.AtomRegistry
@@ -186,28 +198,28 @@ export const streamMessageAtom = Atom.fn(
       created_at: new Date().toISOString(),
     }
     get.set(
-      chatAtom(input.chatId),
+      chatAtom(input),
       ChatMessagesAction.Append({ chatId: input.chatId, message: userMessage }),
     )
 
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson({ message: input.message })
     const resp = yield* httpClient
-      .post(`/v1/chats/${input.chatId}/messages/stream`, {
-        body,
-      })
+      .post(
+        `/api/v1/projects/${input.projectId}/chats/${input.chatId}/messages/stream`,
+        {
+          body,
+        },
+      )
       .pipe(
         // If the request fails, remove the temporary message
         Effect.tapError(() =>
-          Effect.sync(() => get.refresh(chatRemoteAtom(input.chatId))),
+          Effect.sync(() => get.refresh(chatRemoteAtom(input))),
         ),
       )
 
     if (resp.status === 429) {
-      registry.set(
-        chatAtom(input.chatId),
-        ChatMessagesAction.RemoveTemporaryMessage(),
-      )
+      registry.set(chatAtom(input), ChatMessagesAction.RemoveTemporaryMessage())
       registry.refresh(usageAtom)
       return yield* new UsageLimitExceededError({
         message: 'Usage limit exceeded',
@@ -247,7 +259,7 @@ export const streamMessageAtom = Atom.fn(
             get.set(chatStreamStatusAtom(input.chatId), chunk.status)
           }
 
-          const chat = yield* get.result(chatAtom(input.chatId))
+          const chat = yield* get.result(chatAtom(input))
           const messages = Array.from(chat.messages ?? [])
           const msgIdx = messages.findIndex((msg) => msg.id === messageId)
           const content = (messages[msgIdx]?.content ?? '') + chunk.chunk
@@ -263,7 +275,7 @@ export const streamMessageAtom = Atom.fn(
               created_at: new Date().toISOString(),
             }
             get.set(
-              chatAtom(input.chatId),
+              chatAtom(input),
               ChatMessagesAction.Append({
                 chatId: input.chatId,
                 message: assistantMessage,
@@ -272,7 +284,7 @@ export const streamMessageAtom = Atom.fn(
           } else {
             // Update existing message content
             get.set(
-              chatAtom(input.chatId),
+              chatAtom(input),
               ChatMessagesAction.UpdateContent({
                 chatId: input.chatId,
                 messageId,
@@ -282,7 +294,7 @@ export const streamMessageAtom = Atom.fn(
 
             // Helper to get current message state
             const getCurrentMessage = function* () {
-              const chat = yield* get.result(chatAtom(input.chatId))
+              const chat = yield* get.result(chatAtom(input))
               return Array.from(chat.messages ?? []).find(
                 (msg) => msg.id === messageId,
               )
@@ -301,7 +313,7 @@ export const streamMessageAtom = Atom.fn(
 
               if (uniqueNewSources.length > 0) {
                 get.set(
-                  chatAtom(input.chatId),
+                  chatAtom(input),
                   ChatMessagesAction.UpdateSources({
                     chatId: input.chatId,
                     messageId,
@@ -328,7 +340,7 @@ export const streamMessageAtom = Atom.fn(
               ]
 
               get.set(
-                chatAtom(input.chatId),
+                chatAtom(input),
                 ChatMessagesAction.UpdateTools({
                   chatId: input.chatId,
                   messageId,
@@ -345,11 +357,13 @@ export const streamMessageAtom = Atom.fn(
             })
             // Fetch fresh data in background without triggering loading state
             const client = yield* makeApiClient
-            const freshChat = yield* client.getChatV1ChatsChatIdGet(
-              input.chatId,
-            )
+            const freshChat =
+              yield* client.getChatApiV1ProjectsProjectIdChatsChatIdGet(
+                input.projectId,
+                input.chatId,
+              )
             // Update atom with fresh data once fetched
-            get.set(chatAtom(input.chatId), freshChat)
+            get.set(chatAtom(input), freshChat)
           }
         }),
       ),
@@ -362,36 +376,49 @@ export const streamMessageAtom = Atom.fn(
 ).pipe(Atom.keepAlive)
 
 export const createChatAtom = runtime.fn(
-  Effect.fn(function* (input: typeof ChatCreateRequest.Encoded) {
+  Effect.fn(function* (
+    input: typeof ChatCreate.Encoded & { projectId: string },
+  ) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const res = yield* client.createChatV1ChatsPost(input)
+    const res = yield* client.createChatApiV1ProjectsProjectIdChatsPost(
+      input.projectId,
+      input,
+    )
 
-    registry.set(chatsAtom(input.project_id), ChatsAction.Upsert({ chat: res }))
-    registry.refresh(chatsRemoteAtom(input.project_id))
+    registry.set(chatsAtom(input.projectId), ChatsAction.Upsert({ chat: res }))
+    registry.refresh(chatsRemoteAtom(input.projectId))
     return res
   }),
 )
 
 export const updateChatAtom = runtime.fn(
   Effect.fn(function* (
-    input: typeof ChatUpdateRequest.Encoded & { chatId: string },
+    input: typeof ChatUpdate.Encoded & { projectId: string; chatId: string },
   ) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const res = yield* client.updateChatV1ChatsChatIdPut(input.chatId, input)
+    const res = yield* client.updateChatApiV1ProjectsProjectIdChatsChatIdPatch(
+      input.projectId,
+      input.chatId,
+      input,
+    )
 
-    registry.set(chatAtom(input.chatId), res)
+    registry.set(chatAtom(input), res)
     registry.set(chatsAtom(res.project_id), ChatsAction.Upsert({ chat: res }))
     return res
   }),
 )
 
 export const appendMessageAtom = runtime.fn(
-  Effect.fn(function* (input: { chatId: string; message: ChatMessageDto }) {
+  Effect.fn(function* (input: {
+    projectId: string
+    chatId: string
+    message: ChatMessageDto
+  }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
-      chatAtom(input.chatId),
+      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
       ChatMessagesAction.Append({
         chatId: input.chatId,
         message: input.message,
@@ -402,13 +429,14 @@ export const appendMessageAtom = runtime.fn(
 
 export const updateMessageContentAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     chatId: string
     messageId: string
     content: string
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
-      chatAtom(input.chatId),
+      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
       ChatMessagesAction.UpdateContent({
         chatId: input.chatId,
         messageId: input.messageId,
@@ -420,13 +448,14 @@ export const updateMessageContentAtom = runtime.fn(
 
 export const updateMessageSourcesAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     chatId: string
     messageId: string
     sources: SourceDto[]
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
-      chatAtom(input.chatId),
+      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
       ChatMessagesAction.UpdateSources({
         chatId: input.chatId,
         messageId: input.messageId,
@@ -438,13 +467,14 @@ export const updateMessageSourcesAtom = runtime.fn(
 
 export const updateMessageToolsAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     chatId: string
     messageId: string
     tools: ToolCallDto[]
   }) {
     const registry = yield* Registry.AtomRegistry
     registry.set(
-      chatAtom(input.chatId),
+      chatAtom({ projectId: input.projectId, chatId: input.chatId }),
       ChatMessagesAction.UpdateTools({
         chatId: input.chatId,
         messageId: input.messageId,
@@ -455,10 +485,13 @@ export const updateMessageToolsAtom = runtime.fn(
 )
 
 export const deleteChatAtom = runtime.fn(
-  Effect.fn(function* (input: { chatId: string; projectId: string }) {
+  Effect.fn(function* (input: { projectId: string; chatId: string }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.deleteChatV1ChatsChatIdDeletePost(input.chatId)
+    yield* client.deleteChatApiV1ProjectsProjectIdChatsChatIdDelete(
+      input.projectId,
+      input.chatId,
+    )
 
     registry.set(
       chatsAtom(input.projectId),

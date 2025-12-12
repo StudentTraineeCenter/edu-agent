@@ -13,9 +13,16 @@ from dependencies import (
 )
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import NotFoundError, QuizService, SearchService
-from edu_shared.schemas.quizzes import QuizDto
+from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import QuizCreate, QuizUpdate, GenerateRequest
+from routers.schemas import (
+    QuizCreate,
+    QuizUpdate,
+    QuizQuestionCreate,
+    QuizQuestionUpdate,
+    QuizQuestionReorder,
+    GenerateRequest,
+)
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/quizzes", tags=["quizzes"])
 
@@ -216,4 +223,144 @@ async def generate_quiz_stream(
             "Access-Control-Allow-Headers": "*",
         },
     )
+
+
+@router.get("/{quiz_id}/questions", response_model=list[QuizQuestionDto])
+async def list_quiz_questions(
+    project_id: str,
+    quiz_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """List all questions in a quiz."""
+    try:
+        return service.list_quiz_questions(quiz_id=quiz_id, project_id=project_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{quiz_id}/questions", response_model=QuizQuestionDto, status_code=201)
+async def create_quiz_question(
+    project_id: str,
+    quiz_id: str,
+    question: QuizQuestionCreate,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """Create a new question in a quiz."""
+    try:
+        return service.create_quiz_question(
+            quiz_id=quiz_id,
+            project_id=project_id,
+            question_text=question.question_text,
+            option_a=question.option_a,
+            option_b=question.option_b,
+            option_c=question.option_c,
+            option_d=question.option_d,
+            correct_option=question.correct_option,
+            explanation=question.explanation,
+            difficulty_level=question.difficulty_level,
+            position=question.position,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{quiz_id}/questions/{question_id}", response_model=QuizQuestionDto)
+async def get_quiz_question(
+    project_id: str,
+    quiz_id: str,
+    question_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """Get a question by ID."""
+    try:
+        return service.get_quiz_question(
+            question_id=question_id,
+            quiz_id=quiz_id,
+            project_id=project_id,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{quiz_id}/questions/{question_id}", response_model=QuizQuestionDto)
+async def update_quiz_question(
+    project_id: str,
+    quiz_id: str,
+    question_id: str,
+    question: QuizQuestionUpdate,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """Update a question."""
+    try:
+        return service.update_quiz_question(
+            question_id=question_id,
+            quiz_id=quiz_id,
+            project_id=project_id,
+            question_text=question.question_text,
+            option_a=question.option_a,
+            option_b=question.option_b,
+            option_c=question.option_c,
+            option_d=question.option_d,
+            correct_option=question.correct_option,
+            explanation=question.explanation,
+            difficulty_level=question.difficulty_level,
+            position=question.position,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{quiz_id}/questions/{question_id}", status_code=204)
+async def delete_quiz_question(
+    project_id: str,
+    quiz_id: str,
+    question_id: str,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """Delete a question."""
+    try:
+        service.delete_quiz_question(
+            question_id=question_id,
+            quiz_id=quiz_id,
+            project_id=project_id,
+        )
+        return None
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{quiz_id}/questions/reorder", response_model=list[QuizQuestionDto])
+async def reorder_quiz_questions(
+    project_id: str,
+    quiz_id: str,
+    reorder: QuizQuestionReorder,
+    current_user: UserDto = Depends(get_current_user),
+    service: QuizService = Depends(get_quiz_service),
+):
+    """Reorder questions in a quiz."""
+    try:
+        return service.reorder_quiz_questions(
+            quiz_id=quiz_id,
+            project_id=project_id,
+            question_ids=reorder.question_ids,
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

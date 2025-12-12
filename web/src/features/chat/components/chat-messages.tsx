@@ -101,7 +101,7 @@ const MessageSources = ({ sources, projectId }: MessageSourcesProps) => {
             key={source.id}
             href="#"
             onClick={() => handleSourceClick(source)}
-            title={`[${source.citation_index}] ${source.title}`}
+            title={source.title}
           />
         ))}
       </SourcesContent>

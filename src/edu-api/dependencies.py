@@ -8,10 +8,13 @@ from edu_shared.services import (
     DocumentService,
     DocumentProcessingService,
     FlashcardGroupService,
+    MindMapService,
     NoteService,
+    PracticeService,
     ProjectService,
     QuizService,
     SearchService,
+    StudySessionService,
     UserService,
 )
 from edu_shared.agents.base import ContentAgentConfig
@@ -62,6 +65,21 @@ def get_flashcard_group_service() -> FlashcardGroupService:
 def get_user_service() -> UserService:
     """Get UserService instance."""
     return UserService()
+
+
+def get_practice_service() -> PracticeService:
+    """Get PracticeService instance."""
+    return PracticeService()
+
+
+def get_mind_map_service() -> MindMapService:
+    """Get MindMapService instance."""
+    return MindMapService()
+
+
+def get_study_session_service() -> StudySessionService:
+    """Get StudySessionService instance."""
+    return StudySessionService()
 
 
 def get_search_service(

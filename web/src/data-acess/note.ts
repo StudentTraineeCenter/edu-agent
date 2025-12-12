@@ -3,26 +3,28 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import { CreateNoteRequest } from '@/integrations/api/client'
+import { NoteCreate, GenerateRequest } from '@/integrations/api/client'
 
 export const notesAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const client = yield* makeApiClient
-      return yield* client.listNotesV1NotesGet({
-        project_id: projectId,
-      })
+      return yield* client.listNotesApiV1ProjectsProjectIdNotesGet(projectId)
     }),
   ).pipe(Atom.keepAlive),
 )
 
-export const noteAtom = Atom.family((noteId: string) =>
-  Atom.make(
-    Effect.gen(function* () {
-      const client = yield* makeApiClient
-      return yield* client.getNoteV1NotesNoteIdGet(noteId)
-    }),
-  ).pipe(Atom.keepAlive),
+export const noteAtom = Atom.family(
+  (input: { projectId: string; noteId: string }) =>
+    Atom.make(
+      Effect.gen(function* () {
+        const client = yield* makeApiClient
+        return yield* client.getNoteApiV1ProjectsProjectIdNotesNoteIdGet(
+          input.projectId,
+          input.noteId,
+        )
+      }),
+    ).pipe(Atom.keepAlive),
 )
 
 const NoteProgressUpdate = Schema.Struct({
@@ -40,18 +42,27 @@ export const noteProgressAtom = Atom.make<{
 
 export const createNoteStreamAtom = Atom.fn(
   Effect.fn(function* (
-    input: { projectId: string; customInstructions?: string; length?: string },
+    input: {
+      projectId: string
+      noteId: string
+      customInstructions?: string
+      topic?: string
+      count?: number
+      difficulty?: string
+    },
     _get: Atom.FnContext,
   ) {
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(
-      new CreateNoteRequest({
+      new GenerateRequest({
         custom_instructions: input.customInstructions,
-        length: input.length,
+        topic: input.topic,
+        count: input.count,
+        difficulty: input.difficulty,
       }),
     )
     const resp = yield* httpClient.post(
-      `/v1/notes/stream?project_id=${input.projectId}`,
+      `/api/v1/projects/${input.projectId}/notes/${input.noteId}/generate/stream`,
       { body },
     )
 
@@ -104,19 +115,23 @@ export const createNoteStreamAtom = Atom.fn(
 export const createNoteAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
-    customInstructions?: string
+    title?: string
+    content?: string
+    description?: string
   }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const resp = yield* client.createNoteV1NotesPost({
-      params: { project_id: input.projectId },
-      payload: new CreateNoteRequest({
-        custom_instructions: input.customInstructions,
+    const resp = yield* client.createNoteApiV1ProjectsProjectIdNotesPost(
+      input.projectId,
+      new NoteCreate({
+        title: input.title ?? 'New Note',
+        content: input.content ?? '',
+        description: input.description,
       }),
-    })
+    )
 
     registry.refresh(notesAtom(input.projectId))
-    return resp.note
+    return resp
   }),
 )
 
@@ -124,7 +139,10 @@ export const deleteNoteAtom = runtime.fn(
   Effect.fn(function* (input: { noteId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.deleteNoteV1NotesNoteIdDelete(input.noteId)
+    yield* client.deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete(
+      input.projectId,
+      input.noteId,
+    )
 
     registry.refresh(notesAtom(input.projectId))
   }),

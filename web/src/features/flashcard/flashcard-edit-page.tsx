@@ -63,10 +63,14 @@ type LocalFlashcard = {
 
 const FlashcardHeaderContent = ({
   flashcardGroupId,
+  projectId,
 }: {
+  projectId: string
   flashcardGroupId: string
 }) => {
-  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
+  const groupResult = useAtomValue(
+    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  )
 
   return Result.builder(groupResult)
     .onSuccess((res) => (
@@ -74,7 +78,7 @@ const FlashcardHeaderContent = ({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage className="line-clamp-1 font-medium">
-              Edit: {res.flashcard_group?.name || 'Flashcards'}
+              Edit: {res.name || 'Flashcards'}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -99,8 +103,12 @@ export const FlashcardEditPage = ({
   flashcardGroupId,
   projectId,
 }: FlashcardEditPageProps) => {
-  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupId))
-  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupId))
+  const flashcardsResult = useAtomValue(
+    flashcardsAtom({ projectId, flashcardGroupId }),
+  )
+  const groupResult = useAtomValue(
+    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  )
   const [createFlashcardResult, createFlashcard] = useAtom(
     createFlashcardAtom,
     { mode: 'promise' },
@@ -127,7 +135,7 @@ export const FlashcardEditPage = ({
   // Initialize local flashcards from server data
   useEffect(() => {
     if (Result.isSuccess(flashcardsResult)) {
-      const flashcards = flashcardsResult.value.data
+      const flashcards = flashcardsResult.value
       setLocalFlashcards(
         flashcards.map((f) => ({
           id: f.id,
@@ -144,7 +152,7 @@ export const FlashcardEditPage = ({
   const hasUnsavedChanges = useMemo(() => {
     if (!Result.isSuccess(flashcardsResult)) return false
 
-    const original = flashcardsResult.value.data
+    const original = flashcardsResult.value
     const current = localFlashcards.filter((f) => !f.isDeleted)
 
     // Check for new cards
@@ -257,7 +265,7 @@ export const FlashcardEditPage = ({
 
     const activeCards = localFlashcards.filter((f) => !f.isDeleted)
     const original = Result.isSuccess(flashcardsResult)
-      ? flashcardsResult.value.data
+      ? flashcardsResult.value
       : []
 
     try {
@@ -268,6 +276,7 @@ export const FlashcardEditPage = ({
       for (const card of toDelete) {
         await deleteFlashcard({
           flashcardId: card.id,
+          projectId,
           flashcardGroupId,
         })
       }
@@ -276,6 +285,7 @@ export const FlashcardEditPage = ({
       const toCreate = activeCards.filter((card) => card.isNew)
       for (const card of toCreate) {
         await createFlashcard({
+          projectId,
           flashcardGroupId,
           question: card.question,
           answer: card.answer,
@@ -298,6 +308,7 @@ export const FlashcardEditPage = ({
       for (const card of toUpdate) {
         await updateFlashcard({
           flashcardId: card.id,
+          projectId,
           flashcardGroupId,
           question: card.question,
           answer: card.answer,
@@ -313,6 +324,7 @@ export const FlashcardEditPage = ({
 
       if (hasReordered) {
         await reorderFlashcards({
+          projectId,
           flashcardGroupId,
           flashcardIds: activeCards.filter((c) => !c.isNew).map((c) => c.id),
         })
@@ -346,7 +358,10 @@ export const FlashcardEditPage = ({
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
           />
-          <FlashcardHeaderContent flashcardGroupId={flashcardGroupId} />
+          <FlashcardHeaderContent
+            projectId={projectId}
+            flashcardGroupId={flashcardGroupId}
+          />
         </div>
         <div className="flex items-center gap-2 px-3">
           {hasUnsavedChanges && (

@@ -14,8 +14,9 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
-const ChatHeaderContent = ({ chatId }: { chatId: string }) => {
-  const chatResult = useAtomValue(chatAtom(chatId))
+const ChatHeaderContent = (props: { projectId: string; chatId: string }) => {
+  const { projectId, chatId } = props
+  const chatResult = useAtomValue(chatAtom({ projectId, chatId }))
 
   return Result.builder(chatResult)
     .onSuccess((chat) => (
@@ -38,8 +39,9 @@ type ChatHeaderProps = {
   projectId: string
 }
 
-export const ChatHeader = ({ chatId, projectId }: ChatHeaderProps) => {
-  const chatResult = useAtomValue(chatAtom(chatId))
+export const ChatHeader = (props: ChatHeaderProps) => {
+  const { projectId, chatId } = props
+  const chatResult = useAtomValue(chatAtom({ projectId, chatId }))
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -59,7 +61,7 @@ export const ChatHeader = ({ chatId, projectId }: ChatHeaderProps) => {
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <ChatHeaderContent chatId={chatId} />
+        <ChatHeaderContent projectId={projectId} chatId={chatId} />
       </div>
     </header>
   )

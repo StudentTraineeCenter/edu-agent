@@ -4,8 +4,8 @@ import { Data, Effect, Array } from 'effect'
 import { makeApiClient } from '@/integrations/api/http'
 import {
   ProjectDto,
-  type ProjectCreateRequest,
-  type ProjectUpdateRequest,
+  ProjectCreate,
+  ProjectUpdate,
 } from '@/integrations/api/client'
 import { runtime } from '@/data-acess/runtime'
 
@@ -22,8 +22,8 @@ const ProjectsAction = Data.taggedEnum<ProjectsAction>()
 export const projectsRemoteAtom = runtime.atom(
   Effect.fn(function* () {
     const client = yield* makeApiClient
-    const resp = yield* client.listProjectsV1ProjectsGet()
-    return resp.data
+    const resp = yield* client.listProjectsApiV1ProjectsGet()
+    return resp
   }),
 )
 
@@ -31,7 +31,7 @@ export const projectAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const client = yield* makeApiClient
-      return yield* client.getProjectV1ProjectsProjectIdGet(projectId)
+      return yield* client.getProjectApiV1ProjectsProjectIdGet(projectId)
     }),
   ).pipe(Atom.keepAlive),
 )
@@ -64,20 +64,18 @@ export const projectsAtom = Object.assign(
 )
 
 export const upsertProjectAtom = runtime.fn(
-  Effect.fn(function* (
-    input: typeof ProjectCreateRequest.Encoded & { id?: string },
-  ) {
+  Effect.fn(function* (input: typeof ProjectCreate.Encoded & { id?: string }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
     const { id, ...data } = input
 
     const res = id
-      ? yield* client.updateProjectV1ProjectsProjectIdPut(
+      ? yield* client.updateProjectApiV1ProjectsProjectIdPatch(
           id,
-          data as typeof ProjectUpdateRequest.Encoded,
+          data as typeof ProjectUpdate.Encoded,
         )
-      : yield* client.createProjectV1ProjectsPost(
-          data as typeof ProjectCreateRequest.Encoded,
+      : yield* client.createProjectApiV1ProjectsPost(
+          data as typeof ProjectCreate.Encoded,
         )
 
     registry.set(projectsAtom, ProjectsAction.Upsert({ project: res }))
@@ -92,7 +90,7 @@ export const deleteProjectAtom = runtime.fn(
   Effect.fn(function* (projectId: string) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.deleteProjectV1ProjectsProjectIdDeletePost(projectId)
+    yield* client.deleteProjectApiV1ProjectsProjectIdDelete(projectId)
 
     registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
     registry.refresh(projectsRemoteAtom)

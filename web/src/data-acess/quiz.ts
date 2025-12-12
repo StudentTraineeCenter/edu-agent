@@ -3,37 +3,49 @@ import { Effect, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
 import { HttpBody } from '@effect/platform'
 import { runtime } from './runtime'
-import { CreateQuizRequest } from '@/integrations/api/client'
+import {
+  QuizCreate,
+  GenerateRequest,
+  QuizQuestionCreate,
+  QuizQuestionUpdate,
+  QuizQuestionReorder,
+} from '@/integrations/api/client'
 
 export const quizzesAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
       const client = yield* makeApiClient
-      return yield* client.listQuizzesV1QuizzesGet({
-        project_id: projectId,
-      })
+      return yield* client.listQuizzesApiV1ProjectsProjectIdQuizzesGet(
+        projectId,
+      )
     }),
   ).pipe(Atom.keepAlive),
 )
 
-export const quizAtom = Atom.family((quizId: string) =>
-  Atom.make(
-    Effect.gen(function* () {
-      const client = yield* makeApiClient
-      return yield* client.getQuizV1QuizzesQuizIdGet(quizId)
-    }),
-  ).pipe(Atom.keepAlive),
+export const quizAtom = Atom.family(
+  (input: { projectId: string; quizId: string }) =>
+    Atom.make(
+      Effect.gen(function* () {
+        const client = yield* makeApiClient
+        return yield* client.getQuizApiV1ProjectsProjectIdQuizzesQuizIdGet(
+          input.projectId,
+          input.quizId,
+        )
+      }),
+    ).pipe(Atom.keepAlive),
 )
 
-export const quizQuestionsAtom = Atom.family((quizId: string) =>
-  Atom.make(
-    Effect.gen(function* () {
-      const client = yield* makeApiClient
-      const resp =
-        yield* client.listQuizQuestionsV1QuizzesQuizIdQuestionsGet(quizId)
-      return resp.data
-    }),
-  ).pipe(Atom.keepAlive),
+export const quizQuestionsAtom = Atom.family(
+  (input: { projectId: string; quizId: string }) =>
+    Atom.make(
+      Effect.gen(function* () {
+        const client = yield* makeApiClient
+        return yield* client.listQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet(
+          input.projectId,
+          input.quizId,
+        )
+      }),
+    ).pipe(Atom.keepAlive),
 )
 
 const QuizProgressUpdate = Schema.Struct({
@@ -53,9 +65,10 @@ export const createQuizStreamAtom = Atom.fn(
   Effect.fn(function* (
     input: {
       projectId: string
+      quizId: string
       questionCount?: number
       customInstructions?: string
-      length?: string
+      topic?: string
       difficulty?: string
     },
     _get: Atom.FnContext,
@@ -63,15 +76,15 @@ export const createQuizStreamAtom = Atom.fn(
     const registry = yield* Registry.AtomRegistry
     const httpClient = yield* makeHttpClient
     const body = HttpBody.unsafeJson(
-      new CreateQuizRequest({
-        question_count: input.questionCount,
+      new GenerateRequest({
+        count: input.questionCount,
         custom_instructions: input.customInstructions,
-        length: input.length,
+        topic: input.topic,
         difficulty: input.difficulty,
       }),
     )
     const resp = yield* httpClient.post(
-      `/v1/quizzes/stream?project_id=${input.projectId}`,
+      `/api/v1/projects/${input.projectId}/quizzes/${input.quizId}/generate/stream`,
       { body },
     )
 
@@ -124,25 +137,21 @@ export const createQuizStreamAtom = Atom.fn(
 export const createQuizAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
-    questionCount?: number
-    customInstructions?: string
-    length?: string
-    difficulty?: string
+    name?: string
+    description?: string
   }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const resp = yield* client.createQuizV1QuizzesPost({
-      params: { project_id: input.projectId },
-      payload: new CreateQuizRequest({
-        question_count: input.questionCount,
-        custom_instructions: input.customInstructions,
-        length: input.length,
-        difficulty: input.difficulty,
+    const resp = yield* client.createQuizApiV1ProjectsProjectIdQuizzesPost(
+      input.projectId,
+      new QuizCreate({
+        name: input.name ?? 'New Quiz',
+        description: input.description,
       }),
-    })
+    )
 
     registry.refresh(quizzesAtom(input.projectId))
-    return resp.quiz
+    return resp
   }),
 )
 
@@ -150,44 +159,43 @@ export const deleteQuizAtom = runtime.fn(
   Effect.fn(function* (input: { quizId: string; projectId: string }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.deleteQuizV1QuizzesQuizIdDelete(input.quizId)
+    yield* client.deleteQuizApiV1ProjectsProjectIdQuizzesQuizIdDelete(
+      input.projectId,
+      input.quizId,
+    )
 
     registry.refresh(quizzesAtom(input.projectId))
   }),
 )
 
 export const exportQuizAtom = runtime.fn(
-  Effect.fn(function* (input: { quizId: string }) {
-    const client = yield* makeApiClient
-    const response = yield* client.exportQuizV1QuizzesQuizIdExportGet(
-      input.quizId,
-    )
-    return response
+  Effect.fn(function* (_input: { projectId: string; quizId: string }) {
+    // Note: Quiz export endpoints may not be available in the new API
+    // This might need to be handled differently or removed if not supported
+    // For now, commenting out as the endpoint doesn't exist in the client
+    // const client = yield* makeApiClient
+    // const response = yield* client.exportQuiz(...)
+    throw new Error('Quiz export not supported in current API')
   }),
 )
 
 export const importQuizAtom = runtime.fn(
   Effect.fn(function* (input: { projectId: string; file: File }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-
-    const response =
-      yield* client.importQuizV1ProjectsProjectIdQuizzesImportPost(
-        input.projectId,
-        {
-          file: input.file,
-          quiz_name: '',
-          quiz_description: '',
-        },
-      )
+    // Note: Quiz import endpoints may not be available in the new API
+    // This might need to be handled differently or removed if not supported
+    // For now, commenting out as the endpoint doesn't exist in the client
+    // const client = yield* makeApiClient
+    // const response = yield* client.importQuiz(...)
 
     registry.refresh(quizzesAtom(input.projectId))
-    return response
+    throw new Error('Quiz import not supported in current API')
   }),
 )
 
 export const createQuizQuestionAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     quizId: string
     questionText: string
     optionA: string
@@ -201,28 +209,33 @@ export const createQuizQuestionAtom = runtime.fn(
   }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    const resp = yield* client.createQuizQuestionV1QuizzesQuizIdQuestionsPost(
-      input.quizId,
-      {
-        question_text: input.questionText,
-        option_a: input.optionA,
-        option_b: input.optionB,
-        option_c: input.optionC,
-        option_d: input.optionD,
-        correct_option: input.correctOption,
-        explanation: input.explanation,
-        difficulty_level: input.difficultyLevel || 'medium',
-        position: input.position,
-      },
-    )
+    const resp =
+      yield* client.createQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsPost(
+        input.projectId,
+        input.quizId,
+        new QuizQuestionCreate({
+          question_text: input.questionText,
+          option_a: input.optionA,
+          option_b: input.optionB,
+          option_c: input.optionC,
+          option_d: input.optionD,
+          correct_option: input.correctOption,
+          explanation: input.explanation,
+          difficulty_level: input.difficultyLevel || 'medium',
+          position: input.position,
+        }),
+      )
 
-    registry.refresh(quizQuestionsAtom(input.quizId))
-    return resp.question
+    registry.refresh(
+      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+    )
+    return resp
   }),
 )
 
 export const updateQuizQuestionAtom = runtime.fn(
   Effect.fn(function* (input: {
+    projectId: string
     quizId: string
     questionId: string
     questionText?: string
@@ -237,10 +250,11 @@ export const updateQuizQuestionAtom = runtime.fn(
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
     const resp =
-      yield* client.updateQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdPatch(
+      yield* client.updateQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdPatch(
+        input.projectId,
         input.quizId,
         input.questionId,
-        {
+        new QuizQuestionUpdate({
           question_text: input.questionText,
           option_a: input.optionA,
           option_b: input.optionB,
@@ -249,40 +263,56 @@ export const updateQuizQuestionAtom = runtime.fn(
           correct_option: input.correctOption,
           explanation: input.explanation,
           difficulty_level: input.difficultyLevel,
-        },
+        }),
       )
 
-    registry.refresh(quizQuestionsAtom(input.quizId))
-    return resp.question
+    registry.refresh(
+      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+    )
+    return resp
   }),
 )
 
 export const deleteQuizQuestionAtom = runtime.fn(
-  Effect.fn(function* (input: { quizId: string; questionId: string }) {
+  Effect.fn(function* (input: {
+    projectId: string
+    quizId: string
+    questionId: string
+  }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
-    yield* client.deleteQuizQuestionV1QuizzesQuizIdQuestionsQuestionIdDelete(
+    yield* client.deleteQuizQuestionApiV1ProjectsProjectIdQuizzesQuizIdQuestionsQuestionIdDelete(
+      input.projectId,
       input.quizId,
       input.questionId,
     )
 
-    registry.refresh(quizQuestionsAtom(input.quizId))
+    registry.refresh(
+      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+    )
   }),
 )
 
 export const reorderQuizQuestionsAtom = runtime.fn(
-  Effect.fn(function* (input: { quizId: string; questionIds: string[] }) {
+  Effect.fn(function* (input: {
+    projectId: string
+    quizId: string
+    questionIds: string[]
+  }) {
     const registry = yield* Registry.AtomRegistry
     const client = yield* makeApiClient
     const resp =
-      yield* client.reorderQuizQuestionsV1QuizzesQuizIdQuestionsReorderPatch(
+      yield* client.reorderQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsReorderPatch(
+        input.projectId,
         input.quizId,
-        {
+        new QuizQuestionReorder({
           question_ids: input.questionIds,
-        },
+        }),
       )
 
-    registry.refresh(quizQuestionsAtom(input.quizId))
-    return resp.data
+    registry.refresh(
+      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+    )
+    return resp
   }),
 )

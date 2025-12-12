@@ -7,11 +7,14 @@ import { useMemo } from 'react'
 
 type QuizProgressProps = {
   quizId: string
+  projectId: string
 }
 
-export const QuizProgress = ({ quizId }: QuizProgressProps) => {
+export const QuizProgress = ({ quizId, projectId }: QuizProgressProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const questionsResult = useAtomValue(quizQuestionsAtom(quizId))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom({ projectId, quizId }),
+  )
 
   const currentQuestionIdx = Option.isSome(stateResult)
     ? stateResult.value.currentQuestionIndex

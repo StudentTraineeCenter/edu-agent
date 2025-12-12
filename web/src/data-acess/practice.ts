@@ -1,10 +1,10 @@
 import { Data, Effect } from 'effect'
 import { makeApiClient } from '@/integrations/api/http'
-import type {
+import {
   PracticeRecordDto,
-  CreatePracticeRecordBatchRequest,
-  CreatePracticeRecordRequest,
-} from '@/integrations/api'
+  PracticeRecordCreate,
+  PracticeRecordBatchCreate,
+} from '@/integrations/api/client'
 import { runtime } from './runtime'
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 
@@ -20,10 +20,11 @@ export const practiceRecordsRemoteAtom = Atom.family((projectId: string) =>
     .atom(
       Effect.fn(function* () {
         const apiClient = yield* makeApiClient
-        const resp = yield* apiClient.listPracticeRecordsV1PracticeRecordsGet({
-          project_id: projectId,
-        })
-        return resp.data
+        const resp =
+          yield* apiClient.listPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet(
+            projectId,
+          )
+        return resp
       }),
     )
     .pipe(Atom.keepAlive),
@@ -60,18 +61,19 @@ export const practiceRecordsAtom = Atom.family((projectId: string) =>
 
 export const submitPracticeRecordAtom = runtime.fn(
   Effect.fn(function* (
-    input: typeof CreatePracticeRecordRequest.Encoded & { projectId: string },
+    input: typeof PracticeRecordCreate.Encoded & { projectId: string },
   ) {
     const registry = yield* Registry.AtomRegistry
     const apiClient = yield* makeApiClient
-    const resp = yield* apiClient.createPracticeRecordV1PracticeRecordsPost({
-      params: { project_id: input.projectId },
-      payload: input,
-    })
+    const resp =
+      yield* apiClient.createPracticeRecordApiV1ProjectsProjectIdPracticeRecordsPost(
+        input.projectId,
+        input,
+      )
 
     registry.set(
       practiceRecordsAtom(input.projectId),
-      PracticeRecordsAction.Create({ practiceRecord: resp.practice_record }),
+      PracticeRecordsAction.Create({ practiceRecord: resp }),
     )
 
     registry.refresh(practiceRecordsRemoteAtom(input.projectId))
@@ -82,24 +84,25 @@ export const submitPracticeRecordAtom = runtime.fn(
 
 export const submitPracticeRecordsBatchAtom = runtime.fn(
   Effect.fn(function* (
-    input: typeof CreatePracticeRecordBatchRequest.Encoded & {
+    input: typeof PracticeRecordBatchCreate.Encoded & {
       projectId: string
     },
   ) {
     const registry = yield* Registry.AtomRegistry
     const apiClient = yield* makeApiClient
     const resp =
-      yield* apiClient.createPracticeRecordsBatchV1PracticeRecordsBatchPost({
-        params: { project_id: input.projectId },
-        payload: input,
-      })
+      yield* apiClient.createPracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost(
+        input.projectId,
+        input,
+      )
+
     registry.set(
       practiceRecordsAtom(input.projectId),
       PracticeRecordsAction.CreateBatch({
-        practiceRecords: resp.data,
+        practiceRecords: resp,
       }),
     )
     registry.refresh(practiceRecordsRemoteAtom(input.projectId))
-    return resp.data
+    return resp
   }),
 )
