@@ -1,6 +1,6 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Array } from 'effect'
-import { makeApiClient } from '@/integrations/api/http'
+import { Data, Effect, Array, Layer } from 'effect'
+import { ApiClientService } from '@/integrations/api/http'
 import {
   ProjectDto,
   ProjectCreate,
@@ -10,7 +10,12 @@ import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
 
-const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 export const currentProjectIdAtom = Atom.make<string | null>(null).pipe(
   Atom.keepAlive,
@@ -24,8 +29,8 @@ const ProjectsAction = Data.taggedEnum<ProjectsAction>()
 
 export const projectsRemoteAtom = runtime.atom(
   Effect.fn(function* () {
-    const client = yield* makeApiClient
-    const resp = yield* client.listProjectsApiV1ProjectsGet()
+    const { apiClient } = yield* ApiClientService
+    const resp = yield* apiClient.listProjectsApiV1ProjectsGet()
     return resp
   }),
 )
@@ -33,9 +38,9 @@ export const projectsRemoteAtom = runtime.atom(
 export const projectAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
-      const client = yield* makeApiClient
-      return yield* client.getProjectApiV1ProjectsProjectIdGet(projectId)
-    }),
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.getProjectApiV1ProjectsProjectIdGet(projectId)
+    }).pipe(Effect.provide(ApiClientService.Default)),
   ).pipe(Atom.keepAlive),
 )
 
@@ -70,15 +75,15 @@ export const upsertProjectAtom = runtime.fn(
   Effect.fn(
     function* (input: typeof ProjectCreate.Encoded & { id?: string }) {
       const registry = yield* Registry.AtomRegistry
-      const client = yield* makeApiClient
+      const { apiClient } = yield* ApiClientService
       const { id, ...data } = input
 
       const res = id
-        ? yield* client.updateProjectApiV1ProjectsProjectIdPatch(
+        ? yield* apiClient.updateProjectApiV1ProjectsProjectIdPatch(
             id,
             data as typeof ProjectUpdate.Encoded,
           )
-        : yield* client.createProjectApiV1ProjectsPost(
+        : yield* apiClient.createProjectApiV1ProjectsPost(
             data as typeof ProjectCreate.Encoded,
           )
 
@@ -100,8 +105,8 @@ export const deleteProjectAtom = runtime.fn(
   Effect.fn(
     function* (projectId: string) {
       const registry = yield* Registry.AtomRegistry
-      const client = yield* makeApiClient
-      yield* client.deleteProjectApiV1ProjectsProjectIdDelete(projectId)
+      const { apiClient } = yield* ApiClientService
+      yield* apiClient.deleteProjectApiV1ProjectsProjectIdDelete(projectId)
 
       registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
       registry.refresh(projectsRemoteAtom)

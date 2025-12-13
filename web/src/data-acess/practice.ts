@@ -1,5 +1,5 @@
-import { Data, Effect } from 'effect'
-import { makeApiClient } from '@/integrations/api/http'
+import { Data, Effect, Layer } from 'effect'
+import { ApiClientService } from '@/integrations/api/http'
 import {
   PracticeRecordDto,
   PracticeRecordCreate,
@@ -9,7 +9,12 @@ import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 type PracticeRecordsAction = Data.TaggedEnum<{
   List: { readonly projectId: string }
@@ -22,7 +27,7 @@ export const practiceRecordsRemoteAtom = Atom.family((projectId: string) =>
   runtime
     .atom(
       Effect.fn(function* () {
-        const apiClient = yield* makeApiClient
+        const { apiClient } = yield* ApiClientService
         const resp =
           yield* apiClient.listPracticeRecordsApiV1ProjectsProjectIdPracticeRecordsGet(
             projectId,
@@ -67,7 +72,7 @@ export const submitPracticeRecordAtom = runtime.fn(
     input: typeof PracticeRecordCreate.Encoded & { projectId: string },
   ) {
     const registry = yield* Registry.AtomRegistry
-    const apiClient = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
     const resp =
       yield* apiClient.createPracticeRecordApiV1ProjectsProjectIdPracticeRecordsPost(
         input.projectId,
@@ -92,7 +97,7 @@ export const submitPracticeRecordsBatchAtom = runtime.fn(
     },
   ) {
     const registry = yield* Registry.AtomRegistry
-    const apiClient = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
     const resp =
       yield* apiClient.createPracticeRecordsBatchApiV1ProjectsProjectIdPracticeRecordsBatchPost(
         input.projectId,

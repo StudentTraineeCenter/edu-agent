@@ -1,13 +1,13 @@
 import { Atom } from '@effect-atom/atom-react'
 import { Effect } from 'effect'
-import { makeApiClient } from '@/integrations/api/http'
+import { ApiClientService } from '@/integrations/api/http'
 import { supabase } from '@/lib/supabase'
 import type { Session, User } from '@supabase/supabase-js'
 
 export const currentUserAtom = Atom.make(
   Effect.gen(function* () {
-    const client = yield* makeApiClient
-    const resp = yield* client.getCurrentUserInfoApiV1AuthMeGet()
+    const { apiClient } = yield* ApiClientService
+    const resp = yield* apiClient.getCurrentUserInfoApiV1AuthMeGet()
 
     const name = resp.name?.trim() ?? resp.email?.split('@')[0] ?? 'User'
 
@@ -23,7 +23,7 @@ export const currentUserAtom = Atom.make(
       name,
       initials,
     }
-  }),
+  }).pipe(Effect.provide(ApiClientService.Default)),
 ).pipe(Atom.keepAlive)
 
 export const authAtom: Atom.Atom<{

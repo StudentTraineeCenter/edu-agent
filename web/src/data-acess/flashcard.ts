@@ -1,5 +1,5 @@
 import { Atom, Registry } from '@effect-atom/atom-react'
-import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
+import { ApiClientService } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import {
@@ -10,17 +10,23 @@ import {
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
+import { Layer } from 'effect'
 
-const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
-      const client = yield* makeApiClient
-      return yield* client.listFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet(
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.listFlashcardGroupsApiV1ProjectsProjectIdFlashcardGroupsGet(
         projectId,
       )
-    }),
+    }).pipe(Effect.provide(ApiClientService.Default)),
   ).pipe(Atom.keepAlive),
 )
 
@@ -28,12 +34,12 @@ export const flashcardGroupAtom = Atom.family(
   (input: { projectId: string; flashcardGroupId: string }) =>
     Atom.make(
       Effect.gen(function* () {
-        const client = yield* makeApiClient
-        return yield* client.getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet(
+        const { apiClient } = yield* ApiClientService
+        return yield* apiClient.getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet(
           input.projectId,
           input.flashcardGroupId,
         )
-      }),
+      }).pipe(Effect.provide(ApiClientService.Default)),
     ).pipe(Atom.keepAlive),
 )
 
@@ -41,12 +47,12 @@ export const flashcardsAtom = Atom.family(
   (input: { projectId: string; flashcardGroupId: string }) =>
     Atom.make(
       Effect.gen(function* () {
-        const client = yield* makeApiClient
-        return yield* client.listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet(
+        const { apiClient } = yield* ApiClientService
+        return yield* apiClient.listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet(
           input.projectId,
           input.flashcardGroupId,
         )
-      }),
+      }).pipe(Effect.provide(ApiClientService.Default)),
     ).pipe(Atom.keepAlive),
 )
 
@@ -63,78 +69,80 @@ export const flashcardProgressAtom = Atom.make<{
   error?: string
 } | null>(null)
 
-export const createFlashcardGroupStreamAtom = Atom.fn(
-  Effect.fn(function* (
-    input: {
-      projectId: string
-      groupId: string
-      flashcardCount?: number
-      customInstructions?: string
-      length?: string
-      difficulty?: string
-    },
-    _get: Atom.FnContext,
-  ) {
-    const httpClient = yield* makeHttpClient
-    const body = HttpBody.unsafeJson(
-      new GenerateRequest({
-        count: input.flashcardCount,
-        custom_instructions: input.customInstructions,
-        difficulty: input.difficulty,
-      }),
-    )
-    const resp = yield* httpClient.post(
-      `/api/v1/projects/${input.projectId}/flashcard-groups/${input.groupId}/generate/stream`,
-      { body },
-    )
-
-    const decoder = new TextDecoder()
-    const respStream = resp.stream.pipe(
-      Stream.map((value) => decoder.decode(value, { stream: true })),
-      Stream.map((chunk) => {
-        const chunkLines = chunk.split('\n')
-        const res = chunkLines
-          .map((line) =>
-            line.startsWith('data: ') ? line.replace('data: ', '') : '',
-          )
-          .filter((line) => line !== '')
-          .join('\n')
-        return res
-      }),
-      Stream.filter((chunk) => chunk !== ''),
-      Stream.flatMap((chunk) => {
-        const lines = chunk.trim().split('\n')
-        return Stream.fromIterable(lines).pipe(
-          Stream.filter((line) => line.trim() !== ''),
-          Stream.flatMap((line) =>
-            Schema.decodeUnknown(Schema.parseJson(FlashcardProgressUpdate))(
-              line,
-            ),
-          ),
-        )
-      }),
-      Stream.tap((progress) =>
-        Effect.gen(function* () {
-          const registry = yield* Registry.AtomRegistry
-          registry.set(flashcardProgressAtom, {
-            status: progress.status,
-            message: progress.message,
-            error: progress.error ?? undefined,
-          })
+export const createFlashcardGroupStreamAtom = runtime
+  .fn(
+    Effect.fn(function* (
+      input: {
+        projectId: string
+        groupId: string
+        flashcardCount?: number
+        customInstructions?: string
+        length?: string
+        difficulty?: string
+      },
+      _get: Atom.FnContext,
+    ) {
+      const { httpClient } = yield* ApiClientService
+      const body = HttpBody.unsafeJson(
+        new GenerateRequest({
+          count: input.flashcardCount,
+          custom_instructions: input.customInstructions,
+          difficulty: input.difficulty,
         }),
-      ),
-    )
+      )
+      const resp = yield* httpClient.post(
+        `/api/v1/projects/${input.projectId}/flashcard-groups/${input.groupId}/generate/stream`,
+        { body },
+      )
 
-    yield* Stream.runCollect(respStream)
+      const decoder = new TextDecoder()
+      const respStream = resp.stream.pipe(
+        Stream.map((value) => decoder.decode(value, { stream: true })),
+        Stream.map((chunk) => {
+          const chunkLines = chunk.split('\n')
+          const res = chunkLines
+            .map((line) =>
+              line.startsWith('data: ') ? line.replace('data: ', '') : '',
+            )
+            .filter((line) => line !== '')
+            .join('\n')
+          return res
+        }),
+        Stream.filter((chunk) => chunk !== ''),
+        Stream.flatMap((chunk) => {
+          const lines = chunk.trim().split('\n')
+          return Stream.fromIterable(lines).pipe(
+            Stream.filter((line) => line.trim() !== ''),
+            Stream.flatMap((line) =>
+              Schema.decodeUnknown(Schema.parseJson(FlashcardProgressUpdate))(
+                line,
+              ),
+            ),
+          )
+        }),
+        Stream.tap((progress) =>
+          Effect.gen(function* () {
+            const registry = yield* Registry.AtomRegistry
+            registry.set(flashcardProgressAtom, {
+              status: progress.status,
+              message: progress.message,
+              error: progress.error ?? undefined,
+            })
+          }),
+        ),
+      )
 
-    // Refresh flashcard groups list after completion
-    const registry = yield* Registry.AtomRegistry
-    if (input.projectId) {
-      registry.refresh(flashcardGroupsAtom(input.projectId))
-    }
-    registry.set(flashcardProgressAtom, null)
-  }),
-).pipe(Atom.keepAlive)
+      yield* Stream.runCollect(respStream)
+
+      // Refresh flashcard groups list after completion
+      const registry = yield* Registry.AtomRegistry
+      if (input.projectId) {
+        registry.refresh(flashcardGroupsAtom(input.projectId))
+      }
+      registry.set(flashcardProgressAtom, null)
+    }),
+  )
+  .pipe(Atom.keepAlive)
 
 export const createFlashcardGroupAtom = runtime.fn(
   Effect.fn(function* (input: {
@@ -143,9 +151,9 @@ export const createFlashcardGroupAtom = runtime.fn(
     customInstructions?: string
   }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
     const resp =
-      yield* client.createFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsPost(
+      yield* apiClient.createFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsPost(
         input.projectId,
         {
           name: 'New Flashcard Group',
@@ -162,8 +170,8 @@ export const deleteFlashcardGroupAtom = runtime.fn(
   Effect.fn(
     function* (input: { flashcardGroupId: string; projectId: string }) {
       const registry = yield* Registry.AtomRegistry
-      const client = yield* makeApiClient
-      yield* client.deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete(
+      const { apiClient } = yield* ApiClientService
+      yield* apiClient.deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete(
         input.projectId,
         input.flashcardGroupId,
       )
@@ -209,9 +217,9 @@ export const createFlashcardAtom = runtime.fn(
     position?: number
   }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
     const resp =
-      yield* client.createFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsPost(
+      yield* apiClient.createFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsPost(
         input.projectId,
         input.flashcardGroupId,
         new FlashcardCreate({
@@ -242,9 +250,9 @@ export const updateFlashcardAtom = runtime.fn(
     difficultyLevel?: string
   }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
     const resp =
-      yield* client.updateFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdPatch(
+      yield* apiClient.updateFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdPatch(
         input.projectId,
         input.flashcardGroupId,
         input.flashcardId,
@@ -296,8 +304,8 @@ export const deleteFlashcardAtom = runtime.fn(
     flashcardGroupId: string
   }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdDelete(
+    const { apiClient } = yield* ApiClientService
+    yield* apiClient.deleteFlashcardApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsFlashcardIdDelete(
       input.projectId,
       input.flashcardGroupId,
       input.flashcardId,

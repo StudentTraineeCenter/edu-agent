@@ -1,13 +1,18 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { makeApiClient } from '@/integrations/api/http'
-import { Data, Effect } from 'effect'
+import { ApiClientService } from '@/integrations/api/http'
+import { Data, Effect, Layer } from 'effect'
 import { getAccessTokenEffect } from '@/lib/supabase'
 import { usageAtom } from './usage'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
 
-const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 type DocumentsAction = Data.TaggedEnum<{
   Del: { readonly documentId: string }
@@ -18,9 +23,9 @@ export const documentsRemoteAtom = Atom.family((projectId: string) =>
   runtime
     .atom(
       Effect.fn(function* () {
-        const client = yield* makeApiClient
+        const { apiClient } = yield* ApiClientService
         const resp =
-          yield* client.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
+          yield* apiClient.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
             projectId,
           )
         return resp
@@ -64,12 +69,12 @@ export const documentAtom = Atom.family(
   (input: { projectId: string; documentId: string }) =>
     Atom.make(
       Effect.fn(function* () {
-        const client = yield* makeApiClient
-        return yield* client.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
+        const { apiClient } = yield* ApiClientService
+        return yield* apiClient.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
           input.projectId,
           input.documentId,
         )
-      }),
+      })().pipe(Effect.provide(ApiClientService.Default)),
     ),
 )
 
@@ -128,9 +133,9 @@ export const documentPreviewAtom = Atom.family(
 export const uploadDocumentAtom = runtime.fn(
   Effect.fn(function* (input: { projectId: string; files: Blob[] }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
+    const { apiClient } = yield* ApiClientService
 
-    yield* client.uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost(
+    yield* apiClient.uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost(
       input.projectId,
       {
         files: input.files,
@@ -146,8 +151,8 @@ export const deleteDocumentAtom = runtime.fn(
   Effect.fn(
     function* (input: { documentId: string; projectId: string }) {
       const registry = yield* Registry.AtomRegistry
-      const client = yield* makeApiClient
-      yield* client.deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete(
+      const { apiClient } = yield* ApiClientService
+      yield* apiClient.deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete(
         input.projectId,
         input.documentId,
       )

@@ -1,20 +1,26 @@
 import { Atom, Registry } from '@effect-atom/atom-react'
-import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
+import { ApiClientService } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
 import { NoteCreate, GenerateRequest } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
+import { Layer } from 'effect'
 
-const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 export const notesAtom = Atom.family((projectId: string) =>
   Atom.make(
     Effect.gen(function* () {
-      const client = yield* makeApiClient
-      return yield* client.listNotesApiV1ProjectsProjectIdNotesGet(projectId)
-    }),
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.listNotesApiV1ProjectsProjectIdNotesGet(projectId)
+    }).pipe(Effect.provide(ApiClientService.Default)),
   ).pipe(Atom.keepAlive),
 )
 
@@ -22,12 +28,12 @@ export const noteAtom = Atom.family(
   (input: { projectId: string; noteId: string }) =>
     Atom.make(
       Effect.gen(function* () {
-        const client = yield* makeApiClient
-        return yield* client.getNoteApiV1ProjectsProjectIdNotesNoteIdGet(
+        const { apiClient } = yield* ApiClientService
+        return yield* apiClient.getNoteApiV1ProjectsProjectIdNotesNoteIdGet(
           input.projectId,
           input.noteId,
         )
-      }),
+      }).pipe(Effect.provide(ApiClientService.Default)),
     ).pipe(Atom.keepAlive),
 )
 
@@ -45,7 +51,7 @@ export const noteProgressAtom = Atom.make<{
 } | null>(null)
 
 export const createNoteStreamAtom = Atom.fn(
-  Effect.fn(function* (
+  (
     input: {
       projectId: string
       noteId: string
@@ -54,66 +60,67 @@ export const createNoteStreamAtom = Atom.fn(
       count?: number
       difficulty?: string
     },
-    _get: Atom.FnContext,
-  ) {
-    const httpClient = yield* makeHttpClient
-    const body = HttpBody.unsafeJson(
-      new GenerateRequest({
-        custom_instructions: input.customInstructions,
-        topic: input.topic,
-        count: input.count,
-        difficulty: input.difficulty,
-      }),
-    )
-    const resp = yield* httpClient.post(
-      `/api/v1/projects/${input.projectId}/notes/${input.noteId}/generate/stream`,
-      { body },
-    )
-
-    const decoder = new TextDecoder()
-    const respStream = resp.stream.pipe(
-      Stream.map((value) => decoder.decode(value, { stream: true })),
-      Stream.map((chunk) => {
-        const chunkLines = chunk.split('\n')
-        const res = chunkLines
-          .map((line) =>
-            line.startsWith('data: ') ? line.replace('data: ', '') : '',
-          )
-          .filter((line) => line !== '')
-          .join('\n')
-        return res
-      }),
-      Stream.filter((chunk) => chunk !== ''),
-      Stream.flatMap((chunk) => {
-        const lines = chunk.trim().split('\n')
-        return Stream.fromIterable(lines).pipe(
-          Stream.filter((line) => line.trim() !== ''),
-          Stream.flatMap((line) =>
-            Schema.decodeUnknown(Schema.parseJson(NoteProgressUpdate))(line),
-          ),
-        )
-      }),
-      Stream.tap((progress) =>
-        Effect.gen(function* () {
-          const registry = yield* Registry.AtomRegistry
-          registry.set(noteProgressAtom, {
-            status: progress.status,
-            message: progress.message,
-            error: progress.error ?? undefined,
-          })
+    _get,
+  ) =>
+    Effect.gen(function* () {
+      const { httpClient } = yield* ApiClientService
+      const body = HttpBody.unsafeJson(
+        new GenerateRequest({
+          custom_instructions: input.customInstructions,
+          topic: input.topic,
+          count: input.count,
+          difficulty: input.difficulty,
         }),
-      ),
-    )
+      )
+      const resp = yield* httpClient.post(
+        `/api/v1/projects/${input.projectId}/notes/${input.noteId}/generate/stream`,
+        { body },
+      )
 
-    yield* Stream.runCollect(respStream)
+      const decoder = new TextDecoder()
+      const respStream = resp.stream.pipe(
+        Stream.map((value) => decoder.decode(value, { stream: true })),
+        Stream.map((chunk) => {
+          const chunkLines = chunk.split('\n')
+          const res = chunkLines
+            .map((line) =>
+              line.startsWith('data: ') ? line.replace('data: ', '') : '',
+            )
+            .filter((line) => line !== '')
+            .join('\n')
+          return res
+        }),
+        Stream.filter((chunk) => chunk !== ''),
+        Stream.flatMap((chunk) => {
+          const lines = chunk.trim().split('\n')
+          return Stream.fromIterable(lines).pipe(
+            Stream.filter((line) => line.trim() !== ''),
+            Stream.flatMap((line) =>
+              Schema.decodeUnknown(Schema.parseJson(NoteProgressUpdate))(line),
+            ),
+          )
+        }),
+        Stream.tap((progress) =>
+          Effect.gen(function* () {
+            const registry = yield* Registry.AtomRegistry
+            registry.set(noteProgressAtom, {
+              status: progress.status,
+              message: progress.message,
+              error: progress.error ?? undefined,
+            })
+          }),
+        ),
+      )
 
-    // Refresh notes list after completion
-    const registry = yield* Registry.AtomRegistry
-    if (input.projectId) {
-      registry.refresh(notesAtom(input.projectId))
-    }
-    registry.set(noteProgressAtom, null)
-  }),
+      yield* Stream.runCollect(respStream)
+
+      // Refresh notes list after completion
+      const registry = yield* Registry.AtomRegistry
+      if (input.projectId) {
+        registry.refresh(notesAtom(input.projectId))
+      }
+      registry.set(noteProgressAtom, null)
+    }).pipe(Effect.provide(ApiClientService.Default)),
 ).pipe(Atom.keepAlive)
 
 export const createNoteAtom = runtime.fn(
@@ -124,8 +131,8 @@ export const createNoteAtom = runtime.fn(
     description?: string
   }) {
     const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    const resp = yield* client.createNoteApiV1ProjectsProjectIdNotesPost(
+    const { apiClient } = yield* ApiClientService
+    const resp = yield* apiClient.createNoteApiV1ProjectsProjectIdNotesPost(
       input.projectId,
       new NoteCreate({
         title: input.title ?? 'New Note',
@@ -143,8 +150,8 @@ export const deleteNoteAtom = runtime.fn(
   Effect.fn(
     function* (input: { noteId: string; projectId: string }) {
       const registry = yield* Registry.AtomRegistry
-      const client = yield* makeApiClient
-      yield* client.deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete(
+      const { apiClient } = yield* ApiClientService
+      yield* apiClient.deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete(
         input.projectId,
         input.noteId,
       )
