@@ -248,6 +248,7 @@ export const StudyResourceListItem = ({ studyResource }: Props) => {
           setIsExporting(true)
           const response = await exportQuiz({
             quizId: quiz.id,
+            projectId: quiz.project_id ?? '',
           })
 
           // Create blob and download

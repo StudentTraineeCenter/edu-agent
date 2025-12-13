@@ -4,6 +4,7 @@ requires-python = "==3.12.*"
 
 [manifest]
 members = [
+    "deploy-azure",
     "edu-agent",
     "edu-api",
     "edu-shared",
@@ -264,6 +265,17 @@ wheels = [
 ]
 
 [[package]]
+name = "deploy-azure"
+version = "0.1.0"
+source = { virtual = "deploy/azure" }
+dependencies = [
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyyaml", specifier = ">=6.0" }]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -356,6 +368,7 @@ source = { virtual = "src/edu-worker" }
 dependencies = [
     { name = "azure-identity" },
     { name = "azure-keyvault-secrets" },
+    { name = "azure-storage-blob" },
     { name = "azure-storage-queue" },
     { name = "edu-shared" },
     { name = "langchain-core" },
@@ -367,6 +380,7 @@ dependencies = [
 requires-dist = [
     { name = "azure-identity", specifier = ">=1.25.1" },
     { name = "azure-keyvault-secrets", specifier = ">=4.10.0" },
+    { name = "azure-storage-blob", specifier = ">=12.27.1" },
     { name = "azure-storage-queue", specifier = ">=12.14.1" },
     { name = "edu-shared", editable = "src/edu-shared" },
     { name = "langchain-core", specifier = ">=1.1.3" },

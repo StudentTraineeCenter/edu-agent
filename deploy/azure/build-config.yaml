@@ -1,0 +1,36 @@
+# Build configuration for Azure Container Registry
+# Paths are relative to the project root (two levels up from this file)
+
+# ACR name (optional - will be auto-detected from Terraform if not specified)
+# acr_name: myacr
+
+# Whether to build all containers by default when no --container flag is provided
+build_all_by_default: true
+
+containers:
+  - name: edu-api
+    image: edu-api
+    tag: latest
+    # Path relative to project root - use project root as context since Dockerfile needs pyproject.toml and uv.lock
+    path: .
+    dockerfile: src/edu-api/Dockerfile
+
+  - name: edu-worker
+    image: edu-worker
+    tag: latest
+    # Path relative to project root - use project root as context since Dockerfile needs pyproject.toml and uv.lock
+    path: .
+    dockerfile: src/edu-worker/Dockerfile
+
+  - name: edu-web
+    image: edu-agent-web
+    tag: latest
+    # Path relative to project root - web can use its own directory as context
+    path: src/edu-web
+    dockerfile: Dockerfile
+    # Build args for Vite environment variables (required at build time)
+    # These can be fetched from terraform outputs or set manually
+    build_args:
+      VITE_SERVER_URL: "" # Set from terraform output container_app_api_url
+      VITE_SUPABASE_URL: "" # Set from terraform output supabase_api_url
+      VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eWF0dXdnbnBvbHhqZmVyaGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTgyMDcsImV4cCI6MjA4MDQ5NDIwN30.6Hjd3DEdjDlYCKUM-fXnVRZOCV4LfDqHMfg48AI7Szc" # Set from terraform variable supabase_anon_key

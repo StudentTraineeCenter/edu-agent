@@ -34,7 +34,7 @@ const FlashcardHeaderContent = ({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbPage className="line-clamp-1 font-medium">
-              {res.flashcard_group?.name || 'Flashcards'}
+              {res.name || 'Flashcards'}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -72,7 +72,11 @@ export const FlashcardHeader = ({
   })
 
   const handleShuffle = async () => {
-    await initializeQueue({ projectId, flashcardGroupId, includeMastered: false })
+    await initializeQueue({
+      projectId,
+      flashcardGroupId,
+      includeMastered: false,
+    })
   }
 
   return (

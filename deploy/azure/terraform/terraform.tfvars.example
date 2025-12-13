@@ -1,0 +1,82 @@
+# ============================================================================
+# Azure Authentication & Identity
+# ============================================================================
+azure_subscription_id = "your-azure-subscription-id"
+azure_tenant_id       = "your-azure-tenant-id"
+
+# ============================================================================
+# Infrastructure Configuration
+# ============================================================================
+location     = "Sweden Central"
+region_code  = "swc"
+project_name = "edu-agent"
+environment  = "dev"  # dev, staging, or prod
+
+# ============================================================================
+# Container Registry Configuration
+# ============================================================================
+acr_repository_api    = "edu-api"
+acr_tag_api          = "latest"
+acr_repository_worker = "edu-worker"
+acr_tag_worker        = "latest"
+acr_repository_web   = "edu-agent-web"
+acr_tag_web          = "latest"
+
+# ============================================================================
+# Supabase Configuration
+# ============================================================================
+supabase_access_token     = "your-supabase-access-token"
+supabase_organization_id   = "your-supabase-organization-id"
+supabase_database_password = "your-supabase-database-password"
+supabase_region           = "eu-north-1"
+supabase_service_role_key = "your-supabase-service-role-key"  # Optional, can be set manually later
+supabase_jwt_secret       = "your-supabase-jwt-secret"        # Optional, can be set manually later
+supabase_anon_key         = "your-supabase-anon-key"          # Optional, can be set manually later
+
+# ============================================================================
+# AI Configuration (Optional - defaults provided)
+# ============================================================================
+# gpt4o_deployment_name        = "gpt-4o"
+# gpt4o_model_name            = "gpt-4o"
+# gpt4o_model_version         = "2024-11-20"
+# gpt4o_sku_name              = "GlobalStandard"
+# gpt4o_sku_capacity          = 50
+# text_embedding_deployment_name = "text-embedding-3-large"
+# text_embedding_model_name    = "text-embedding-3-large"
+# text_embedding_model_version = "1"
+# text_embedding_sku_name      = "GlobalStandard"
+# text_embedding_sku_capacity  = 500
+
+# ============================================================================
+# Container App Configuration - API (Optional - defaults provided)
+# ============================================================================
+# api_target_port    = 8000
+# api_min_replicas   = 1
+# api_max_replicas   = 10
+# api_cpu            = 0.5
+# api_memory         = "1.0Gi"
+
+# ============================================================================
+# Container App Configuration - Worker (Optional - defaults provided)
+# ============================================================================
+# worker_min_replicas   = 1
+# worker_max_replicas   = 10
+# worker_cpu            = 0.5
+# worker_memory         = "1.0Gi"
+
+# ============================================================================
+# Application Limits (Optional - defaults provided)
+# ============================================================================
+# max_chat_messages_per_day           = "50"
+# max_flashcard_generations_per_day   = "10"
+# max_quiz_generations_per_day        = "10"
+# max_document_uploads_per_day        = "5"
+
+# ============================================================================
+# App Service Configuration (Optional - defaults provided)
+# ============================================================================
+# app_service_os_type              = "Linux"
+# app_service_sku_name             = "B1"
+# web_health_check_path            = "/"
+# health_check_eviction_time_in_min = 10
+

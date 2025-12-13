@@ -20,9 +20,9 @@ type Props = {
 
 export const ChatListItem = ({ chat }: Props) => {
   const lastMessageContent = useMemo(() => {
-    const value = chat.last_message?.content ?? 'No messages yet'
+    const value = chat.messages?.at(-1)?.content ?? 'No messages yet'
     return value.length > 100 ? value.slice(0, 100) + '...' : value
-  }, [chat.last_message])
+  }, [chat.messages])
 
   const deleteChat = useAtomSet(deleteChatAtom, { mode: 'promise' })
   const confirmationDialog = useConfirmationDialog()

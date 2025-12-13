@@ -11,4 +11,5 @@ members = [
     "src/edu-api",
     "src/edu-worker",
     "src/edu-shared",
+    "deploy/azure",
 ]

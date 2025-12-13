@@ -1,9 +1,17 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Option } from 'effect'
-import type { PracticeRecordCreate } from '@/integrations/api'
-import { runtime } from '@/data-acess/runtime'
+import { Data, Effect, Layer, Option } from 'effect'
+import { ApiClientService, type PracticeRecordCreate } from '@/integrations/api'
 import { submitPracticeRecordsBatchAtom } from '@/data-acess/practice'
 import { flashcardsAtom } from '@/data-acess/flashcard'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(
+  Layer.mergeAll(
+    BrowserKeyValueStore.layerLocalStorage,
+    ApiClientService.Default,
+  ),
+)
 
 type CardId = string
 

@@ -156,21 +156,26 @@ export function GenerationDialog() {
           await createNoteStream({
             projectId,
             customInstructions: customInstructions.trim() || undefined,
-            length: length !== 'normal' ? length : undefined,
+            noteId: '',
+            count: 30,
+            difficulty: difficulty !== 'medium' ? difficulty : undefined,
+            topic: customInstructions.trim() || undefined,
           })
           break
         case 'quiz':
           await createQuizStream({
             projectId,
+            quizId: '',
+            topic: '',
             questionCount: 30,
             customInstructions: customInstructions.trim() || undefined,
-            length: length !== 'normal' ? length : undefined,
             difficulty: difficulty !== 'medium' ? difficulty : undefined,
           })
           break
         case 'flashcard':
           await createFlashcardStream({
             projectId,
+            groupId: '',
             flashcardCount: 30,
             customInstructions: customInstructions.trim() || undefined,
             length: length !== 'normal' ? length : undefined,

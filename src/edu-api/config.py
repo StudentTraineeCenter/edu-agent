@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     ):
         """Customize settings sources to include Key Vault (highest priority)."""
         return (
-            KeyVaultSettingsSource(settings_cls, "https://kv-eduagent-dev-swc-4xae.vault.azure.net/"),  # Key Vault first (highest priority)
+            KeyVaultSettingsSource(settings_cls, "https://kv-eduagent-dev-swc-fzgz.vault.azure.net/"),  # Key Vault first (highest priority)
             init_settings,
             env_settings,
             dotenv_settings,
@@ -60,6 +60,4 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    res = Settings()
-    print(res.model_dump_json(indent=2))
-    return res
+    return Settings()

@@ -1,0 +1,40 @@
+# Exclude everything except what's needed for builds
+*
+
+# Include only what Dockerfiles need
+!pyproject.toml
+!uv.lock
+!src/
+
+# Exclude common build artifacts and caches
+.git/
+.gitignore
+*.md
+*.txt
+LICENSE
+docs/
+deploy/
+infra/
+server/
+scripts/
+*.pyc
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
+*.log
+
+# Exclude build artifacts within src/ (must come after !src/)
+# Match node_modules at any depth - need both directory and contents patterns
+**/node_modules
+**/node_modules/**
+**/dist
+**/dist/**
+**/__pycache__
+**/__pycache__/**
+**/.pytest_cache
+**/.pytest_cache/**
+**/.ruff_cache
+**/.ruff_cache/**
+**/*.pyc

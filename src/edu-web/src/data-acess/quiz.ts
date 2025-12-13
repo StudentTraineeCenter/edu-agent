@@ -187,7 +187,10 @@ export const deleteQuizAtom = runtime.fn(
 )
 
 export const exportQuizAtom = runtime.fn(
-  Effect.fn(function* (_input: { projectId: string; quizId: string }) {
+  Effect.fn(function* (input: { projectId: string; quizId: string }) {
+    yield* Effect.log(
+      `Exporting quiz ${input.quizId} for project ${input.projectId}`,
+    )
     // Note: Quiz export endpoints may not be available in the new API
     // This might need to be handled differently or removed if not supported
     // For now, commenting out as the endpoint doesn't exist in the client

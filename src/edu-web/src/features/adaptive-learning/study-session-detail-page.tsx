@@ -144,7 +144,7 @@ export const StudySessionDetailPage = ({
                     </Card>
                   )}
 
-                {sessionData.session_data.learning_objectives &&
+                {Array.isArray(sessionData.session_data.learning_objectives) &&
                   sessionData.session_data.learning_objectives.length > 0 && (
                     <Card>
                       <CardHeader>
@@ -152,14 +152,15 @@ export const StudySessionDetailPage = ({
                       </CardHeader>
                       <CardContent>
                         <ul className="space-y-2">
-                          {sessionData.session_data.learning_objectives.map(
-                            (objective, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <span className="text-primary mt-1">•</span>
-                                <span>{objective}</span>
-                              </li>
-                            ),
-                          )}
+                          {(
+                            sessionData.session_data
+                              .learning_objectives as string[]
+                          ).map((objective: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span>{objective}</span>
+                            </li>
+                          ))}
                         </ul>
                       </CardContent>
                     </Card>
@@ -172,12 +173,16 @@ export const StudySessionDetailPage = ({
                   <Button
                     onClick={() => {
                       // Navigate to the study session's flashcard group
-                      if (sessionData.flashcard_group_id) {
+                      // Check if flashcard_group_id is in session_data
+                      const flashcardGroupId = (
+                        sessionData.session_data as Record<string, unknown>
+                      ).flashcard_group_id as string | undefined
+                      if (flashcardGroupId) {
                         navigate({
                           to: '/dashboard/p/$projectId/f/$flashcardGroupId',
                           params: {
                             projectId,
-                            flashcardGroupId: sessionData.flashcard_group_id,
+                            flashcardGroupId,
                           },
                         })
                       } else {
