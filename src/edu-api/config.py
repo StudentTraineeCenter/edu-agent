@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     azure_openai_api_version: str = ""
     azure_openai_embedding_deployment: str = ""
 
+    # Usage Limits (per day per user)
+    max_chat_messages_per_day: int = 50
+    max_flashcard_generations_per_day: int = 10
+    max_quiz_generations_per_day: int = 10
+    max_document_uploads_per_day: int = 5
+
     @classmethod
     def settings_customise_sources(
         cls,

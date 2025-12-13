@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
 from auth import get_current_user
-from dependencies import get_chat_service, get_chat_service_with_streaming
-from edu_shared.services import ChatService, NotFoundError
+from dependencies import get_chat_service, get_chat_service_with_streaming, get_usage_service
+from edu_shared.services import ChatService, NotFoundError, UsageService
 from edu_shared.schemas.chats import ChatDto, StreamingChatMessage, SourceDto, ToolCallDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import ChatCreate, ChatUpdate, ChatCompletionRequest
@@ -112,9 +112,13 @@ async def send_streaming_message(
     body: ChatCompletionRequest,
     current_user: UserDto = Depends(get_current_user),
     chat_service: ChatService = Depends(get_chat_service_with_streaming),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Send a streaming message to a chat."""
     user_id = current_user.id
+
+    # Check usage limit before processing
+    usage_service.check_and_increment(user_id, "chat_message")
 
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming response chunks"""

@@ -10,8 +10,9 @@ from dependencies import (
     get_document_service,
     get_document_processing_service,
     get_queue_service,
+    get_usage_service,
 )
-from edu_shared.services import DocumentProcessingService, DocumentService, NotFoundError
+from edu_shared.services import DocumentProcessingService, DocumentService, NotFoundError, UsageService
 from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
 from edu_shared.schemas.users import UserDto
@@ -28,10 +29,15 @@ async def upload_document(
     current_user: UserDto = Depends(get_current_user),
     processing_service: DocumentProcessingService = Depends(get_document_processing_service),
     queue_service: QueueService = Depends(get_queue_service),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Upload one or more documents. Processing happens asynchronously in background."""
     if not files:
         raise HTTPException(status_code=400, detail="At least one file is required")
+
+    # Check usage limit for each file upload
+    for _ in files:
+        usage_service.check_and_increment(current_user.id, "document_upload")
 
     # Validate file types
     allowed_types = processing_service.get_supported_types()

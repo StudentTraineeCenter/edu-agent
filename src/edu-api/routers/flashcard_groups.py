@@ -10,9 +10,10 @@ from dependencies import (
     get_flashcard_group_service,
     get_search_service,
     get_content_agent_config,
+    get_usage_service,
 )
 from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService
+from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService, UsageService
 from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import FlashcardGroupCreate, FlashcardGroupUpdate, FlashcardCreate, FlashcardUpdate, GenerateRequest
@@ -127,8 +128,11 @@ async def generate_flashcards(
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
     search_service: SearchService = Depends(get_search_service),
     agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Generate flashcards using AI and populate an existing flashcard group."""
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "flashcard_generation")
     try:
         return await service.generate_and_populate(
             group_id=group_id,
@@ -153,8 +157,11 @@ async def generate_flashcards_stream(
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
     search_service: SearchService = Depends(get_search_service),
     agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Generate flashcards using AI with streaming progress updates."""
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "flashcard_generation")
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""

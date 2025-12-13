@@ -10,9 +10,10 @@ from dependencies import (
     get_quiz_service,
     get_search_service,
     get_content_agent_config,
+    get_usage_service,
 )
 from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import NotFoundError, QuizService, SearchService
+from edu_shared.services import NotFoundError, QuizService, SearchService, UsageService
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.schemas.users import UserDto
 from routers.schemas import (
@@ -129,8 +130,11 @@ async def generate_quiz(
     service: QuizService = Depends(get_quiz_service),
     search_service: SearchService = Depends(get_search_service),
     agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Generate quiz questions using AI and populate an existing quiz."""
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "quiz_generation")
     try:
         return await service.generate_and_populate(
             quiz_id=quiz_id,
@@ -155,8 +159,11 @@ async def generate_quiz_stream(
     service: QuizService = Depends(get_quiz_service),
     search_service: SearchService = Depends(get_search_service),
     agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Generate quiz questions using AI with streaming progress updates."""
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "quiz_generation")
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""

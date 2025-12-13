@@ -15,6 +15,7 @@ from edu_shared.services import (
     QuizService,
     SearchService,
     StudySessionService,
+    UsageService,
     UserService,
 )
 from edu_shared.agents.base import ContentAgentConfig
@@ -25,6 +26,16 @@ def get_settings_dep() -> Settings:
     """Get application settings."""
     return get_settings()
 
+def get_usage_service(
+    settings: Settings = Depends(get_settings_dep),
+) -> UsageService:
+    """Get UsageService instance with configuration from settings."""
+    return UsageService(
+        max_chat_messages_per_day=settings.max_chat_messages_per_day,
+        max_flashcard_generations_per_day=settings.max_flashcard_generations_per_day,
+        max_quiz_generations_per_day=settings.max_quiz_generations_per_day,
+        max_document_uploads_per_day=settings.max_document_uploads_per_day,
+    )
 
 def get_project_service() -> ProjectService:
     """Get ProjectService instance."""
@@ -38,12 +49,14 @@ def get_document_service() -> DocumentService:
 
 def get_chat_service(
     settings: Settings = Depends(get_settings_dep),
+    usage_service: UsageService = Depends(get_usage_service),
 ) -> ChatService:
     """Get ChatService instance."""
     return ChatService(
         azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
+        usage_service=usage_service,
     )
 
 
@@ -108,6 +121,7 @@ def get_content_agent_config(
 def get_chat_service_with_streaming(
     search_service: SearchService = Depends(get_search_service),
     settings: Settings = Depends(get_settings_dep),
+    usage_service: UsageService = Depends(get_usage_service),
 ) -> ChatService:
     """Get ChatService instance configured for streaming with SearchService."""
     return ChatService(
@@ -115,6 +129,7 @@ def get_chat_service_with_streaming(
         azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
+        usage_service=usage_service,
     )
 
 
@@ -144,4 +159,5 @@ def get_queue_service(
         connection_string=settings.azure_storage_connection_string,
         queue_name=settings.azure_storage_queue_name,
     )
+
 

@@ -11,6 +11,7 @@ from edu_shared.services.projects import ProjectService
 from edu_shared.services.quizzes import QuizService
 from edu_shared.services.search import SearchService
 from edu_shared.services.study_sessions import StudySessionService
+from edu_shared.services.usage import UsageService
 from edu_shared.services.users import UserService
 from edu_shared.services.document_processing import DocumentProcessingService
 
@@ -26,6 +27,7 @@ __all__ = [
     "QuizService",
     "SearchService",
     "StudySessionService",
+    "UsageService",
     "UserService",
     "NotFoundError",
 ]

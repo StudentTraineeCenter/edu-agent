@@ -1048,6 +1048,42 @@ export class StudySessionCreate extends S.Class<StudySessionCreate>(
   focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
 }) {}
 
+/**
+ * DTO for usage limit information.
+ */
+export class UsageLimitDto extends S.Class<UsageLimitDto>('UsageLimitDto')({
+  /**
+   * Number of operations used today
+   */
+  used: S.Int,
+  /**
+   * Maximum number of operations allowed per day
+   */
+  limit: S.Int,
+}) {}
+
+/**
+ * DTO for user usage statistics.
+ */
+export class UsageDto extends S.Class<UsageDto>('UsageDto')({
+  /**
+   * Chat message usage statistics
+   */
+  chat_messages: UsageLimitDto,
+  /**
+   * Flashcard generation usage statistics
+   */
+  flashcard_generations: UsageLimitDto,
+  /**
+   * Quiz generation usage statistics
+   */
+  quiz_generations: UsageLimitDto,
+  /**
+   * Document upload usage statistics
+   */
+  document_uploads: UsageLimitDto,
+}) {}
+
 export class UserDto extends S.Class<UserDto>('UserDto')({
   /**
    * Unique ID of the user
@@ -1980,6 +2016,15 @@ export const make = (
           }),
         ),
       ),
+    getUsageApiV1UsageGet: () =>
+      HttpClientRequest.get(`/api/v1/usage`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(UsageDto),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     getUserApiV1UsersUserIdGet: (userId) =>
       HttpClientRequest.get(`/api/v1/users/${userId}`).pipe(
         withResponse(
@@ -2758,6 +2803,13 @@ export interface Client {
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Get current usage statistics for the authenticated user
+   */
+  readonly getUsageApiV1UsageGet: () => Effect.Effect<
+    typeof UsageDto.Type,
+    HttpClientError.HttpClientError | ParseError
   >
   /**
    * Get a user by ID.
