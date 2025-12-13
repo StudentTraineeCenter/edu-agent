@@ -18,6 +18,7 @@ import {
 } from './components/generation-dialog'
 import { Result } from '@effect-atom/atom-react'
 import { useDocumentPolling } from '@/hooks/use-document-polling'
+import { cn } from '@/lib/utils'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {
   const chatsResult = useAtomValue(chatsAtom(projectId))
@@ -151,7 +152,18 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
             <span>New chat</span>
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto min-h-0',
+            '[&::-webkit-scrollbar]:w-2',
+            '[&::-webkit-scrollbar-track]:bg-transparent',
+            '[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20',
+            '[&::-webkit-scrollbar-thumb]:rounded-full',
+            '[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30',
+            'dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+            'dark:[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/40',
+          )}
+        >
           <ChatsSection projectId={projectId} />
         </div>
       </div>
@@ -166,7 +178,18 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
               <span>Upload</span>
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto min-h-0',
+              '[&::-webkit-scrollbar]:w-2',
+              '[&::-webkit-scrollbar-track]:bg-transparent',
+              '[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20',
+              '[&::-webkit-scrollbar-thumb]:rounded-full',
+              '[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30',
+              'dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+              'dark:[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/40',
+            )}
+          >
             <DocumentsSection projectId={projectId} />
           </div>
         </div>
@@ -180,7 +203,18 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
               <span>Generate</span>
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto min-h-0',
+              '[&::-webkit-scrollbar]:w-2',
+              '[&::-webkit-scrollbar-track]:bg-transparent',
+              '[&::-webkit-scrollbar-thumb]:bg-muted-foreground/20',
+              '[&::-webkit-scrollbar-thumb]:rounded-full',
+              '[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30',
+              'dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30',
+              'dark:[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/40',
+            )}
+          >
             <AIContentSection projectId={projectId} />
           </div>
         </div>
