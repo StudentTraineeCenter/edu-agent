@@ -17,6 +17,7 @@ import {
   useGenerationDialog,
 } from './components/generation-dialog'
 import { Result } from '@effect-atom/atom-react'
+import { useDocumentPolling } from '@/hooks/use-document-polling'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {
   const chatsResult = useAtomValue(chatsAtom(projectId))
@@ -198,6 +199,9 @@ export const ProjectDetailPage = ({ projectId }: ProjectDetailPageProps) => {
   useEffect(() => {
     setCurrentProject(projectId)
   }, [projectId, setCurrentProject])
+
+  // Poll for document status updates when documents are not ready
+  useDocumentPolling(projectId)
 
   return (
     <div className="flex h-full flex-col max-h-screen">

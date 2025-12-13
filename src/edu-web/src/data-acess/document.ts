@@ -20,18 +20,16 @@ type DocumentsAction = Data.TaggedEnum<{
 const DocumentsAction = Data.taggedEnum<DocumentsAction>()
 
 export const documentsRemoteAtom = Atom.family((projectId: string) =>
-  runtime
-    .atom(
-      Effect.fn(function* () {
-        const { apiClient } = yield* ApiClientService
-        const resp =
-          yield* apiClient.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
-            projectId,
-          )
-        return resp
-      }),
-    )
-    .pipe(Atom.keepAlive),
+  runtime.atom(
+    Effect.fn(function* () {
+      const { apiClient } = yield* ApiClientService
+      const resp =
+        yield* apiClient.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
+          projectId,
+        )
+      return resp
+    }),
+  ),
 )
 
 export const documentsAtom = Atom.family((projectId: string) =>
@@ -168,4 +166,11 @@ export const deleteDocumentAtom = runtime.fn(
       onFailure: 'Failed to delete document',
     }),
   ),
+)
+
+export const refreshDocumentsAtom = runtime.fn(
+  Effect.fn(function* (projectId: string) {
+    const registry = yield* Registry.AtomRegistry
+    registry.refresh(documentsRemoteAtom(projectId))
+  }),
 )
