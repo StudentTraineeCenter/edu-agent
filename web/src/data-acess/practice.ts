@@ -5,8 +5,11 @@ import {
   PracticeRecordCreate,
   PracticeRecordBatchCreate,
 } from '@/integrations/api/client'
-import { runtime } from './runtime'
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 type PracticeRecordsAction = Data.TaggedEnum<{
   List: { readonly projectId: string }

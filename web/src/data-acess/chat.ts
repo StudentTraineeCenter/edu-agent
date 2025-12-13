@@ -11,8 +11,11 @@ import {
   ToolCallDto,
   type ChatCompletionRequest,
 } from '@/integrations/api/client'
-import { runtime, UsageLimitExceededError } from './runtime'
-import { usageAtom } from './usage'
+import { usageAtom, UsageLimitExceededError } from './usage'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 type ChatsAction = Data.TaggedEnum<{
   Upsert: { readonly chat: ChatDto }

@@ -2,7 +2,6 @@ import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
 import { HttpBody } from '@effect/platform'
-import { runtime } from './runtime'
 import {
   QuizCreate,
   GenerateRequest,
@@ -10,6 +9,10 @@ import {
   QuizQuestionUpdate,
   QuizQuestionReorder,
 } from '@/integrations/api/client'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 export const quizzesAtom = Atom.family((projectId: string) =>
   Atom.make(

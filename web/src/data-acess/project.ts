@@ -1,13 +1,15 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Array } from 'effect'
-
 import { makeApiClient } from '@/integrations/api/http'
 import {
   ProjectDto,
   ProjectCreate,
   ProjectUpdate,
 } from '@/integrations/api/client'
-import { runtime } from '@/data-acess/runtime'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 export const currentProjectIdAtom = Atom.make<string | null>(null).pipe(
   Atom.keepAlive,

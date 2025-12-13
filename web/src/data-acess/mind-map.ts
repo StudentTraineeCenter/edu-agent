@@ -2,8 +2,11 @@ import { Atom, Registry } from '@effect-atom/atom-react'
 import { makeApiClient, makeHttpClient } from '@/integrations/api/http'
 import { Effect, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
-import { runtime } from './runtime'
 import { MindMapCreate } from '@/integrations/api/client'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 export const mindMapsAtom = Atom.family((projectId: string) =>
   Atom.make(

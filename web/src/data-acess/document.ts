@@ -2,8 +2,11 @@ import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { makeApiClient } from '@/integrations/api/http'
 import { Data, Effect } from 'effect'
 import { getAccessTokenEffect } from '@/lib/supabase'
-import { runtime } from './runtime'
 import { usageAtom } from './usage'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 type DocumentsAction = Data.TaggedEnum<{
   Del: { readonly documentId: string }

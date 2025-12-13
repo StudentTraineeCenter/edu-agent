@@ -1,10 +1,12 @@
 import { Atom } from '@effect-atom/atom-react'
 import { makeApiClient } from '@/integrations/api/http'
 import { Effect } from 'effect'
-import { runtime } from './runtime'
 import { StudySessionCreate } from '@/integrations/api/client'
-
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 export { StudySessionDto } from '@/integrations/api/client'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 export const generateStudySessionAtom = runtime.fn(
   Effect.fn(function* (input: {

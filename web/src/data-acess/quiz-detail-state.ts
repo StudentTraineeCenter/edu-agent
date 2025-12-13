@@ -1,9 +1,12 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
-import { runtime } from './runtime'
 import { submitPracticeRecordsBatchAtom } from './practice'
 import { quizQuestionsAtom } from './quiz'
 import type { PracticeRecordCreate } from '@/integrations/api'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+
+const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
 export type QuizDetailState = {
   readonly currentQuestionIndex: number
