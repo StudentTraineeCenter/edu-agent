@@ -8,11 +8,11 @@ from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from auth import get_current_user
 from dependencies import (
     get_document_service,
-    get_document_processing_service,
+    get_document_upload_service,
     get_queue_service,
     get_usage_service,
 )
-from edu_shared.services import DocumentProcessingService, DocumentService, NotFoundError, UsageService
+from edu_shared.services import DocumentUploadService, DocumentService, NotFoundError, UsageService
 from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
 from edu_shared.schemas.users import UserDto
@@ -27,7 +27,7 @@ async def upload_document(
     project_id: str,
     files: List[UploadFile] = File(...),
     current_user: UserDto = Depends(get_current_user),
-    processing_service: DocumentProcessingService = Depends(get_document_processing_service),
+    upload_service: DocumentUploadService = Depends(get_document_upload_service),
     queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
@@ -40,7 +40,7 @@ async def upload_document(
         usage_service.check_and_increment(current_user.id, "document_upload")
 
     # Validate file types
-    allowed_types = processing_service.get_supported_types()
+    allowed_types = upload_service.get_supported_types()
     document_ids = []
 
     for file in files:
@@ -72,28 +72,25 @@ async def upload_document(
         # Upload all documents concurrently
         async def upload_single_document(
             filename: str, content: bytes
-        ) -> tuple[str, bytes]:
+        ) -> str:
             document_id = await asyncio.to_thread(
-                processing_service.upload_document,
+                upload_service.upload_document,
                 file_content=content,
                 filename=filename,
                 project_id=project_id,
                 owner_id=current_user.id,
             )
-            return document_id, content
+            return document_id
 
-        upload_results = await asyncio.gather(
+        document_ids = await asyncio.gather(
             *[
                 upload_single_document(filename, content)
                 for filename, content in file_data
             ]
         )
 
-        document_ids = [doc_id for doc_id, _ in upload_results]
-        file_contents = upload_results
-
         # Queue processing tasks for all documents
-        for document_id, content in file_contents:
+        for document_id in document_ids:
             task_message: QueueTaskMessage = {
                 "type": TaskType.DOCUMENT_PROCESSING,
                 "data": DocumentProcessingData(

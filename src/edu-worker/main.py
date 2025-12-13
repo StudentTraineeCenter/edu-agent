@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient, QueueMessage
@@ -133,7 +134,7 @@ async def process_message(
         console.log(f"Completed task: {task_type}")
 
 
-async def main():
+def main():
     settings = get_settings()
 
     # Initialize database connection
@@ -175,21 +176,35 @@ async def main():
 
     console.print("[bold green]Worker started. Polling queue...[/bold green]")
 
-    while True:
-        # Get messages (visibility_timeout hides it from other workers for 5 mins)
-        messages = queue.receive_messages(visibility_timeout=300, max_messages=5)
-        for msg in messages:
-            try:
-                await process_message(
-                    msg, search_service, config, processing_service, blob_service_client
-                )
-                queue.delete_message(msg)  # Done!
-            except Exception as e:
-                console.print(f"[bold red]Error: {e}[/bold red]")
-                # Message reappears after timeout (retry mechanism)
+    def process_in_thread(msg: QueueMessage):
+        """Run async process_message in a thread"""
+        try:
+            asyncio.run(process_message(
+                msg, search_service, config, processing_service, blob_service_client
+            ))
+            queue.delete_message(msg)  # Done!
+        except Exception as e:
+            console.print(f"[bold red]Error processing message: {e}[/bold red]")
+            # Message reappears after timeout (retry mechanism)
 
-        time.sleep(1)  # Prevent tight loop
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        while True:
+            # Get messages (visibility_timeout hides it from other workers for 5 mins)
+            messages = queue.receive_messages(visibility_timeout=300, max_messages=5)
+            
+            if messages:
+                # Submit all messages to thread pool
+                futures = {executor.submit(process_in_thread, msg): msg for msg in messages}
+                
+                # Wait for completion (non-blocking check)
+                for future in as_completed(futures):
+                    try:
+                        future.result()  # This will raise if there was an exception
+                    except Exception as e:
+                        console.print(f"[bold red]Thread error: {e}[/bold red]")
+            else:
+                time.sleep(1)  # Prevent tight loop when no messages
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

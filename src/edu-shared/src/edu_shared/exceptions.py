@@ -2,7 +2,6 @@
 
 
 from typing import Optional
-from fastapi import HTTPException
 
 
 class NotFoundError(Exception):
@@ -13,7 +12,7 @@ class NotFoundError(Exception):
         super().__init__(self.message)
 
 
-class UsageLimitExceededError(HTTPException):
+class UsageLimitExceededError(Exception):
     """Exception raised when user exceeds usage limit."""
 
     def __init__(
@@ -31,7 +30,5 @@ class UsageLimitExceededError(HTTPException):
                 f"Usage limit exceeded for {usage_type}. "
                 f"You have used {current_count} out of {limit} allowed per day."
             )
-        super().__init__(
-            status_code=429,
-            detail=message,
-        )
+        self.message = message
+        super().__init__(self.message)

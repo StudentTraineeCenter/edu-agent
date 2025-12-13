@@ -8,9 +8,10 @@ import uvicorn
 
 from config import get_settings
 from edu_shared.db.session import init_db
-from edu_shared.exceptions import NotFoundError
+from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
 from exception_handlers import (
     not_found_error_handler,
+    usage_limit_exceeded_error_handler,
     http_exception_handler,
     validation_error_handler,
     general_exception_handler,
@@ -79,6 +80,7 @@ class Api:
     def setup_exception_handlers(self):
         """Register exception handlers."""
         self.app.add_exception_handler(NotFoundError, not_found_error_handler)
+        self.app.add_exception_handler(UsageLimitExceededError, usage_limit_exceeded_error_handler)
         self.app.add_exception_handler(HTTPException, http_exception_handler)
         self.app.add_exception_handler(ValidationError, validation_error_handler)
         self.app.add_exception_handler(Exception, general_exception_handler)

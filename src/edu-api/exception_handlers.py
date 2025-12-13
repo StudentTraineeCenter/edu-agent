@@ -2,7 +2,7 @@ import logging
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from edu_shared.exceptions import NotFoundError
+from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,33 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
             "error": {
                 "message": exc.message,
                 "status_code": 404,
+            }
+        },
+    )
+
+
+async def usage_limit_exceeded_error_handler(request: Request, exc: UsageLimitExceededError) -> JSONResponse:
+    """Handle UsageLimitExceededError exceptions."""
+    logger.warning(
+        f"Usage limit exceeded: {exc.message}",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": 429,
+            "usage_type": exc.usage_type,
+            "current_count": exc.current_count,
+            "limit": exc.limit,
+        },
+    )
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": {
+                "message": exc.message,
+                "status_code": 429,
+                "usage_type": exc.usage_type,
+                "current_count": exc.current_count,
+                "limit": exc.limit,
             }
         },
     )

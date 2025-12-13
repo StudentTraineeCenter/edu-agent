@@ -14,11 +14,13 @@ from edu_shared.services.study_sessions import StudySessionService
 from edu_shared.services.usage import UsageService
 from edu_shared.services.users import UserService
 from edu_shared.services.document_processing import DocumentProcessingService
+from edu_shared.services.document_upload import DocumentUploadService
 
 __all__ = [
     "ChatService",
     "DocumentService",
     "DocumentProcessingService",
+    "DocumentUploadService",
     "FlashcardGroupService",
     "MindMapService",
     "NoteService",

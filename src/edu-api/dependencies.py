@@ -7,6 +7,7 @@ from edu_shared.services import (
     ChatService,
     DocumentService,
     DocumentProcessingService,
+    DocumentUploadService,
     FlashcardGroupService,
     MindMapService,
     NoteService,
@@ -133,21 +134,14 @@ def get_chat_service_with_streaming(
     )
 
 
-def get_document_processing_service(
+def get_document_upload_service(
     settings: Settings = Depends(get_settings_dep),
-) -> DocumentProcessingService:
-    """Get DocumentProcessingService instance with configuration from settings."""
-    return DocumentProcessingService(
+) -> DocumentUploadService:
+    """Get DocumentUploadService instance with configuration from settings."""
+    return DocumentUploadService(
         database_url=settings.database_url,
         azure_storage_connection_string=settings.azure_storage_connection_string,
         azure_storage_input_container_name=settings.azure_storage_input_container_name,
-        azure_storage_output_container_name=settings.azure_storage_output_container_name,
-        azure_cu_endpoint="",
-        azure_cu_key="",
-        azure_cu_analyzer_id="",
-        azure_openai_embedding_deployment="",  # Not used in upload
-        azure_openai_endpoint="",  # Not used in upload
-        azure_openai_api_version="",  # Not used in upload
     )
 
 
