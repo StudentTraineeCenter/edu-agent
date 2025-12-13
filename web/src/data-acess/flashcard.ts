@@ -9,6 +9,7 @@ import {
 } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -158,16 +159,23 @@ export const createFlashcardGroupAtom = runtime.fn(
 )
 
 export const deleteFlashcardGroupAtom = runtime.fn(
-  Effect.fn(function* (input: { flashcardGroupId: string; projectId: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete(
-      input.projectId,
-      input.flashcardGroupId,
-    )
+  Effect.fn(
+    function* (input: { flashcardGroupId: string; projectId: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdDelete(
+        input.projectId,
+        input.flashcardGroupId,
+      )
 
-    registry.refresh(flashcardGroupsAtom(input.projectId))
-  }),
+      registry.refresh(flashcardGroupsAtom(input.projectId))
+    },
+    withToast({
+      onWaiting: () => 'Deleting flashcard group...',
+      onSuccess: 'Flashcard group deleted',
+      onFailure: 'Failed to delete flashcard group',
+    }),
+  ),
 )
 
 export const exportFlashcardGroupAtom = runtime.fn(

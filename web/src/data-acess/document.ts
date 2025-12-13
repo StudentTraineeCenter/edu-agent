@@ -5,6 +5,7 @@ import { getAccessTokenEffect } from '@/lib/supabase'
 import { usageAtom } from './usage'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -142,17 +143,24 @@ export const uploadDocumentAtom = runtime.fn(
 )
 
 export const deleteDocumentAtom = runtime.fn(
-  Effect.fn(function* (input: { documentId: string; projectId: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete(
-      input.projectId,
-      input.documentId,
-    )
+  Effect.fn(
+    function* (input: { documentId: string; projectId: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete(
+        input.projectId,
+        input.documentId,
+      )
 
-    registry.set(
-      documentsAtom(input.projectId),
-      DocumentsAction.Del({ documentId: input.documentId }),
-    )
-  }),
+      registry.set(
+        documentsAtom(input.projectId),
+        DocumentsAction.Del({ documentId: input.documentId }),
+      )
+    },
+    withToast({
+      onWaiting: () => 'Deleting document...',
+      onSuccess: 'Document deleted',
+      onFailure: 'Failed to delete document',
+    }),
+  ),
 )

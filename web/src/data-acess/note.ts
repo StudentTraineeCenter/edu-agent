@@ -5,6 +5,7 @@ import { HttpBody } from '@effect/platform'
 import { NoteCreate, GenerateRequest } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -139,14 +140,21 @@ export const createNoteAtom = runtime.fn(
 )
 
 export const deleteNoteAtom = runtime.fn(
-  Effect.fn(function* (input: { noteId: string; projectId: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete(
-      input.projectId,
-      input.noteId,
-    )
+  Effect.fn(
+    function* (input: { noteId: string; projectId: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteNoteApiV1ProjectsProjectIdNotesNoteIdDelete(
+        input.projectId,
+        input.noteId,
+      )
 
-    registry.refresh(notesAtom(input.projectId))
-  }),
+      registry.refresh(notesAtom(input.projectId))
+    },
+    withToast({
+      onWaiting: () => 'Deleting note...',
+      onSuccess: 'Note deleted',
+      onFailure: 'Failed to delete note',
+    }),
+  ),
 )

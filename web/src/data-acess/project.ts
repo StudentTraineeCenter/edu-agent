@@ -8,6 +8,7 @@ import {
 } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -66,35 +67,49 @@ export const projectsAtom = Object.assign(
 )
 
 export const upsertProjectAtom = runtime.fn(
-  Effect.fn(function* (input: typeof ProjectCreate.Encoded & { id?: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    const { id, ...data } = input
+  Effect.fn(
+    function* (input: typeof ProjectCreate.Encoded & { id?: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      const { id, ...data } = input
 
-    const res = id
-      ? yield* client.updateProjectApiV1ProjectsProjectIdPatch(
-          id,
-          data as typeof ProjectUpdate.Encoded,
-        )
-      : yield* client.createProjectApiV1ProjectsPost(
-          data as typeof ProjectCreate.Encoded,
-        )
+      const res = id
+        ? yield* client.updateProjectApiV1ProjectsProjectIdPatch(
+            id,
+            data as typeof ProjectUpdate.Encoded,
+          )
+        : yield* client.createProjectApiV1ProjectsPost(
+            data as typeof ProjectCreate.Encoded,
+          )
 
-    registry.set(projectsAtom, ProjectsAction.Upsert({ project: res }))
-    registry.refresh(projectsRemoteAtom)
-    if (id) {
-      registry.refresh(projectAtom(id))
-    }
-  }),
+      registry.set(projectsAtom, ProjectsAction.Upsert({ project: res }))
+      registry.refresh(projectsRemoteAtom)
+      if (id) {
+        registry.refresh(projectAtom(id))
+      }
+    },
+    withToast({
+      onWaiting: () => 'Creating project...',
+      onSuccess: 'Project created',
+      onFailure: 'Failed to create project',
+    }),
+  ),
 )
 
 export const deleteProjectAtom = runtime.fn(
-  Effect.fn(function* (projectId: string) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteProjectApiV1ProjectsProjectIdDelete(projectId)
+  Effect.fn(
+    function* (projectId: string) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteProjectApiV1ProjectsProjectIdDelete(projectId)
 
-    registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
-    registry.refresh(projectsRemoteAtom)
-  }),
+      registry.set(projectsAtom, ProjectsAction.Del({ projectId }))
+      registry.refresh(projectsRemoteAtom)
+    },
+    withToast({
+      onWaiting: () => 'Deleting project...',
+      onSuccess: 'Project deleted',
+      onFailure: 'Failed to delete project',
+    }),
+  ),
 )

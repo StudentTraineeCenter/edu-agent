@@ -11,6 +11,7 @@ import {
 } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -159,16 +160,23 @@ export const createQuizAtom = runtime.fn(
 )
 
 export const deleteQuizAtom = runtime.fn(
-  Effect.fn(function* (input: { quizId: string; projectId: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteQuizApiV1ProjectsProjectIdQuizzesQuizIdDelete(
-      input.projectId,
-      input.quizId,
-    )
+  Effect.fn(
+    function* (input: { quizId: string; projectId: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteQuizApiV1ProjectsProjectIdQuizzesQuizIdDelete(
+        input.projectId,
+        input.quizId,
+      )
 
-    registry.refresh(quizzesAtom(input.projectId))
-  }),
+      registry.refresh(quizzesAtom(input.projectId))
+    },
+    withToast({
+      onWaiting: () => 'Deleting quiz...',
+      onSuccess: 'Quiz deleted',
+      onFailure: 'Failed to delete quiz',
+    }),
+  ),
 )
 
 export const exportQuizAtom = runtime.fn(

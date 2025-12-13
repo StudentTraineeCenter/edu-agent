@@ -12,6 +12,7 @@ import reportWebVitals from './reportWebVitals.ts'
 import { TooltipProvider } from '@/components/ui/tooltip.tsx'
 import { ModalProvider } from '@/providers/modal-provider.tsx'
 import { ThemeProvider } from '@/providers/theme-provider.tsx'
+import { Toaster } from './components/ui/sonner.tsx'
 
 const TanStackQueryProviderContext = TanStackQueryProvider.getContext()
 const router = createRouter({
@@ -41,6 +42,7 @@ if (rootElement && !rootElement.innerHTML) {
           <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
             <TooltipProvider>
               <ModalProvider>
+                <Toaster richColors />
                 <RouterProvider router={router} />
               </ModalProvider>
             </TooltipProvider>

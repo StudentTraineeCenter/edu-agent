@@ -14,6 +14,7 @@ import {
 import { usageAtom, UsageLimitExceededError } from './usage'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -506,17 +507,24 @@ export const updateMessageToolsAtom = runtime.fn(
 )
 
 export const deleteChatAtom = runtime.fn(
-  Effect.fn(function* (input: { projectId: string; chatId: string }) {
-    const registry = yield* Registry.AtomRegistry
-    const client = yield* makeApiClient
-    yield* client.deleteChatApiV1ProjectsProjectIdChatsChatIdDelete(
-      input.projectId,
-      input.chatId,
-    )
+  Effect.fn(
+    function* (input: { projectId: string; chatId: string }) {
+      const registry = yield* Registry.AtomRegistry
+      const client = yield* makeApiClient
+      yield* client.deleteChatApiV1ProjectsProjectIdChatsChatIdDelete(
+        input.projectId,
+        input.chatId,
+      )
 
-    registry.set(
-      chatsAtom(input.projectId),
-      ChatsAction.Delete({ chatId: input.chatId }),
-    )
-  }),
+      registry.set(
+        chatsAtom(input.projectId),
+        ChatsAction.Delete({ chatId: input.chatId }),
+      )
+    },
+    withToast({
+      onWaiting: () => 'Deleting chat...',
+      onSuccess: 'Chat deleted',
+      onFailure: 'Failed to delete chat',
+    }),
+  ),
 )
