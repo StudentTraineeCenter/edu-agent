@@ -15,6 +15,7 @@ from edu_shared.schemas.queue import (
     FlashcardGenerationData,
     QuizGenerationData,
     NoteGenerationData,
+    MindMapGenerationData,
     DocumentProcessingData,
 )
 from edu_shared.services.search import SearchService
@@ -22,6 +23,7 @@ from edu_shared.services.document_processing import DocumentProcessingService
 from edu_shared.services.flashcard_groups import FlashcardGroupService
 from edu_shared.services.quizzes import QuizService
 from edu_shared.services.notes import NoteService
+from edu_shared.services.mind_maps import MindMapService
 from edu_shared.db.session import init_db, get_session_factory
 from edu_shared.db.models import Document
 
@@ -53,6 +55,12 @@ async def process_message(
             flashcard_data = FlashcardGenerationData(**task_data)
             service = FlashcardGroupService()
             
+            kwargs = {}
+            if flashcard_data.get("count") is not None:
+                kwargs["count"] = flashcard_data["count"]
+            if flashcard_data.get("difficulty"):
+                kwargs["difficulty"] = flashcard_data["difficulty"]
+            
             await service.generate_and_populate(
                 group_id=flashcard_data["group_id"],
                 project_id=flashcard_data["project_id"],
@@ -60,12 +68,17 @@ async def process_message(
                 agent_config=config,
                 topic=flashcard_data.get("topic"),
                 custom_instructions=flashcard_data.get("custom_instructions"),
+                **kwargs,
             )
             console.log(f"Populated flashcard group {flashcard_data['group_id']}")
 
         elif task_type == TaskType.QUIZ_GENERATION:
             quiz_data = QuizGenerationData(**task_data)
             service = QuizService()
+            
+            kwargs = {}
+            if quiz_data.get("count") is not None:
+                kwargs["count"] = quiz_data["count"]
             
             await service.generate_and_populate(
                 quiz_id=quiz_data["quiz_id"],
@@ -74,6 +87,7 @@ async def process_message(
                 agent_config=config,
                 topic=quiz_data.get("topic"),
                 custom_instructions=quiz_data.get("custom_instructions"),
+                **kwargs,
             )
             console.log(f"Populated quiz {quiz_data['quiz_id']}")
 
@@ -90,6 +104,34 @@ async def process_message(
                 custom_instructions=note_data.get("custom_instructions"),
             )
             console.log(f"Populated note {note_data['note_id']}: {result.title}")
+
+        elif task_type == TaskType.MIND_MAP_GENERATION:
+            mind_map_data = MindMapGenerationData(**task_data)
+            service = MindMapService()
+            
+            if mind_map_data.get("mind_map_id"):
+                # Update existing mind map
+                result = await service.generate_and_populate(
+                    mind_map_id=mind_map_data["mind_map_id"],
+                    project_id=mind_map_data["project_id"],
+                    user_id=mind_map_data["user_id"],
+                    search_service=search_service,
+                    agent_config=config,
+                    topic=mind_map_data.get("topic"),
+                    custom_instructions=mind_map_data.get("custom_instructions"),
+                )
+                console.log(f"Populated mind map {mind_map_data['mind_map_id']}: {result.title}")
+            else:
+                # Create new mind map
+                result = await service.generate_mind_map(
+                    user_id=mind_map_data["user_id"],
+                    project_id=mind_map_data["project_id"],
+                    search_service=search_service,
+                    agent_config=config,
+                    topic=mind_map_data.get("topic"),
+                    custom_instructions=mind_map_data.get("custom_instructions"),
+                )
+                console.log(f"Generated new mind map {result.id}: {result.title}")
 
         elif task_type == TaskType.DOCUMENT_PROCESSING:
             doc_data = DocumentProcessingData(**task_data)

@@ -10,7 +10,9 @@ from dependencies import (
     get_mind_map_service,
     get_search_service,
     get_content_agent_config,
+    get_queue_service,
 )
+from edu_shared.services.queue import QueueService
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import NotFoundError, MindMapService, SearchService
 from edu_shared.schemas.mind_maps import MindMapDto
@@ -95,66 +97,46 @@ async def create_mind_map_stream(
     request: MindMapCreate,
     current_user: UserDto = Depends(get_current_user),
     service: MindMapService = Depends(get_mind_map_service),
-    search_service: SearchService = Depends(get_search_service),
-    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    queue_service: QueueService = Depends(get_queue_service),
 ):
-    """Generate mind map with streaming progress updates.
-    
-    Note: AI generation is not yet implemented in edu-shared service.
-    This endpoint provides a streaming interface but returns a basic structure.
-    """
+    """Queue mind map generation request with streaming progress updates."""
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""
         try:
-            # Searching documents
+            # Queuing request
             progress = GenerationProgressUpdate(
-                status="searching",
-                message="Searching relevant documents..."
+                status="queuing",
+                message="Queuing mind map generation request..."
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
-            # Generating mind map
-            progress = GenerationProgressUpdate(
-                status="generating",
-                message="Generating mind map with AI..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            # TODO: Implement actual AI generation
-            result = service.create_mind_map(
+            result = service.queue_generation(
                 user_id=current_user.id,
                 project_id=project_id,
-                title=request.title or "Generated Mind Map",
-                description=request.description,
-                map_data={"nodes": [], "edges": []},
+                queue_service=queue_service,
+                topic=request.title or request.custom_instructions or "",
+                custom_instructions=request.custom_instructions or request.description,
             )
             
-            # Saving to database
-            progress = GenerationProgressUpdate(
-                status="saving",
-                message="Saving mind map to database..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            # Done
+            # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
-                message="Successfully generated mind map"
+                message="Mind map generation request queued successfully"
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating mind map",
+                message="Error queuing mind map generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating mind map",
+                message="Error queuing mind map generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")

@@ -28,23 +28,31 @@ class BaseContentAgent(ABC, Generic[T]):
     Directly uses DocumentService for RAG and AzureChatOpenAI for generation.
     """
 
-    def __init__(self, config: ContentAgentConfig, search_service: "SearchService"):
+    def __init__(
+        self, 
+        search_service: "SearchService",
+        llm: Optional[AzureChatOpenAI] = None,
+        config: Optional[ContentAgentConfig] = None,
+    ):
         self.search_service = search_service
-        self.config = config
         
-        # Initialize Azure OpenAI once for all agents
-        token_provider = get_bearer_token_provider(
-            DefaultAzureCredential(), 
-            "https://cognitiveservices.azure.com/.default"
-        )
-        
-        self.llm = AzureChatOpenAI(
-            azure_deployment=self.config.azure_openai_chat_deployment,
-            azure_endpoint=self.config.azure_openai_endpoint,
-            api_version=self.config.azure_openai_api_version,
-            azure_ad_token_provider=token_provider,
-            temperature=0.7,
-        )
+        # Use provided LLM or create one from config
+        if llm is not None:
+            self.llm = llm
+        elif config is not None:
+            token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), 
+                "https://cognitiveservices.azure.com/.default"
+            )
+            self.llm = AzureChatOpenAI(
+                azure_deployment=config.azure_openai_chat_deployment,
+                azure_endpoint=config.azure_openai_endpoint,
+                api_version=config.azure_openai_api_version,
+                azure_ad_token_provider=token_provider,
+                temperature=0.7,
+            )
+        else:
+            raise ValueError("Either llm or config must be provided")
 
     @property
     @abstractmethod
@@ -63,6 +71,7 @@ class BaseContentAgent(ABC, Generic[T]):
         project_id: str, 
         topic: str, 
         custom_instructions: Optional[str] = None,
+        language_code: Optional[str] = None,
         **kwargs: Any
     ) -> T:
         """
@@ -87,6 +96,7 @@ class BaseContentAgent(ABC, Generic[T]):
             topic=topic,
             custom_instructions=custom_instructions or "No specific instructions.",
             format_instructions=parser.get_format_instructions(),
+            language_code=language_code or "en",
             **kwargs  # Pass extra args like 'count', 'difficulty'
         )
 

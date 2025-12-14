@@ -4,7 +4,7 @@ from rich.console import Console
 
 from config import get_settings
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, FlashcardGenerationData
-from services.queue import QueueService
+from edu_shared.services.queue import QueueService
 
 console = Console(force_terminal=True)
 

@@ -16,6 +16,10 @@ from langgraph.runtime import Runtime
 from edu_shared.agents.context import CustomAgentContext, CustomAgentState
 from edu_shared.agents.prompts_utils import render_prompt
 from edu_shared.agents.tools.rag import tools as rag_tools
+from edu_shared.agents.tools.flashcard import tools as flashcard_tools
+from edu_shared.agents.tools.quiz import tools as quiz_tools
+from edu_shared.agents.tools.note import tools as note_tools
+from edu_shared.agents.tools.mind_map import tools as mind_map_tools
 
 
 @wrap_tool_call
@@ -84,7 +88,13 @@ def ensure_sources_in_stream(
 
 
 def make_agent(llm: AzureChatOpenAI):
-    tools = [*rag_tools]
+    tools = [
+        *rag_tools,
+        *flashcard_tools,
+        *quiz_tools,
+        *note_tools,
+        *mind_map_tools,
+    ]
 
     return create_agent(
         model=llm,

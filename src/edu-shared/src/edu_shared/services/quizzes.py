@@ -2,7 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import Quiz, QuizQuestion
@@ -12,7 +12,11 @@ from edu_shared.exceptions import NotFoundError
 from edu_shared.agents.quiz_agent import QuizAgent
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services.search import SearchService
+from langchain_openai import AzureChatOpenAI
+from edu_shared.db.models import Project
 
+if TYPE_CHECKING:
+    from edu_shared.services.queue import QueueService
 
 class QuizService:
     """Service for managing quizzes."""
@@ -197,9 +201,11 @@ class QuizService:
         quiz_id: str,
         project_id: str,
         search_service: SearchService,
-        agent_config: ContentAgentConfig,
+        llm: Optional[AzureChatOpenAI] = None,
+        agent_config: Optional[ContentAgentConfig] = None,
         topic: Optional[str] = None,
         custom_instructions: Optional[str] = None,
+        count: Optional[int] = None,
     ) -> QuizDto:
         """Generate quiz questions using AI and populate an existing quiz.
         
@@ -210,6 +216,7 @@ class QuizService:
             agent_config: ContentAgentConfig for AI generation
             topic: Optional topic for generation
             custom_instructions: Optional custom instructions
+            count: Optional count of questions to generate
             
         Returns:
             Updated QuizDto
@@ -227,12 +234,25 @@ class QuizService:
                 if not quiz:
                     raise NotFoundError(f"Quiz {quiz_id} not found")
 
+                # Get project language code
+                project = db.query(Project).filter(Project.id == project_id).first()
+                language_code = getattr(project, "language_code", "en") if project else "en"
+
                 # Generate quiz using AI
-                quiz_agent = QuizAgent(config=agent_config, search_service=search_service)
+                quiz_agent = QuizAgent(
+                    search_service=search_service,
+                    llm=llm,
+                    config=agent_config,
+                )
+                kwargs = {}
+                if count is not None:
+                    kwargs["count"] = count
                 result = await quiz_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
                     custom_instructions=custom_instructions,
+                    language_code=language_code,
+                    **kwargs,
                 )
 
                 # Update quiz with generated name and description
@@ -606,6 +626,61 @@ class QuizService:
             position=question.position,
             created_at=question.created_at,
         )
+
+    def queue_generation(
+        self,
+        quiz_id: str,
+        project_id: str,
+        queue_service: "QueueService",
+        topic: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
+        count: Optional[int] = None,
+        user_id: Optional[str] = None,
+    ) -> QuizDto:
+        """Queue a quiz generation request to be processed by a worker.
+        
+        Args:
+            quiz_id: The quiz ID to populate
+            project_id: The project ID
+            queue_service: QueueService instance to send the message
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            count: Optional count of questions to generate
+            user_id: Optional user ID for queue message
+            
+        Returns:
+            Existing QuizDto (generation will happen asynchronously)
+            
+        Raises:
+            NotFoundError: If quiz not found
+        """
+        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, QuizGenerationData
+        
+        # Verify quiz exists
+        quiz = self.get_quiz(quiz_id=quiz_id, project_id=project_id)
+        
+        # Prepare task data
+        task_data: QuizGenerationData = {
+            "project_id": project_id,
+            "quiz_id": quiz_id,
+        }
+        if topic:
+            task_data["topic"] = topic
+        if custom_instructions:
+            task_data["custom_instructions"] = custom_instructions
+        if user_id:
+            task_data["user_id"] = user_id
+        if count is not None:
+            task_data["count"] = count
+        
+        # Send message to queue
+        task_message: QueueTaskMessage = {
+            "type": TaskType.QUIZ_GENERATION,
+            "data": task_data,
+        }
+        queue_service.send_message(task_message)
+        
+        return quiz
 
     @contextmanager
     def _get_db_session(self):

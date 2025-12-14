@@ -318,6 +318,8 @@ class ChatService:
             raise ValueError("Agent not initialized. SearchService and Azure OpenAI config required.")
         
         with self._get_db_session() as db:
+            # Generate message ID early so it's available in error handler
+            assistant_message_id = str(uuid4())
             try:
                 chat = (
                     db.query(Chat)
@@ -333,7 +335,6 @@ class ChatService:
                 language_code = getattr(project, "language_code", "en") if project else "en"
 
                 messages = [ChatMessage(**msg) for msg in chat.messages]
-                assistant_message_id = str(uuid4())
                 is_first_message = len(messages) == 0
 
                 # Stream the response
@@ -384,12 +385,13 @@ class ChatService:
                     chunk_data.id = assistant_message_id
                     yield chunk_data
             except Exception as e:
+                # Use the pre-generated assistant_message_id for error messages
                 yield MessageChunk(
                     chunk=f"Error: {str(e)}",
                     done=True,
                     sources=[],
                     tools=[],
-                    id="",
+                    id=assistant_message_id,
                 )
 
     async def _get_response_stream(
@@ -433,6 +435,7 @@ class ChatService:
             usage=self.usage_service,
             search=self.search_service,
             language=language_code,
+            llm=self.llm_non_streaming,  # Use non-streaming LLM for tools
         )
 
         # Send initial "thinking" status

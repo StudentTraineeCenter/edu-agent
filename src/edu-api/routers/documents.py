@@ -17,7 +17,7 @@ from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
 from edu_shared.schemas.users import UserDto
 from routers.schemas import DocumentCreate, DocumentUpdate
-from services.queue import QueueService
+from edu_shared.services.queue import QueueService
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["documents"])
 

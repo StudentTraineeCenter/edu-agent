@@ -11,7 +11,9 @@ from dependencies import (
     get_search_service,
     get_content_agent_config,
     get_usage_service,
+    get_queue_service,
 )
+from edu_shared.services.queue import QueueService
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService, UsageService
 from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
@@ -126,21 +128,20 @@ async def generate_flashcards(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
-    search_service: SearchService = Depends(get_search_service),
-    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
-    """Generate flashcards using AI and populate an existing flashcard group."""
+    """Queue flashcard generation request to be processed by a worker."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "flashcard_generation")
     try:
-        return await service.generate_and_populate(
+        return service.queue_generation(
             group_id=group_id,
             project_id=project_id,
-            search_service=search_service,
-            agent_config=agent_config,
+            queue_service=queue_service,
             topic=request.topic,
             custom_instructions=request.custom_instructions,
+            user_id=current_user.id,
         )
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -155,65 +156,50 @@ async def generate_flashcards_stream(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
-    search_service: SearchService = Depends(get_search_service),
-    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
-    """Generate flashcards using AI with streaming progress updates."""
+    """Queue flashcard generation request with streaming progress updates."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "flashcard_generation")
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""
         try:
-            # Searching documents
+            # Queuing request
             progress = GenerationProgressUpdate(
-                status="searching",
-                message="Searching relevant documents..."
+                status="queuing",
+                message="Queuing flashcard generation request..."
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
-            # Generate flashcards
-            progress = GenerationProgressUpdate(
-                status="generating",
-                message="Generating flashcards with AI..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            result = await service.generate_and_populate(
+            result = service.queue_generation(
                 group_id=group_id,
                 project_id=project_id,
-                search_service=search_service,
-                agent_config=agent_config,
+                queue_service=queue_service,
                 topic=request.topic,
                 custom_instructions=request.custom_instructions,
+                user_id=current_user.id,
             )
             
-            # Saving to database
-            progress = GenerationProgressUpdate(
-                status="saving",
-                message="Saving flashcards to database..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            # Done
+            # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
-                message="Successfully generated flashcards"
+                message="Flashcard generation request queued successfully"
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating flashcards",
+                message="Error queuing flashcard generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating flashcards",
+                message="Error queuing flashcard generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")

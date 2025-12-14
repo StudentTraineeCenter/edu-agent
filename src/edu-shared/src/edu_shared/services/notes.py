@@ -2,7 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import Note
@@ -12,7 +12,11 @@ from edu_shared.exceptions import NotFoundError
 from edu_shared.agents.note_agent import NoteAgent
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services.search import SearchService
+from langchain_openai import AzureChatOpenAI
+from edu_shared.db.models import Project
 
+if TYPE_CHECKING:
+    from edu_shared.services.queue import QueueService    
 
 class NoteService:
     """Service for managing notes."""
@@ -205,7 +209,8 @@ class NoteService:
         note_id: str,
         project_id: str,
         search_service: SearchService,
-        agent_config: ContentAgentConfig,
+        llm: Optional[AzureChatOpenAI] = None,
+        agent_config: Optional[ContentAgentConfig] = None,
         topic: Optional[str] = None,
         custom_instructions: Optional[str] = None,
     ) -> NoteDto:
@@ -235,12 +240,21 @@ class NoteService:
                 if not note:
                     raise NotFoundError(f"Note {note_id} not found")
 
+                # Get project language code
+                project = db.query(Project).filter(Project.id == project_id).first()
+                language_code = getattr(project, "language_code", "en") if project else "en"
+
                 # Generate note using AI
-                note_agent = NoteAgent(config=agent_config, search_service=search_service)
+                note_agent = NoteAgent(
+                    search_service=search_service,
+                    llm=llm,
+                    config=agent_config,
+                )
                 result = await note_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
                     custom_instructions=custom_instructions,
+                    language_code=language_code,
                 )
 
                 # Update note with generated content
@@ -258,6 +272,57 @@ class NoteService:
             except Exception as e:
                 db.rollback()
                 raise
+
+    def queue_generation(
+        self,
+        note_id: str,
+        project_id: str,
+        queue_service: "QueueService",
+        topic: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> NoteDto:
+        """Queue a note generation request to be processed by a worker.
+        
+        Args:
+            note_id: The note ID to populate
+            project_id: The project ID
+            queue_service: QueueService instance to send the message
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            user_id: Optional user ID for queue message
+            
+        Returns:
+            Existing NoteDto (generation will happen asynchronously)
+            
+        Raises:
+            NotFoundError: If note not found
+        """
+        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, NoteGenerationData
+        
+        # Verify note exists
+        note = self.get_note(note_id=note_id, project_id=project_id)
+        
+        # Prepare task data
+        task_data: NoteGenerationData = {
+            "project_id": project_id,
+            "note_id": note_id,
+        }
+        if topic:
+            task_data["topic"] = topic
+        if custom_instructions:
+            task_data["custom_instructions"] = custom_instructions
+        if user_id:
+            task_data["user_id"] = user_id
+        
+        # Send message to queue
+        task_message: QueueTaskMessage = {
+            "type": TaskType.NOTE_GENERATION,
+            "data": task_data,
+        }
+        queue_service.send_message(task_message)
+        
+        return note
 
     @contextmanager
     def _get_db_session(self):

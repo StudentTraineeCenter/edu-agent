@@ -20,7 +20,7 @@ from edu_shared.services import (
     UserService,
 )
 from edu_shared.agents.base import ContentAgentConfig
-from services.queue import QueueService
+from edu_shared.services.queue import QueueService
 
 
 def get_settings_dep() -> Settings:

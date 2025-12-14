@@ -11,7 +11,9 @@ from dependencies import (
     get_search_service,
     get_content_agent_config,
     get_usage_service,
+    get_queue_service,
 )
+from edu_shared.services.queue import QueueService
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import NotFoundError, QuizService, SearchService, UsageService
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
@@ -128,21 +130,20 @@ async def generate_quiz(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: QuizService = Depends(get_quiz_service),
-    search_service: SearchService = Depends(get_search_service),
-    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
-    """Generate quiz questions using AI and populate an existing quiz."""
+    """Queue quiz generation request to be processed by a worker."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "quiz_generation")
     try:
-        return await service.generate_and_populate(
+        return service.queue_generation(
             quiz_id=quiz_id,
             project_id=project_id,
-            search_service=search_service,
-            agent_config=agent_config,
+            queue_service=queue_service,
             topic=request.topic,
             custom_instructions=request.custom_instructions,
+            user_id=current_user.id,
         )
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -157,65 +158,50 @@ async def generate_quiz_stream(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: QuizService = Depends(get_quiz_service),
-    search_service: SearchService = Depends(get_search_service),
-    agent_config: ContentAgentConfig = Depends(get_content_agent_config),
+    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
-    """Generate quiz questions using AI with streaming progress updates."""
+    """Queue quiz generation request with streaming progress updates."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "quiz_generation")
     
     async def generate_stream() -> AsyncGenerator[bytes, None]:
         """Generate streaming progress updates"""
         try:
-            # Searching documents
+            # Queuing request
             progress = GenerationProgressUpdate(
-                status="searching",
-                message="Searching relevant documents..."
+                status="queuing",
+                message="Queuing quiz generation request..."
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
-            # Generate quiz questions
-            progress = GenerationProgressUpdate(
-                status="generating",
-                message="Generating quiz questions with AI..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            result = await service.generate_and_populate(
+            result = service.queue_generation(
                 quiz_id=quiz_id,
                 project_id=project_id,
-                search_service=search_service,
-                agent_config=agent_config,
+                queue_service=queue_service,
                 topic=request.topic,
                 custom_instructions=request.custom_instructions,
+                user_id=current_user.id,
             )
             
-            # Saving to database
-            progress = GenerationProgressUpdate(
-                status="saving",
-                message="Saving quiz questions to database..."
-            )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
-            # Done
+            # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
-                message="Successfully generated quiz questions"
+                message="Quiz generation request queued successfully"
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
             
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating quiz questions",
+                message="Error queuing quiz generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
-                message="Error generating quiz questions",
+                message="Error queuing quiz generation",
                 error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")

@@ -2,12 +2,6 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { Result } from '@effect-atom/atom-react'
 import { mindMapAtom } from '@/data-acess/mind-map'
 import { MindMapView } from './mind-map-view'
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Loader2Icon } from 'lucide-react'
 
 type MindMapContentProps = {
@@ -21,7 +15,7 @@ export const MindMapContent = ({
   projectId,
   className,
 }: MindMapContentProps) => {
-  const mindMapResult = useAtomValue(mindMapAtom({ projectId, mindMapId }))
+  const mindMapResult = useAtomValue(mindMapAtom(`${projectId}:${mindMapId}`))
 
   return Result.builder(mindMapResult)
     .onSuccess((mindMap) => {
@@ -34,16 +28,11 @@ export const MindMapContent = ({
       }
 
       return (
-        <div className={`flex flex-col gap-4 ${className || ''}`}>
+        <div className={`flex flex-col h-full ${className || ''}`}>
           {mindMap.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{mindMap.title}</CardTitle>
-                {mindMap.description && (
-                  <CardDescription>{mindMap.description}</CardDescription>
-                )}
-              </CardHeader>
-            </Card>
+            <div className="text-muted-foreground text-sm mb-4">
+              {mindMap.description}
+            </div>
           )}
           <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
             <MindMapView

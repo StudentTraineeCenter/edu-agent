@@ -27,20 +27,20 @@ export const mindMapsAtom = Atom.family((projectId: string) =>
   ).pipe(Atom.keepAlive),
 )
 
-export const mindMapAtom = Atom.family(
-  (input: { projectId: string; mindMapId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
-        const { apiClient } = yield* ApiClientService
-        const mindMap =
-          yield* apiClient.getMindMapApiV1ProjectsProjectIdMindMapsMindMapIdGet(
-            input.projectId,
-            input.mindMapId,
-          )
-        return mindMap
-      }).pipe(Effect.provide(ApiClientService.Default)),
-    ).pipe(Atom.keepAlive),
-)
+export const mindMapAtom = Atom.family((key: string) => {
+  const [projectId, mindMapId] = key.split(':')
+  return Atom.make(
+    Effect.gen(function* () {
+      const { apiClient } = yield* ApiClientService
+      const mindMap =
+        yield* apiClient.getMindMapApiV1ProjectsProjectIdMindMapsMindMapIdGet(
+          projectId,
+          mindMapId,
+        )
+      return mindMap
+    }).pipe(Effect.provide(ApiClientService.Default)),
+  ).pipe(Atom.keepAlive)
+})
 
 const MindMapProgressUpdate = Schema.Struct({
   status: Schema.String,
@@ -142,9 +142,7 @@ export const generateMindMapAtom = runtime.fn(
 
     // Refresh both the list and the individual mind map atom
     registry.refresh(mindMapsAtom(input.projectId))
-    registry.refresh(
-      mindMapAtom({ projectId: input.projectId, mindMapId: mindMap.id }),
-    )
+    registry.refresh(mindMapAtom(`${input.projectId}:${mindMap.id}`))
     return mindMap
   }),
 )

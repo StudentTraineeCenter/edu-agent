@@ -34,7 +34,7 @@ const MindMapHeaderContent = ({
   mindMapId: string
   projectId: string
 }) => {
-  const mindMapsResult = useAtomValue(mindMapAtom({ projectId, mindMapId }))
+  const mindMapsResult = useAtomValue(mindMapAtom(`${projectId}:${mindMapId}`))
 
   return Result.builder(mindMapsResult)
     .onSuccess((mindMap) => {

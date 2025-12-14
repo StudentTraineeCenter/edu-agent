@@ -10,6 +10,7 @@ class TaskType(str, Enum):
     FLASHCARD_GENERATION = "flashcard_generation"
     QUIZ_GENERATION = "quiz_generation"
     NOTE_GENERATION = "note_generation"
+    MIND_MAP_GENERATION = "mind_map_generation"
     DOCUMENT_PROCESSING = "document_processing"
 
 
@@ -21,6 +22,8 @@ class FlashcardGenerationData(TypedDict):
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
     user_id: NotRequired[str]
+    count: NotRequired[int]
+    difficulty: NotRequired[str]
 
 
 class QuizGenerationData(TypedDict):
@@ -31,6 +34,7 @@ class QuizGenerationData(TypedDict):
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
     user_id: NotRequired[str]
+    count: NotRequired[int]
 
 
 class NoteGenerationData(TypedDict):
@@ -41,6 +45,16 @@ class NoteGenerationData(TypedDict):
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
     user_id: NotRequired[str]
+
+
+class MindMapGenerationData(TypedDict):
+    """Data schema for mind map generation tasks."""
+
+    project_id: str
+    user_id: str
+    mind_map_id: NotRequired[str]  # Optional: existing mind map to populate (if not provided, creates new)
+    topic: NotRequired[str]
+    custom_instructions: NotRequired[str]
 
 
 class DocumentProcessingData(TypedDict):
@@ -55,6 +69,7 @@ TaskData = Union[
     FlashcardGenerationData,
     QuizGenerationData,
     NoteGenerationData,
+    MindMapGenerationData,
     DocumentProcessingData,
 ]
 

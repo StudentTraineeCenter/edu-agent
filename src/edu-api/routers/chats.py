@@ -1,6 +1,7 @@
 """Router for chat CRUD operations."""
 
 from typing import AsyncGenerator
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
@@ -171,6 +172,7 @@ async def send_streaming_message(
 
         except Exception as e:
             error_msg = StreamingChatMessage(
+                id=str(uuid4()),
                 chunk=f"Error: {str(e)}",
                 done=True,
                 sources=None,

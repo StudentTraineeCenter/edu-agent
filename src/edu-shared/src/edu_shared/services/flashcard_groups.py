@@ -2,7 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import FlashcardGroup, Flashcard
@@ -12,7 +12,11 @@ from edu_shared.exceptions import NotFoundError
 from edu_shared.agents.flashcard_agent import FlashcardAgent
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services.search import SearchService
+from langchain_openai import AzureChatOpenAI
+from edu_shared.db.models import Project
 
+if TYPE_CHECKING:
+    from edu_shared.services.queue import QueueService    
 
 class FlashcardGroupService:
     """Service for managing flashcard groups."""
@@ -215,9 +219,12 @@ class FlashcardGroupService:
         group_id: str,
         project_id: str,
         search_service: SearchService,
-        agent_config: ContentAgentConfig,
+        llm: Optional[AzureChatOpenAI] = None,
+        agent_config: Optional[ContentAgentConfig] = None,
         topic: Optional[str] = None,
         custom_instructions: Optional[str] = None,
+        count: Optional[int] = None,
+        difficulty: Optional[str] = None,
     ) -> FlashcardGroupDto:
         """Generate flashcards using AI and populate an existing flashcard group.
         
@@ -228,6 +235,8 @@ class FlashcardGroupService:
             agent_config: ContentAgentConfig for AI generation
             topic: Optional topic for generation
             custom_instructions: Optional custom instructions
+            count: Optional count of flashcards to generate
+            difficulty: Optional difficulty level
             
         Returns:
             Updated FlashcardGroupDto
@@ -246,11 +255,21 @@ class FlashcardGroupService:
                     raise NotFoundError(f"Flashcard group {group_id} not found")
 
                 # Generate flashcards using AI
-                flashcard_agent = FlashcardAgent(config=agent_config, search_service=search_service)
+                flashcard_agent = FlashcardAgent(
+                    search_service=search_service,
+                    llm=llm,
+                    config=agent_config,
+                )
+                kwargs = {}
+                if count is not None:
+                    kwargs["count"] = count
+                if difficulty is not None:
+                    kwargs["difficulty"] = difficulty
                 result = await flashcard_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
                     custom_instructions=custom_instructions,
+                    **kwargs,
                 )
 
                 # Update group with generated name and description
@@ -527,6 +546,65 @@ class FlashcardGroupService:
             position=flashcard.position,
             created_at=flashcard.created_at,
         )
+
+    def queue_generation(
+        self,
+        group_id: str,
+        project_id: str,
+        queue_service: "QueueService",
+        topic: Optional[str] = None,
+        custom_instructions: Optional[str] = None,
+        count: Optional[int] = None,
+        difficulty: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> FlashcardGroupDto:
+        """Queue a flashcard generation request to be processed by a worker.
+        
+        Args:
+            group_id: The flashcard group ID to populate
+            project_id: The project ID
+            queue_service: QueueService instance to send the message
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            count: Optional count of flashcards to generate
+            difficulty: Optional difficulty level
+            user_id: Optional user ID for queue message
+            
+        Returns:
+            Existing FlashcardGroupDto (generation will happen asynchronously)
+            
+        Raises:
+            NotFoundError: If flashcard group not found
+        """
+        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, FlashcardGenerationData
+        
+        # Verify flashcard group exists
+        group = self.get_flashcard_group(group_id=group_id, project_id=project_id)
+        
+        # Prepare task data
+        task_data: FlashcardGenerationData = {
+            "project_id": project_id,
+            "group_id": group_id,
+        }
+        if topic:
+            task_data["topic"] = topic
+        if custom_instructions:
+            task_data["custom_instructions"] = custom_instructions
+        if user_id:
+            task_data["user_id"] = user_id
+        if count is not None:
+            task_data["count"] = count
+        if difficulty:
+            task_data["difficulty"] = difficulty
+        
+        # Send message to queue
+        task_message: QueueTaskMessage = {
+            "type": TaskType.FLASHCARD_GENERATION,
+            "data": task_data,
+        }
+        queue_service.send_message(task_message)
+        
+        return group
 
     @contextmanager
     def _get_db_session(self):
