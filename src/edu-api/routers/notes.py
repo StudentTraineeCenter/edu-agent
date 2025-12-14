@@ -1,23 +1,21 @@
 """Router for note CRUD operations."""
 
-from typing import AsyncGenerator, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from collections.abc import AsyncGenerator
 
 from auth import get_current_user
 from dependencies import (
     get_note_service,
-    get_search_service,
-    get_content_agent_config,
     get_queue_service,
 )
-from edu_shared.services.queue import QueueService
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import NoteService, NotFoundError, SearchService
 from edu_shared.schemas.notes import NoteDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import NoteCreate, NoteUpdate, GenerateRequest
+from edu_shared.services import NoteService, NotFoundError
+from edu_shared.services.queue import QueueService
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from routers.schemas import GenerateRequest, NoteCreate, NoteUpdate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/notes", tags=["notes"])
 
@@ -114,7 +112,7 @@ class GenerationProgressUpdate(BaseModel):
     """Progress update for generation streaming."""
     status: str = Field(..., description="Status: searching, generating, saving, done")
     message: str = Field(..., description="Progress message")
-    error: Optional[str] = Field(None, description="Error message if any")
+    error: str | None = Field(None, description="Error message if any")
 
 
 @router.post("/{note_id}/generate", response_model=NoteDto)
@@ -152,8 +150,8 @@ async def generate_note_stream(
     queue_service: QueueService = Depends(get_queue_service),
 ):
     """Queue note generation request with streaming progress updates."""
-    
-    async def generate_stream() -> AsyncGenerator[bytes, None]:
+
+    async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming progress updates"""
         try:
             # Queuing request
@@ -161,8 +159,8 @@ async def generate_note_stream(
                 status="queuing",
                 message="Queuing note generation request..."
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
             result = service.queue_generation(
                 note_id=note_id,
                 project_id=project_id,
@@ -171,29 +169,29 @@ async def generate_note_stream(
                 custom_instructions=request.custom_instructions,
                 user_id=current_user.id,
             )
-            
+
             # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
                 message="Note generation request queued successfully"
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing note generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing note generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
-    
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
+
     return StreamingResponse(
         generate_stream(),
         media_type="text/event-stream",

@@ -1,13 +1,12 @@
 """Router for study session operations."""
 
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
-
 from auth import get_current_user
 from dependencies import get_study_session_service
-from edu_shared.services import NotFoundError, StudySessionService
 from edu_shared.schemas.study_sessions import StudySessionDto
 from edu_shared.schemas.users import UserDto
+from edu_shared.services import NotFoundError, StudySessionService
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from routers.schemas import StudySessionCreate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/study-sessions", tags=["study-sessions"])

@@ -49,5 +49,5 @@ class QueueService:
             logger.info(f"Message sent to queue: {self.queue_client.queue_name}")
 
         except Exception as e:
-            logger.error(f"Error sending message: {str(e)}")
+            logger.error(f"Error sending message: {e!s}")
             raise e

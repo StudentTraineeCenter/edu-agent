@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -14,8 +15,8 @@ class StudySessionDto(BaseModel):
     session_data: dict[str, Any] = Field(..., description="Session data containing flashcards, focus_topics, learning_objectives")
     estimated_time_minutes: int = Field(..., description="Estimated time in minutes")
     session_length_minutes: int = Field(..., description="Requested session length in minutes")
-    focus_topics: Optional[list[str]] = Field(None, description="Optional focus topics")
+    focus_topics: list[str] | None = Field(None, description="Optional focus topics")
     generated_at: datetime = Field(..., description="Date and time the session was generated")
-    started_at: Optional[datetime] = Field(None, description="Date and time the session was started")
-    completed_at: Optional[datetime] = Field(None, description="Date and time the session was completed")
+    started_at: datetime | None = Field(None, description="Date and time the session was started")
+    completed_at: datetime | None = Field(None, description="Date and time the session was completed")
 

@@ -2,18 +2,18 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from edu_shared.db.models import Quiz, QuizQuestion
-from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
-from edu_shared.exceptions import NotFoundError
-from edu_shared.agents.quiz_agent import QuizAgent
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services.search import SearchService
 from langchain_openai import AzureChatOpenAI
-from edu_shared.db.models import Project
+
+from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.agents.quiz_agent import QuizAgent
+from edu_shared.db.models import Project, Quiz, QuizQuestion
+from edu_shared.db.session import get_session_factory
+from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
+from edu_shared.services.search import SearchService
 
 if TYPE_CHECKING:
     from edu_shared.services.queue import QueueService
@@ -29,7 +29,7 @@ class QuizService:
         self,
         project_id: str,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> QuizDto:
         """Create a new quiz.
 
@@ -56,7 +56,7 @@ class QuizService:
                 db.refresh(quiz)
 
                 return self._model_to_dto(quiz)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -86,10 +86,10 @@ class QuizService:
                 return self._model_to_dto(quiz)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
-    def list_quizzes(self, project_id: str) -> List[QuizDto]:
+    def list_quizzes(self, project_id: str) -> list[QuizDto]:
         """List all quizzes for a project.
 
         Args:
@@ -107,15 +107,15 @@ class QuizService:
                     .all()
                 )
                 return [self._model_to_dto(quiz) for quiz in quizzes]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_quiz(
         self,
         quiz_id: str,
         project_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str | None = None,
+        description: str | None = None,
     ) -> QuizDto:
         """Update a quiz.
 
@@ -153,7 +153,7 @@ class QuizService:
                 return self._model_to_dto(quiz)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -181,7 +181,7 @@ class QuizService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -201,11 +201,11 @@ class QuizService:
         quiz_id: str,
         project_id: str,
         search_service: SearchService,
-        llm: Optional[AzureChatOpenAI] = None,
-        agent_config: Optional[ContentAgentConfig] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
-        count: Optional[int] = None,
+        llm: AzureChatOpenAI | None = None,
+        agent_config: ContentAgentConfig | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        count: int | None = None,
     ) -> QuizDto:
         """Generate quiz questions using AI and populate an existing quiz.
         
@@ -289,7 +289,7 @@ class QuizService:
                 return self._model_to_dto(quiz)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -303,9 +303,9 @@ class QuizService:
         option_c: str,
         option_d: str,
         correct_option: str,
-        explanation: Optional[str] = None,
+        explanation: str | None = None,
         difficulty_level: str = "medium",
-        position: Optional[int] = None,
+        position: int | None = None,
     ) -> QuizQuestionDto:
         """Create a new quiz question.
 
@@ -372,7 +372,7 @@ class QuizService:
                 return self._question_model_to_dto(question)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -409,12 +409,12 @@ class QuizService:
                 return self._question_model_to_dto(question)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_quiz_questions(
         self, quiz_id: str, project_id: str
-    ) -> List[QuizQuestionDto]:
+    ) -> list[QuizQuestionDto]:
         """List all questions in a quiz.
 
         Args:
@@ -436,7 +436,7 @@ class QuizService:
                     .all()
                 )
                 return [self._question_model_to_dto(q) for q in questions]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_quiz_question(
@@ -444,15 +444,15 @@ class QuizService:
         question_id: str,
         quiz_id: str,
         project_id: str,
-        question_text: Optional[str] = None,
-        option_a: Optional[str] = None,
-        option_b: Optional[str] = None,
-        option_c: Optional[str] = None,
-        option_d: Optional[str] = None,
-        correct_option: Optional[str] = None,
-        explanation: Optional[str] = None,
-        difficulty_level: Optional[str] = None,
-        position: Optional[int] = None,
+        question_text: str | None = None,
+        option_a: str | None = None,
+        option_b: str | None = None,
+        option_c: str | None = None,
+        option_d: str | None = None,
+        correct_option: str | None = None,
+        explanation: str | None = None,
+        difficulty_level: str | None = None,
+        position: int | None = None,
     ) -> QuizQuestionDto:
         """Update a quiz question.
 
@@ -515,7 +515,7 @@ class QuizService:
                 return self._question_model_to_dto(question)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -550,13 +550,13 @@ class QuizService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
     def reorder_quiz_questions(
-        self, quiz_id: str, project_id: str, question_ids: List[str]
-    ) -> List[QuizQuestionDto]:
+        self, quiz_id: str, project_id: str, question_ids: list[str]
+    ) -> list[QuizQuestionDto]:
         """Reorder quiz questions.
 
         Args:
@@ -605,7 +605,7 @@ class QuizService:
                 return [self._question_model_to_dto(q) for q in questions]
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -632,10 +632,10 @@ class QuizService:
         quiz_id: str,
         project_id: str,
         queue_service: "QueueService",
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
-        count: Optional[int] = None,
-        user_id: Optional[str] = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        count: int | None = None,
+        user_id: str | None = None,
     ) -> QuizDto:
         """Queue a quiz generation request to be processed by a worker.
         
@@ -654,11 +654,15 @@ class QuizService:
         Raises:
             NotFoundError: If quiz not found
         """
-        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, QuizGenerationData
-        
+        from edu_shared.schemas.queue import (
+            QueueTaskMessage,
+            QuizGenerationData,
+            TaskType,
+        )
+
         # Verify quiz exists
         quiz = self.get_quiz(quiz_id=quiz_id, project_id=project_id)
-        
+
         # Prepare task data
         task_data: QuizGenerationData = {
             "project_id": project_id,
@@ -672,14 +676,14 @@ class QuizService:
             task_data["user_id"] = user_id
         if count is not None:
             task_data["count"] = count
-        
+
         # Send message to queue
         task_message: QueueTaskMessage = {
             "type": TaskType.QUIZ_GENERATION,
             "data": task_data,
         }
         queue_service.send_message(task_message)
-        
+
         return quiz
 
     @contextmanager

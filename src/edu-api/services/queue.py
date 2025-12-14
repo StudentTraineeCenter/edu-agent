@@ -2,9 +2,8 @@ import base64
 import json
 
 from azure.storage.queue import QueueClient
-from rich.console import Console
-
 from edu_shared.schemas.queue import QueueTaskMessage
+from rich.console import Console
 
 console = Console(force_terminal=True)
 
@@ -35,5 +34,5 @@ class QueueService:
             )
 
         except Exception as e:
-            console.print(f"[bold red]Error sending message: {str(e)}[/bold red]")
+            console.print(f"[bold red]Error sending message: {e!s}[/bold red]")
             raise e

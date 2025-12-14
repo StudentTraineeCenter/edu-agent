@@ -2,13 +2,13 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from edu_shared.db.models import StudySession
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.study_sessions import StudySessionDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.study_sessions import StudySessionDto
 
 
 class StudySessionService:
@@ -23,8 +23,8 @@ class StudySessionService:
         user_id: str,
         project_id: str,
         session_length_minutes: int,
-        session_data: Optional[dict[str, Any]] = None,
-        focus_topics: Optional[list[str]] = None,
+        session_data: dict[str, Any] | None = None,
+        focus_topics: list[str] | None = None,
     ) -> StudySessionDto:
         """Create a new study session.
 
@@ -61,7 +61,7 @@ class StudySessionService:
                 db.refresh(study_session)
 
                 return self._model_to_dto(study_session)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -96,12 +96,12 @@ class StudySessionService:
                 return self._model_to_dto(session)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_study_sessions(
         self, project_id: str, user_id: str, limit: int = 50
-    ) -> List[StudySessionDto]:
+    ) -> list[StudySessionDto]:
         """List all study sessions for a project.
 
         Args:
@@ -125,7 +125,7 @@ class StudySessionService:
                     .all()
                 )
                 return [self._model_to_dto(s) for s in sessions]
-            except Exception as e:
+            except Exception:
                 raise
 
     def _model_to_dto(self, session: StudySession) -> StudySessionDto:

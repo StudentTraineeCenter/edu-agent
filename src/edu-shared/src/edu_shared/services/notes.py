@@ -2,21 +2,21 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from edu_shared.db.models import Note
-from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.notes import NoteDto
-from edu_shared.exceptions import NotFoundError
-from edu_shared.agents.note_agent import NoteAgent
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services.search import SearchService
 from langchain_openai import AzureChatOpenAI
-from edu_shared.db.models import Project
+
+from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.agents.note_agent import NoteAgent
+from edu_shared.db.models import Note, Project
+from edu_shared.db.session import get_session_factory
+from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.notes import NoteDto
+from edu_shared.services.search import SearchService
 
 if TYPE_CHECKING:
-    from edu_shared.services.queue import QueueService    
+    from edu_shared.services.queue import QueueService
 
 class NoteService:
     """Service for managing notes."""
@@ -30,7 +30,7 @@ class NoteService:
         project_id: str,
         title: str,
         content: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> NoteDto:
         """Create a new note.
 
@@ -59,7 +59,7 @@ class NoteService:
                 db.refresh(note)
 
                 return self._model_to_dto(note)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -89,10 +89,10 @@ class NoteService:
                 return self._model_to_dto(note)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
-    def list_notes(self, project_id: str) -> List[NoteDto]:
+    def list_notes(self, project_id: str) -> list[NoteDto]:
         """List all notes for a project.
 
         Args:
@@ -110,16 +110,16 @@ class NoteService:
                     .all()
                 )
                 return [self._model_to_dto(note) for note in notes]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_note(
         self,
         note_id: str,
         project_id: str,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        content: Optional[str] = None,
+        title: str | None = None,
+        description: str | None = None,
+        content: str | None = None,
     ) -> NoteDto:
         """Update a note.
 
@@ -160,7 +160,7 @@ class NoteService:
                 return self._model_to_dto(note)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -188,7 +188,7 @@ class NoteService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -209,10 +209,10 @@ class NoteService:
         note_id: str,
         project_id: str,
         search_service: SearchService,
-        llm: Optional[AzureChatOpenAI] = None,
-        agent_config: Optional[ContentAgentConfig] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
+        llm: AzureChatOpenAI | None = None,
+        agent_config: ContentAgentConfig | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
     ) -> NoteDto:
         """Generate note content using AI and populate an existing note.
         
@@ -262,14 +262,14 @@ class NoteService:
                 note.description = result.description
                 note.content = result.content
                 note.updated_at = datetime.now()
-                
+
                 db.commit()
                 db.refresh(note)
 
                 return self._model_to_dto(note)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -278,9 +278,9 @@ class NoteService:
         note_id: str,
         project_id: str,
         queue_service: "QueueService",
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
-        user_id: Optional[str] = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        user_id: str | None = None,
     ) -> NoteDto:
         """Queue a note generation request to be processed by a worker.
         
@@ -298,11 +298,15 @@ class NoteService:
         Raises:
             NotFoundError: If note not found
         """
-        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, NoteGenerationData
-        
+        from edu_shared.schemas.queue import (
+            NoteGenerationData,
+            QueueTaskMessage,
+            TaskType,
+        )
+
         # Verify note exists
         note = self.get_note(note_id=note_id, project_id=project_id)
-        
+
         # Prepare task data
         task_data: NoteGenerationData = {
             "project_id": project_id,
@@ -314,14 +318,14 @@ class NoteService:
             task_data["custom_instructions"] = custom_instructions
         if user_id:
             task_data["user_id"] = user_id
-        
+
         # Send message to queue
         task_message: QueueTaskMessage = {
             "type": TaskType.NOTE_GENERATION,
             "data": task_data,
         }
         queue_service.send_message(task_message)
-        
+
         return note
 
     @contextmanager

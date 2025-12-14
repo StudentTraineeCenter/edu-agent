@@ -1,12 +1,11 @@
 """Router for usage statistics."""
 
-from fastapi import APIRouter, Depends, status
-
 from auth import get_current_user
 from dependencies import get_usage_service
 from edu_shared.schemas.usage import UsageDto
-from edu_shared.services import UsageService
 from edu_shared.schemas.users import UserDto
+from edu_shared.services import UsageService
+from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/api/v1/usage", tags=["usage"])
 

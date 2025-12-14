@@ -1,36 +1,35 @@
-from sqlalchemy import text
 from contextlib import asynccontextmanager
-from pydantic import BaseModel, ValidationError
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from scalar_fastapi import get_scalar_api_reference
-import uvicorn
 
+import uvicorn
 from config import get_settings
 from edu_shared.db.session import init_db
 from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
 from exception_handlers import (
+    general_exception_handler,
+    http_exception_handler,
     not_found_error_handler,
     usage_limit_exceeded_error_handler,
-    http_exception_handler,
     validation_error_handler,
-    general_exception_handler,
 )
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ValidationError
 from routers import (
-    projects_router,
-    documents_router,
+    auth_router,
     chats_router,
-    notes_router,
-    quizzes_router,
+    documents_router,
     flashcard_groups_router,
-    practice_records_router,
     mind_maps_router,
-    study_sessions_router,
+    notes_router,
+    practice_records_router,
+    projects_router,
+    quizzes_router,
     study_sessions_global_router,
+    study_sessions_router,
     usage_router,
     users_router,
-    auth_router,
 )
+from scalar_fastapi import get_scalar_api_reference
 
 
 class ApiConfig(BaseModel):

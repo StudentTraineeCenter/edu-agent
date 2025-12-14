@@ -1,12 +1,11 @@
 """CRUD service for managing users."""
 
 from contextlib import contextmanager
-from typing import List, Optional
 
 from edu_shared.db.models import User
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.users import UserDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.users import UserDto
 
 
 class UserService:
@@ -37,10 +36,10 @@ class UserService:
                 return self._model_to_dto(user)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
-    def list_users(self) -> List[UserDto]:
+    def list_users(self) -> list[UserDto]:
         """List all users.
 
         Returns:
@@ -50,7 +49,7 @@ class UserService:
             try:
                 users = db.query(User).order_by(User.created_at.desc()).all()
                 return [self._model_to_dto(user) for user in users]
-            except Exception as e:
+            except Exception:
                 raise
 
     def delete_user(self, user_id: str) -> None:
@@ -72,15 +71,15 @@ class UserService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
     def get_or_create_user_from_token(
         self,
         user_id: str,
-        email: Optional[str] = None,
-        name: Optional[str] = None,
+        email: str | None = None,
+        name: str | None = None,
     ) -> UserDto:
         """Get or create a user from JWT token data.
         
@@ -96,7 +95,7 @@ class UserService:
             try:
                 # Try to get existing user
                 user = db.query(User).filter(User.id == user_id).first()
-                
+
                 if user:
                     # Update user information if needed
                     updated = False
@@ -106,11 +105,11 @@ class UserService:
                     if name and user.name != name:
                         user.name = name
                         updated = True
-                    
+
                     if updated:
                         db.commit()
                         db.refresh(user)
-                    
+
                     return self._model_to_dto(user)
                 else:
                     # User should be synced from auth.users via database trigger
@@ -124,7 +123,7 @@ class UserService:
                     db.commit()
                     db.refresh(new_user)
                     return self._model_to_dto(new_user)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 

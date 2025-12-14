@@ -13,7 +13,11 @@ export const NoteDetailPage = ({ noteId, projectId }: NoteDetailPageProps) => {
 
       <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
         <div className="max-w-5xl mx-auto w-full flex flex-col flex-1 min-h-0 p-4">
-          <NoteContent noteId={noteId} projectId={projectId} className="flex-1" />
+          <NoteContent
+            noteId={noteId}
+            projectId={projectId}
+            className="flex-1"
+          />
         </div>
       </div>
     </div>

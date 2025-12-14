@@ -1,9 +1,6 @@
 """Router for document CRUD operations."""
 
 import asyncio
-from typing import List
-
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 
 from auth import get_current_user
 from dependencies import (
@@ -12,12 +9,19 @@ from dependencies import (
     get_queue_service,
     get_usage_service,
 )
-from edu_shared.services import DocumentUploadService, DocumentService, NotFoundError, UsageService
 from edu_shared.schemas.documents import DocumentDto, DocumentStatus
-from edu_shared.schemas.queue import QueueTaskMessage, TaskType, DocumentProcessingData
+from edu_shared.schemas.queue import DocumentProcessingData, QueueTaskMessage, TaskType
 from edu_shared.schemas.users import UserDto
-from routers.schemas import DocumentCreate, DocumentUpdate
+from edu_shared.services import (
+    DocumentService,
+    DocumentUploadService,
+    NotFoundError,
+    UsageService,
+)
 from edu_shared.services.queue import QueueService
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+
+from routers.schemas import DocumentCreate, DocumentUpdate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["documents"])
 
@@ -25,7 +29,7 @@ router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["docu
 @router.post("/upload", status_code=201)
 async def upload_document(
     project_id: str,
-    files: List[UploadFile] = File(...),
+    files: list[UploadFile] = File(...),
     current_user: UserDto = Depends(get_current_user),
     upload_service: DocumentUploadService = Depends(get_document_upload_service),
     queue_service: QueueService = Depends(get_queue_service),
@@ -106,7 +110,7 @@ async def upload_document(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload documents: {e!s}")
 
 
 @router.post("", response_model=DocumentDto, status_code=201)

@@ -1,11 +1,9 @@
 """RAG search tools for agent."""
 
-import json
-from langchain.tools import tool
-from langgraph.prebuilt import ToolRuntime
-
 from edu_shared.agents.context import CustomAgentContext
 from edu_shared.db.models import ChatMessageSource
+from langchain.tools import tool
+from langgraph.prebuilt import ToolRuntime
 
 
 @tool(

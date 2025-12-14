@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
-from langchain.agents import AgentState
-from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, ConfigDict
 
 from edu_shared.db.models import ChatMessageSource
 from edu_shared.services.search import SearchService
+from langchain.agents import AgentState
+from langchain_openai import AzureChatOpenAI
+from pydantic import BaseModel, ConfigDict
 
 if TYPE_CHECKING:
     pass

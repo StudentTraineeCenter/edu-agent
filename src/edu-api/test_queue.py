@@ -1,10 +1,9 @@
 from uuid import uuid4
 
-from rich.console import Console
-
 from config import get_settings
-from edu_shared.schemas.queue import QueueTaskMessage, TaskType, FlashcardGenerationData
+from edu_shared.schemas.queue import FlashcardGenerationData, QueueTaskMessage, TaskType
 from edu_shared.services.queue import QueueService
+from rich.console import Console
 
 console = Console(force_terminal=True)
 

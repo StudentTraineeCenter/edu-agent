@@ -1,13 +1,12 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, TypeVar, Generic, Optional, Type, Any
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-from langchain_openai import AzureChatOpenAI
-from langchain_core.output_parsers import JsonOutputParser
-from pydantic import BaseModel
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-
 from edu_shared.agents.prompts_utils import render_prompt
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_openai import AzureChatOpenAI
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from edu_shared.services.search import SearchService
@@ -29,19 +28,19 @@ class BaseContentAgent(ABC, Generic[T]):
     """
 
     def __init__(
-        self, 
+        self,
         search_service: "SearchService",
-        llm: Optional[AzureChatOpenAI] = None,
-        config: Optional[ContentAgentConfig] = None,
+        llm: AzureChatOpenAI | None = None,
+        config: ContentAgentConfig | None = None,
     ):
         self.search_service = search_service
-        
+
         # Use provided LLM or create one from config
         if llm is not None:
             self.llm = llm
         elif config is not None:
             token_provider = get_bearer_token_provider(
-                DefaultAzureCredential(), 
+                DefaultAzureCredential(),
                 "https://cognitiveservices.azure.com/.default"
             )
             self.llm = AzureChatOpenAI(
@@ -56,7 +55,7 @@ class BaseContentAgent(ABC, Generic[T]):
 
     @property
     @abstractmethod
-    def output_model(self) -> Type[T]:
+    def output_model(self) -> type[T]:
         """Pydantic model class for the output structure."""
         pass
 
@@ -67,11 +66,11 @@ class BaseContentAgent(ABC, Generic[T]):
         pass
 
     async def generate(
-        self, 
-        project_id: str, 
-        topic: str, 
-        custom_instructions: Optional[str] = None,
-        language_code: Optional[str] = None,
+        self,
+        project_id: str,
+        topic: str,
+        custom_instructions: str | None = None,
+        language_code: str | None = None,
         **kwargs: Any
     ) -> T:
         """
@@ -85,10 +84,10 @@ class BaseContentAgent(ABC, Generic[T]):
 
         # 1. RAG Search
         context_text = await self._get_context(project_id, topic)
-        
+
         # 2. Prepare Parser
         parser = JsonOutputParser(pydantic_object=self.output_model)
-        
+
         # 3. Render Prompt
         prompt_input = render_prompt(
             self.prompt_template,
@@ -114,18 +113,18 @@ class BaseContentAgent(ABC, Generic[T]):
         if not topic:
             logger.warning(f"No topic provided for project: {project_id}")
             return ""
-            
+
         # Use existing search logic in DocumentService
         # We request top 10 chunks to give the AI enough context
         results = await self.search_service.search_documents(
-            query=topic, 
-            project_id=project_id, 
+            query=topic,
+            project_id=project_id,
             top_k=10
         )
-        
+
         if not results:
             logger.warning(f"No documents found for topic: {topic}")
             return "No relevant documents found in the project."
 
         # Join content blocks
-        return "\n\n---\n\n".join([r.content for r in results]) 
+        return "\n\n---\n\n".join([r.content for r in results])

@@ -2,12 +2,12 @@
 
 import asyncio
 import json
-from langchain.tools import tool
-from langgraph.prebuilt import ToolRuntime
 
 from edu_shared.agents.context import CustomAgentContext
-from edu_shared.services.quizzes import QuizService
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
+from edu_shared.services.quizzes import QuizService
+from langchain.tools import tool
+from langgraph.prebuilt import ToolRuntime
 
 
 def build_enhanced_prompt(
@@ -30,7 +30,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
         return
     try:
         usage.check_and_increment(user_id, feature)
-    except Exception as e:
+    except Exception:
         # Log but don't fail
         pass
 
@@ -61,7 +61,7 @@ async def create_quiz(
         name="Generated Quiz",
         description="AI-generated quiz",
     )
-    
+
     # Then generate and populate it
     result = await svc.generate_and_populate(
         quiz_id=quiz.id,
@@ -109,13 +109,13 @@ async def create_quiz_scoped(
         )
 
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
-    
+
     if not ctx.llm:
         return json.dumps(
             {"error": "LLM not available in context"},
             ensure_ascii=False
         )
-    
+
     svc = QuizService()
     # Create a new quiz first
     quiz = svc.create_quiz(
@@ -123,7 +123,7 @@ async def create_quiz_scoped(
         name="Generated Quiz",
         description="AI-generated quiz",
     )
-    
+
     # Then generate and populate it
     result = await svc.generate_and_populate(
         quiz_id=quiz.id,

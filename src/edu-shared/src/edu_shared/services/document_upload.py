@@ -2,7 +2,6 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
 from azure.storage.blob import BlobServiceClient
@@ -104,7 +103,7 @@ class DocumentUploadService:
                 )
 
                 return document_id
-            except Exception as e:
+            except Exception:
                 raise
 
     def _create_document_record(

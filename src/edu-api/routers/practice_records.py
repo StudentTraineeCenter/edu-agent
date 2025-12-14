@@ -1,14 +1,13 @@
 """Router for practice record operations."""
 
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, Query
-
 from auth import get_current_user
 from dependencies import get_practice_service
-from edu_shared.services import NotFoundError, PracticeService
 from edu_shared.schemas.practice import PracticeRecordDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import PracticeRecordCreate, PracticeRecordBatchCreate
+from edu_shared.services import PracticeService
+from fastapi import APIRouter, Depends, HTTPException
+
+from routers.schemas import PracticeRecordBatchCreate, PracticeRecordCreate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/practice-records", tags=["practice-records"])
 

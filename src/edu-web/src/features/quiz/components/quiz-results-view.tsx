@@ -316,9 +316,7 @@ export const QuizResultsView = ({
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
   const statsResult = useAtomValue(quizStatsAtom({ projectId, quizId }))
-  const questionsResult = useAtomValue(
-    quizQuestionsAtom({ projectId, quizId }),
-  )
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
   if (!state) return null

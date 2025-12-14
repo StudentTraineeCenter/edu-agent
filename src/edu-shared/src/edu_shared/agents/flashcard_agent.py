@@ -1,6 +1,7 @@
-from typing import List
-from pydantic import BaseModel, Field
+
 from edu_shared.agents.base import BaseContentAgent
+from pydantic import BaseModel, Field
+
 
 class FlashcardGenerationResult(BaseModel):
     """Model for flashcard generation result."""
@@ -14,7 +15,7 @@ class FlashcardGroupGenerationResult(BaseModel):
 
     name: str = Field(..., description="The name of the flashcard group")
     description: str = Field(..., description="The description of the flashcard group")
-    flashcards: List[FlashcardGenerationResult] = Field(..., description="The flashcards of the flashcard group")
+    flashcards: list[FlashcardGenerationResult] = Field(..., description="The flashcards of the flashcard group")
 
 class FlashcardAgent(BaseContentAgent[FlashcardGroupGenerationResult]):
     @property

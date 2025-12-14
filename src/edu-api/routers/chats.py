@@ -1,17 +1,26 @@
 """Router for chat CRUD operations."""
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Depends
+from auth import get_current_user
+from dependencies import (
+    get_chat_service,
+    get_chat_service_with_streaming,
+    get_usage_service,
+)
+from edu_shared.schemas.chats import (
+    ChatDto,
+    SourceDto,
+    StreamingChatMessage,
+    ToolCallDto,
+)
+from edu_shared.schemas.users import UserDto
+from edu_shared.services import ChatService, NotFoundError, UsageService
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from auth import get_current_user
-from dependencies import get_chat_service, get_chat_service_with_streaming, get_usage_service
-from edu_shared.services import ChatService, NotFoundError, UsageService
-from edu_shared.schemas.chats import ChatDto, StreamingChatMessage, SourceDto, ToolCallDto
-from edu_shared.schemas.users import UserDto
-from routers.schemas import ChatCreate, ChatUpdate, ChatCompletionRequest
+from routers.schemas import ChatCompletionRequest, ChatCreate, ChatUpdate
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/chats", tags=["chats"])
 
@@ -121,7 +130,7 @@ async def send_streaming_message(
     # Check usage limit before processing
     usage_service.check_and_increment(user_id, "chat_message")
 
-    async def generate_stream() -> AsyncGenerator[bytes, None]:
+    async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming response chunks"""
         try:
             async for chunk_data in chat_service.send_streaming_message(
@@ -173,12 +182,12 @@ async def send_streaming_message(
         except Exception as e:
             error_msg = StreamingChatMessage(
                 id=str(uuid4()),
-                chunk=f"Error: {str(e)}",
+                chunk=f"Error: {e!s}",
                 done=True,
                 sources=None,
                 tools=None,
             )
-            yield f"data: {error_msg.model_dump_json()}\n\n".encode("utf-8")
+            yield f"data: {error_msg.model_dump_json()}\n\n".encode()
 
     return StreamingResponse(
         generate_stream(),

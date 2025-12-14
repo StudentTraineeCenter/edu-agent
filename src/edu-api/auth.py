@@ -1,18 +1,16 @@
-from typing import Optional
 
 import jwt as pyjwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from config import get_settings
 from edu_shared.schemas.users import UserDto
 from edu_shared.services import UserService
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
 ) -> UserDto:
     """
     Get the current authenticated user from Supabase JWT token.
@@ -28,7 +26,7 @@ def get_current_user(
     """
     settings = get_settings()
     supabase_jwt_secret = settings.supabase_jwt_secret
-    
+
     if not supabase_jwt_secret:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -92,20 +90,20 @@ def get_current_user(
     except pyjwt.InvalidTokenError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {str(e)}",
+            detail=f"Invalid token: {e!s}",
         )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {str(e)}",
+            detail=f"Authentication failed: {e!s}",
         )
 
 
 def get_current_user_optional(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
-) -> Optional[UserDto]:
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+) -> UserDto | None:
     """
     Get the current user if authenticated, otherwise return None.
     Useful for endpoints that work with or without authentication.

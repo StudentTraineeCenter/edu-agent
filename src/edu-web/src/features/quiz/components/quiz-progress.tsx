@@ -12,9 +12,7 @@ type QuizProgressProps = {
 
 export const QuizProgress = ({ quizId, projectId }: QuizProgressProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const questionsResult = useAtomValue(
-    quizQuestionsAtom({ projectId, quizId }),
-  )
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
 
   const currentQuestionIdx = Option.isSome(stateResult)
     ? stateResult.value.currentQuestionIndex

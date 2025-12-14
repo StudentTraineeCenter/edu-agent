@@ -6,28 +6,26 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient, QueueMessage
-from rich.console import Console
-
+from config import get_settings
 from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.db.models import Document
+from edu_shared.db.session import get_session_factory, init_db
 from edu_shared.schemas.queue import (
-    QueueTaskMessage,
-    TaskType,
-    FlashcardGenerationData,
-    QuizGenerationData,
-    NoteGenerationData,
-    MindMapGenerationData,
     DocumentProcessingData,
+    FlashcardGenerationData,
+    MindMapGenerationData,
+    NoteGenerationData,
+    QueueTaskMessage,
+    QuizGenerationData,
+    TaskType,
 )
-from edu_shared.services.search import SearchService
 from edu_shared.services.document_processing import DocumentProcessingService
 from edu_shared.services.flashcard_groups import FlashcardGroupService
-from edu_shared.services.quizzes import QuizService
-from edu_shared.services.notes import NoteService
 from edu_shared.services.mind_maps import MindMapService
-from edu_shared.db.session import init_db, get_session_factory
-from edu_shared.db.models import Document
-
-from config import get_settings
+from edu_shared.services.notes import NoteService
+from edu_shared.services.quizzes import QuizService
+from edu_shared.services.search import SearchService
+from rich.console import Console
 
 console = Console(force_terminal=True)
 
@@ -54,13 +52,13 @@ async def process_message(
         if task_type == TaskType.FLASHCARD_GENERATION:
             flashcard_data = FlashcardGenerationData(**task_data)
             service = FlashcardGroupService()
-            
+
             kwargs = {}
             if flashcard_data.get("count") is not None:
                 kwargs["count"] = flashcard_data["count"]
             if flashcard_data.get("difficulty"):
                 kwargs["difficulty"] = flashcard_data["difficulty"]
-            
+
             await service.generate_and_populate(
                 group_id=flashcard_data["group_id"],
                 project_id=flashcard_data["project_id"],
@@ -75,11 +73,11 @@ async def process_message(
         elif task_type == TaskType.QUIZ_GENERATION:
             quiz_data = QuizGenerationData(**task_data)
             service = QuizService()
-            
+
             kwargs = {}
             if quiz_data.get("count") is not None:
                 kwargs["count"] = quiz_data["count"]
-            
+
             await service.generate_and_populate(
                 quiz_id=quiz_data["quiz_id"],
                 project_id=quiz_data["project_id"],
@@ -94,7 +92,7 @@ async def process_message(
         elif task_type == TaskType.NOTE_GENERATION:
             note_data = NoteGenerationData(**task_data)
             service = NoteService()
-            
+
             result = await service.generate_and_populate(
                 note_id=note_data["note_id"],
                 project_id=note_data["project_id"],
@@ -108,7 +106,7 @@ async def process_message(
         elif task_type == TaskType.MIND_MAP_GENERATION:
             mind_map_data = MindMapGenerationData(**task_data)
             service = MindMapService()
-            
+
             if mind_map_data.get("mind_map_id"):
                 # Update existing mind map
                 result = await service.generate_and_populate(
@@ -233,11 +231,11 @@ def main():
         while True:
             # Get messages (visibility_timeout hides it from other workers for 5 mins)
             messages = queue.receive_messages(visibility_timeout=300, max_messages=5)
-            
+
             if messages:
                 # Submit all messages to thread pool
                 futures = {executor.submit(process_in_thread, msg): msg for msg in messages}
-                
+
                 # Wait for completion (non-blocking check)
                 for future in as_completed(futures):
                     try:

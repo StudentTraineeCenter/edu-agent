@@ -14,9 +14,7 @@ type QuizContentProps = {
 }
 
 export const QuizContent = ({ quizId, projectId }: QuizContentProps) => {
-  const questionsResult = useAtomValue(
-    quizQuestionsAtom({ projectId, quizId }),
-  )
+  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
 
   return Result.builder(questionsResult)

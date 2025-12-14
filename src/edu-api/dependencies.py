@@ -1,12 +1,10 @@
 """FastAPI dependencies for service construction."""
 
-from fastapi import Depends
-
 from config import Settings, get_settings
+from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services import (
     ChatService,
     DocumentService,
-    DocumentProcessingService,
     DocumentUploadService,
     FlashcardGroupService,
     MindMapService,
@@ -19,8 +17,8 @@ from edu_shared.services import (
     UsageService,
     UserService,
 )
-from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.services.queue import QueueService
+from fastapi import Depends
 
 
 def get_settings_dep() -> Settings:

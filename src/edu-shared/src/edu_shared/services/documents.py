@@ -2,13 +2,12 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import Document
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.documents import DocumentDto, DocumentStatus
 
 
 class DocumentService:
@@ -24,9 +23,9 @@ class DocumentService:
         file_name: str,
         file_type: str,
         file_size: int,
-        project_id: Optional[str] = None,
+        project_id: str | None = None,
         status: DocumentStatus = DocumentStatus.UPLOADED,
-        summary: Optional[str] = None,
+        summary: str | None = None,
     ) -> DocumentDto:
         """Create a new document.
 
@@ -65,7 +64,7 @@ class DocumentService:
                 db.refresh(document)
 
                 return self._model_to_dto(document)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -95,12 +94,12 @@ class DocumentService:
                 return self._model_to_dto(document)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_documents(
-        self, owner_id: str, project_id: Optional[str] = None
-    ) -> List[DocumentDto]:
+        self, owner_id: str, project_id: str | None = None
+    ) -> list[DocumentDto]:
         """List all documents for a user or project.
 
         Args:
@@ -117,18 +116,18 @@ class DocumentService:
                     query = query.filter(Document.project_id == project_id)
                 documents = query.order_by(Document.uploaded_at.desc()).all()
                 return [self._model_to_dto(doc) for doc in documents]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_document(
         self,
         document_id: str,
         owner_id: str,
-        file_name: Optional[str] = None,
-        status: Optional[DocumentStatus] = None,
-        summary: Optional[str] = None,
-        processed_at: Optional[datetime] = None,
-        project_id: Optional[str] = None,
+        file_name: str | None = None,
+        status: DocumentStatus | None = None,
+        summary: str | None = None,
+        processed_at: datetime | None = None,
+        project_id: str | None = None,
     ) -> DocumentDto:
         """Update a document.
 
@@ -176,7 +175,7 @@ class DocumentService:
                 return self._model_to_dto(document)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -204,7 +203,7 @@ class DocumentService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 

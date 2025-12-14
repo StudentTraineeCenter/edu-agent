@@ -2,13 +2,12 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import Project
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.projects import ProjectDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.projects import ProjectDto
 
 
 class ProjectService:
@@ -22,8 +21,8 @@ class ProjectService:
         self,
         owner_id: str,
         name: str,
-        description: Optional[str] = None,
-        language_code: Optional[str] = "en",
+        description: str | None = None,
+        language_code: str | None = "en",
     ) -> ProjectDto:
         """Create a new project.
 
@@ -51,7 +50,7 @@ class ProjectService:
                 db.refresh(project)
 
                 return self._model_to_dto(project)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -81,10 +80,10 @@ class ProjectService:
                 return self._model_to_dto(project)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
-    def list_projects(self, owner_id: str) -> List[ProjectDto]:
+    def list_projects(self, owner_id: str) -> list[ProjectDto]:
         """List all projects for a user.
 
         Args:
@@ -102,16 +101,16 @@ class ProjectService:
                     .all()
                 )
                 return [self._model_to_dto(project) for project in projects]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_project(
         self,
         project_id: str,
         owner_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        language_code: Optional[str] = None,
+        name: str | None = None,
+        description: str | None = None,
+        language_code: str | None = None,
     ) -> ProjectDto:
         """Update a project.
 
@@ -151,7 +150,7 @@ class ProjectService:
                 return self._model_to_dto(project)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -179,7 +178,7 @@ class ProjectService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 

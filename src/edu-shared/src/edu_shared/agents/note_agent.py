@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
 from edu_shared.agents.base import BaseContentAgent
+from pydantic import BaseModel, Field
 
 
 class NoteGenerationResult(BaseModel):
@@ -7,7 +7,7 @@ class NoteGenerationResult(BaseModel):
 
     title: str = Field(..., description="The title of the note")
     description: str = Field(..., description="The description of the note")
-    content: str = Field(..., description="The content of the note")    
+    content: str = Field(..., description="The content of the note")
 
 
 class NoteAgent(BaseContentAgent[NoteGenerationResult]):

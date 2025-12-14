@@ -1,34 +1,38 @@
 """CRUD service for managing chats."""
 
+from collections.abc import AsyncGenerator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import AsyncGenerator, List, Optional
 from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
 from langchain_openai import AzureChatOpenAI
+from pydantic import BaseModel, Field
 
 from edu_shared.agents.context import CustomAgentContext
 from edu_shared.agents.factory import make_agent
-from edu_shared.db.models import Chat, ChatMessage, ChatMessageSource, ChatMessageToolCall
+from edu_shared.db.models import (
+    Chat,
+    ChatMessage,
+    ChatMessageSource,
+    ChatMessageToolCall,
+)
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
 
-
-from pydantic import BaseModel, Field
 
 class MessageChunk(BaseModel):
     """Internal model for streaming message chunks."""
 
     chunk: str = Field(default="", description="Text chunk of the response")
     done: bool = Field(default=False, description="Whether this is the final chunk")
-    status: Optional[str] = Field(default=None, description="Status message for this chunk (e.g., thinking, searching, etc.)")
-    sources: Optional[List[ChatMessageSource]] = Field(default_factory=list, description="Source document objects, if any")
-    tools: Optional[List] = Field(default_factory=list, description="Associated tool call objects, if any")
-    id: Optional[str] = Field(default=None, description="Optional message id")
-    response: Optional[str] = Field(default=None, description="Full concatenated response, present in final chunk if desired")
+    status: str | None = Field(default=None, description="Status message for this chunk (e.g., thinking, searching, etc.)")
+    sources: list[ChatMessageSource] | None = Field(default_factory=list, description="Source document objects, if any")
+    tools: list | None = Field(default_factory=list, description="Associated tool call objects, if any")
+    id: str | None = Field(default=None, description="Optional message id")
+    response: str | None = Field(default=None, description="Full concatenated response, present in final chunk if desired")
 
 
 class ChatService:
@@ -37,9 +41,9 @@ class ChatService:
     def __init__(
         self,
         search_service=None,
-        azure_openai_chat_deployment: Optional[str] = None,
-        azure_openai_endpoint: Optional[str] = None,
-        azure_openai_api_version: Optional[str] = None,
+        azure_openai_chat_deployment: str | None = None,
+        azure_openai_endpoint: str | None = None,
+        azure_openai_api_version: str | None = None,
         usage_service=None,
     ) -> None:
         """Initialize the chat service.
@@ -53,13 +57,13 @@ class ChatService:
         """
         self.search_service = search_service
         self.usage_service = usage_service
-        
+
         # Initialize LLM instances
         self.credential = DefaultAzureCredential()
         self.token_provider = get_bearer_token_provider(
             self.credential, "https://cognitiveservices.azure.com/.default"
         )
-        
+
         # Build LLM kwargs, only include api_version if provided
         llm_kwargs = {
             "azure_deployment": azure_openai_chat_deployment,
@@ -69,24 +73,24 @@ class ChatService:
         }
         if azure_openai_api_version:
             llm_kwargs["api_version"] = azure_openai_api_version
-        
+
         llm_streaming = AzureChatOpenAI(
             streaming=True,
             **llm_kwargs,
         )
-        
+
         self.llm_non_streaming = AzureChatOpenAI(
             streaming=False,
             **llm_kwargs,
         )
 
-        self.agent = make_agent(llm=llm_streaming)            
+        self.agent = make_agent(llm=llm_streaming)
 
     def create_chat(
         self,
         project_id: str,
         user_id: str,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> ChatDto:
         """Create a new chat.
 
@@ -115,7 +119,7 @@ class ChatService:
                 db.refresh(chat)
 
                 return self._model_to_dto(chat)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -145,10 +149,10 @@ class ChatService:
                 return self._model_to_dto(chat)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
-    def list_chats(self, project_id: str, user_id: str) -> List[ChatDto]:
+    def list_chats(self, project_id: str, user_id: str) -> list[ChatDto]:
         """List all chats for a project.
 
         Args:
@@ -167,14 +171,14 @@ class ChatService:
                     .all()
                 )
                 return [self._model_to_dto(chat) for chat in chats]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_chat(
         self,
         chat_id: str,
         user_id: str,
-        title: Optional[str] = None,
+        title: str | None = None,
     ) -> ChatDto:
         """Update a chat.
 
@@ -202,7 +206,7 @@ class ChatService:
 
                 if title is not None:
                     chat.title = title
-                
+
                 chat.updated_at = datetime.now()
 
                 db.commit()
@@ -211,7 +215,7 @@ class ChatService:
                 return self._model_to_dto(chat)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -239,7 +243,7 @@ class ChatService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -303,7 +307,7 @@ class ChatService:
 
     async def send_streaming_message(
         self, chat_id: str, user_id: str, message: str
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[MessageChunk]:
         """Send a streaming message to a chat using grounded RAG responses.
 
         Args:
@@ -316,7 +320,7 @@ class ChatService:
         """
         if not self.agent:
             raise ValueError("Agent not initialized. SearchService and Azure OpenAI config required.")
-        
+
         with self._get_db_session() as db:
             # Generate message ID early so it's available in error handler
             assistant_message_id = str(uuid4())
@@ -387,7 +391,7 @@ class ChatService:
             except Exception as e:
                 # Use the pre-generated assistant_message_id for error messages
                 yield MessageChunk(
-                    chunk=f"Error: {str(e)}",
+                    chunk=f"Error: {e!s}",
                     done=True,
                     sources=[],
                     tools=[],

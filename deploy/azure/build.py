@@ -31,7 +31,7 @@ def load_config(config_path: Path) -> dict:
     if not config_path.exists():
         print(f"Error: Config file not found: {config_path}", file=sys.stderr)
         sys.exit(1)
-    
+
     with open(config_path) as f:
         return yaml.safe_load(f)
 
@@ -83,14 +83,14 @@ def resolve_build_args(build_args: dict, terraform_dir: Path) -> dict:
     - VITE_SUPABASE_ANON_KEY -> from variable (needs to be set manually)
     """
     resolved = {}
-    
+
     # Mapping of build arg names to terraform output names
     terraform_mapping = {
         "VITE_AZURE_ENTRA_TENANT_ID": "azure_tenant_id",
         "VITE_SERVER_URL": "container_app_api_url",
         "VITE_SUPABASE_URL": "supabase_api_url",
     }
-    
+
     for key, value in build_args.items():
         if value and value.strip():  # Already has a value
             resolved[key] = value
@@ -107,7 +107,7 @@ def resolve_build_args(build_args: dict, terraform_dir: Path) -> dict:
                 resolved[key] = ""  # Keep empty if not found
         else:
             resolved[key] = value  # Keep original value (empty or otherwise)
-    
+
     return resolved
 
 
@@ -131,42 +131,42 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
     else:
         context_path = (base_path / container["path"]).resolve()
     dockerfile_rel = container.get("dockerfile", "Dockerfile")
-    
+
     if not context_path.exists():
         print(f"Error: Build context not found: {context_path}", file=sys.stderr)
         return False
-    
+
     # Check for Dockerfile - if dockerfile path contains '/', it's relative to project root, not context
     if '/' in dockerfile_rel:
         dockerfile = (base_path / dockerfile_rel).resolve()
     else:
         dockerfile = context_path / dockerfile_rel
-    
+
     if not dockerfile.exists():
         print(f"Error: Dockerfile not found: {dockerfile}", file=sys.stderr)
         return False
-    
+
     # Compute dockerfile path relative to base_path for --file argument
     # az acr build expects --file to be relative to the working directory (base_path)
     dockerfile_for_cmd = str(dockerfile.relative_to(base_path))
-    
+
     # Compute context path relative to base_path for build context argument
     # az acr build expects the context to be relative to the working directory (base_path)
     context_for_cmd = str(context_path.relative_to(base_path))
-    
+
     full_image = f"{image}:{tag}"
     print(f"\n{'='*60}")
     print(f"Building: {name}")
     print(f"  Image: {acr_name}.azurecr.io/{full_image}")
     print(f"  Context: {context_path}")
     print(f"  Dockerfile: {dockerfile_for_cmd}")
-    
+
     # Resolve build args from terraform if needed
     build_args = container.get("build_args", {})
     if build_args and terraform_dir and terraform_dir.exists():
-        print(f"Resolving build args from terraform outputs...")
+        print("Resolving build args from terraform outputs...")
         build_args = resolve_build_args(build_args, terraform_dir)
-    
+
     # Validate required build args are present (non-empty)
     if build_args:
         missing = [key for key, value in build_args.items() if not value or not value.strip()]
@@ -185,10 +185,10 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
             if manual_required:
                 print(f"Note: {', '.join(manual_required)} must be set manually (not available as terraform outputs).", file=sys.stderr)
             return False
-        
+
         print(f"  Build args: {', '.join(build_args.keys())}")
     print(f"{'='*60}\n")
-    
+
     cmd = [
         "az", "acr", "build",
         "--registry", acr_name,
@@ -197,7 +197,7 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
         context_for_cmd,
         "--debug"
     ]
-    
+
     # Add build args to command (only non-empty values)
     for key, value in build_args.items():
         if value and value.strip():  # Only add non-empty build args
@@ -278,30 +278,30 @@ Examples:
         action="store_true",
         help="List available containers and exit",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Determine paths
     script_dir = get_script_dir()
     config_path = args.config or (script_dir / "build-config.yaml")
     terraform_dir = script_dir / "terraform"
     # Project root is 2 levels up from deploy/azure/
     project_root = script_dir.parent.parent
-    
+
     # Load configuration
     config = load_config(config_path)
-    
+
     # Handle --list
     if args.list:
         list_containers(config)
         return
-    
+
     # Determine ACR name
     acr_name = args.acr_name or config.get("acr_name")
     if not acr_name:
         print("Detecting ACR name from Terraform output...")
         acr_name = get_acr_name_from_terraform(terraform_dir)
-    
+
     if not acr_name:
         print(
             "Error: ACR name not specified and could not be detected from Terraform.\n"
@@ -309,20 +309,20 @@ Examples:
             file=sys.stderr,
         )
         sys.exit(1)
-    
+
     print(f"Using ACR: {acr_name}")
-    
+
     # Determine which containers to build
     all_containers = config.get("containers", [])
     if not all_containers:
         print("Error: No containers defined in config", file=sys.stderr)
         sys.exit(1)
-    
+
     if args.containers:
         # Build specific containers
         container_names = set(args.containers)
         containers_to_build = [c for c in all_containers if c["name"] in container_names]
-        
+
         # Check for unknown containers
         known_names = {c["name"] for c in all_containers}
         unknown = container_names - known_names
@@ -338,28 +338,28 @@ Examples:
             print("Error: No containers specified and build_all_by_default is false")
             print("Use --container to specify which containers to build")
             sys.exit(1)
-    
+
     # Build containers
     results = []
     for container in containers_to_build:
         success = build_container(acr_name, container, project_root, terraform_dir)
         results.append((container["name"], success))
-    
+
     # Summary
     print(f"\n{'='*60}")
     print("Build Summary")
     print(f"{'='*60}")
-    
+
     success_count = sum(1 for _, success in results if success)
     fail_count = len(results) - success_count
-    
+
     for name, success in results:
         status = "✓" if success else "✗"
         print(f"  {status} {name}")
-    
+
     print()
     print(f"Total: {len(results)}, Succeeded: {success_count}, Failed: {fail_count}")
-    
+
     if fail_count > 0:
         sys.exit(1)
 

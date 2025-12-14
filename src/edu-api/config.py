@@ -1,8 +1,7 @@
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from edu_shared.keyvault import KeyVaultSettingsSource
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -19,7 +18,7 @@ class Settings(BaseSettings):
     azure_storage_queue_name: str = "ai-generation-tasks"
     azure_storage_input_container_name: str = "input"
     azure_storage_output_container_name: str = "output"
-    
+
     # Database
     database_url: str = ""
 

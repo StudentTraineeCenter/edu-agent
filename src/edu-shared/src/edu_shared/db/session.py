@@ -1,6 +1,8 @@
-from typing import Generator
+from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
+
 from edu_shared.db.base import Base
 
 # 1. Global Placeholders (Initially None)
@@ -25,7 +27,7 @@ def init_db(database_url: str) -> None:
     _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session]:
     """
     FastAPI dependency. Yields a database session.
     Fails nicely if you forgot to call init_db().

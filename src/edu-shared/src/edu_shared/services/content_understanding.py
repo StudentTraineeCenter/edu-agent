@@ -1,12 +1,10 @@
 """Azure Content Understanding client for document analysis."""
 
-import json
 import time
 from pathlib import Path
 
 import requests
 from requests.models import Response
-
 
 DEFAULT_API_VERSION = "2025-05-01-preview"
 DEFAULT_TIMEOUT_SECONDS = 30

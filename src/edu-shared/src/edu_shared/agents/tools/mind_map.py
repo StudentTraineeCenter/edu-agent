@@ -2,12 +2,12 @@
 
 import asyncio
 import json
-from langchain.tools import tool
-from langgraph.prebuilt import ToolRuntime
 
 from edu_shared.agents.context import CustomAgentContext
-from edu_shared.services.mind_maps import MindMapService
 from edu_shared.schemas.mind_maps import MindMapDto
+from edu_shared.services.mind_maps import MindMapService
+from langchain.tools import tool
+from langgraph.prebuilt import ToolRuntime
 
 
 def build_enhanced_prompt(

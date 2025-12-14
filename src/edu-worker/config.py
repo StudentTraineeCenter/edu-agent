@@ -1,8 +1,7 @@
 from functools import lru_cache
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from edu_shared.keyvault import KeyVaultSettingsSource
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):

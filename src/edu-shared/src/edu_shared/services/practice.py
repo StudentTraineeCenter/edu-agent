@@ -1,13 +1,11 @@
 """CRUD service for managing practice records."""
 
 from contextlib import contextmanager
-from typing import List, Optional
 from uuid import uuid4
 
 from edu_shared.db.models import Flashcard, PracticeRecord, QuizQuestion
 from edu_shared.db.session import get_session_factory
 from edu_shared.schemas.practice import PracticeRecordDto
-from edu_shared.exceptions import NotFoundError
 
 
 class PracticeService:
@@ -24,7 +22,7 @@ class PracticeService:
         item_type: str,
         item_id: str,
         topic: str,
-        user_answer: Optional[str],
+        user_answer: str | None,
         correct_answer: str,
         was_correct: bool,
     ) -> PracticeRecordDto:
@@ -73,7 +71,7 @@ class PracticeService:
                 return self._model_to_dto(practice_record)
             except ValueError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -81,8 +79,8 @@ class PracticeService:
         self,
         user_id: str,
         project_id: str,
-        practice_records_data: List[dict],
-    ) -> List[PracticeRecordDto]:
+        practice_records_data: list[dict],
+    ) -> list[PracticeRecordDto]:
         """Create multiple practice records in a batch.
 
         Args:
@@ -127,13 +125,13 @@ class PracticeService:
                     db.refresh(record)
 
                 return [self._model_to_dto(record) for record in created_records]
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
     def list_practice_records(
-        self, user_id: str, project_id: Optional[str] = None
-    ) -> List[PracticeRecordDto]:
+        self, user_id: str, project_id: str | None = None
+    ) -> list[PracticeRecordDto]:
         """Retrieve practice records for a user, optionally filtered by project.
 
         Args:
@@ -155,7 +153,7 @@ class PracticeService:
                 records = query.order_by(PracticeRecord.created_at.desc()).all()
 
                 return [self._model_to_dto(record) for record in records]
-            except Exception as e:
+            except Exception:
                 raise
 
     def _validate_item(self, db, item_type: str, item_id: str) -> bool:

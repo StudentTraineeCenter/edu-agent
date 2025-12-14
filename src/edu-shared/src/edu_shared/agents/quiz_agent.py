@@ -1,6 +1,6 @@
-from typing import List
-from pydantic import BaseModel, Field
+
 from edu_shared.agents.base import BaseContentAgent
+from pydantic import BaseModel, Field
 
 
 class QuizQuestionGenerationResult(BaseModel):
@@ -21,7 +21,7 @@ class QuizGenerationResult(BaseModel):
 
     name: str = Field(..., description="The name of the quiz")
     description: str = Field(..., description="The description of the quiz")
-    questions: List[QuizQuestionGenerationResult] = Field(..., description="The questions of the quiz")
+    questions: list[QuizQuestionGenerationResult] = Field(..., description="The questions of the quiz")
 
 
 class QuizAgent(BaseContentAgent[QuizGenerationResult]):

@@ -1,6 +1,6 @@
 """Azure Key Vault integration utilities."""
 import os
-from typing import Any, Optional
+from typing import Any
 
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
@@ -13,7 +13,7 @@ def _snake_to_dash_case(name: str) -> str:
     return name.replace("_", "-").lower()
 
 
-def _get_key_vault_client(key_vault_uri: str) -> Optional[SecretClient]:
+def _get_key_vault_client(key_vault_uri: str) -> SecretClient | None:
     """Get or create Key Vault client."""
     if not key_vault_uri:
         return None
@@ -22,7 +22,7 @@ def _get_key_vault_client(key_vault_uri: str) -> Optional[SecretClient]:
     return SecretClient(vault_url=key_vault_uri, credential=credential)
 
 
-def get_secret_from_key_vault(key_vault_uri: str, secret_name: str) -> Optional[str]:
+def get_secret_from_key_vault(key_vault_uri: str, secret_name: str) -> str | None:
     """Fetch a secret from Azure Key Vault."""
     if not key_vault_uri:
         return None
@@ -46,7 +46,7 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
     For example: 'azure_storage_connection_string' -> 'azure-storage-connection-string'
     """
 
-    def __init__(self, settings_cls: type, key_vault_uri: Optional[str] = None):
+    def __init__(self, settings_cls: type, key_vault_uri: str | None = None):
         """Initialize the Key Vault settings source.
         
         Args:
@@ -55,9 +55,9 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
         """
         super().__init__(settings_cls)
         self.key_vault_uri = key_vault_uri or os.getenv("AZURE_KEY_VAULT_URI")
-        self._client: Optional[SecretClient] = None
+        self._client: SecretClient | None = None
 
-    def _get_client(self) -> Optional[SecretClient]:
+    def _get_client(self) -> SecretClient | None:
         """Get or create Key Vault client (cached)."""
         if not self.key_vault_uri:
             return None
@@ -83,13 +83,13 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
 
         # Convert field name to dash-case for Key Vault secret name
         secret_name = _snake_to_dash_case(field_name)
-        
+
         # Try to get secret from Key Vault
         secret_value = get_secret_from_key_vault(self.key_vault_uri, secret_name)
-        
+
         # Check if field is complex (needs JSON parsing)
         is_complex = self.field_is_complex(field)
-        
+
         return secret_value, field_name, is_complex
 
     def __call__(self) -> dict[str, Any]:
@@ -98,7 +98,7 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
             return {}
 
         data: dict[str, Any] = {}
-        
+
         # Iterate through all fields in the settings class
         for field_name, field_info in self.settings_cls.model_fields.items():
             value, key, is_complex = self.get_field_value(field_info, field_name)

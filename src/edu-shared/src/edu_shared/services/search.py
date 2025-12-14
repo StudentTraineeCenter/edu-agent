@@ -1,19 +1,17 @@
 """RAG search service for document retrieval."""
 
 from contextlib import contextmanager
-from typing import List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_core.documents import Document as LangchainDocument
-from langchain_core.embeddings import Embeddings
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
 
 from edu_shared.db.models import Document, Project
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.search import SearchResultItem
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.search import SearchResultItem
 
 
 class SearchService:
@@ -44,14 +42,14 @@ class SearchService:
             api_version=azure_openai_api_version,
             azure_ad_token_provider=token_provider
         )
-        self._vector_store: Optional[PGVectorStore] = None
+        self._vector_store: PGVectorStore | None = None
 
     async def search_documents(
         self,
         query: str,
         project_id: str,
         top_k: int = 5,
-    ) -> List[SearchResultItem]:
+    ) -> list[SearchResultItem]:
         """Search documents using vector similarity search.
 
         Args:
@@ -93,7 +91,7 @@ class SearchService:
                 return self._format_search_results(similar_docs, db)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     async def _get_vector_store(self) -> PGVectorStore:
@@ -147,9 +145,9 @@ class SearchService:
 
     def _format_search_results(
         self,
-        similar_docs: List[tuple[LangchainDocument, float]],
+        similar_docs: list[tuple[LangchainDocument, float]],
         db,
-    ) -> List[SearchResultItem]:
+    ) -> list[SearchResultItem]:
         """Format search results with validated typed models.
 
         Args:
@@ -201,7 +199,7 @@ class SearchService:
                 best_score = min([c[1] for c in top_chunks]) if top_chunks else 1.0
                 # Normalize score (lower is better in similarity search, so invert)
                 normalized_score = max(0.0, min(1.0, 1.0 - best_score))
-                
+
                 result = SearchResultItem(
                     id=segment_id,
                     document_id=doc_id,
@@ -210,7 +208,7 @@ class SearchService:
                     score=normalized_score,
                 )
                 results.append(result)
-            except Exception as e:
+            except Exception:
                 # Skip invalid results
                 continue
 

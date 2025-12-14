@@ -1,6 +1,6 @@
-from typing import List
-from pydantic import BaseModel, Field
+
 from edu_shared.agents.base import BaseContentAgent
+from pydantic import BaseModel, Field
 
 
 class MindMapNodeData(BaseModel):
@@ -32,8 +32,8 @@ class MindMapGenerationResult(BaseModel):
 
     title: str = Field(..., description="The title of the mind map")
     description: str = Field(..., description="The description of the mind map")
-    nodes: List[MindMapNodeData] = Field(..., description="List of nodes in the mind map")
-    edges: List[MindMapEdgeData] = Field(..., description="List of edges in the mind map")
+    nodes: list[MindMapNodeData] = Field(..., description="List of nodes in the mind map")
+    edges: list[MindMapEdgeData] = Field(..., description="List of edges in the mind map")
 
 
 class MindMapAgent(BaseContentAgent[MindMapGenerationResult]):

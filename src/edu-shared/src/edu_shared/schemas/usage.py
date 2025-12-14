@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class UsageLimitDto(BaseModel):
     """DTO for usage limit information."""
 

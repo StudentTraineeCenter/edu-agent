@@ -1,24 +1,28 @@
 """Router for flashcard group CRUD operations."""
 
-from typing import AsyncGenerator, Optional
-from fastapi import APIRouter, HTTPException, Query, Depends
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from collections.abc import AsyncGenerator
 
 from auth import get_current_user
 from dependencies import (
     get_flashcard_group_service,
-    get_search_service,
-    get_content_agent_config,
-    get_usage_service,
     get_queue_service,
+    get_usage_service,
 )
-from edu_shared.services.queue import QueueService
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import FlashcardGroupService, NotFoundError, SearchService, UsageService
-from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
+from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 from edu_shared.schemas.users import UserDto
-from routers.schemas import FlashcardGroupCreate, FlashcardGroupUpdate, FlashcardCreate, FlashcardUpdate, GenerateRequest
+from edu_shared.services import FlashcardGroupService, NotFoundError, UsageService
+from edu_shared.services.queue import QueueService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from routers.schemas import (
+    FlashcardCreate,
+    FlashcardGroupCreate,
+    FlashcardGroupUpdate,
+    FlashcardUpdate,
+    GenerateRequest,
+)
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/flashcard-groups", tags=["flashcard-groups"])
 
@@ -61,7 +65,7 @@ async def get_flashcard_group(
 @router.get("", response_model=list[FlashcardGroupDto])
 async def list_flashcard_groups(
     project_id: str,
-    study_session_id: Optional[str] = Query(None, description="Filter by study session ID"),
+    study_session_id: str | None = Query(None, description="Filter by study session ID"),
     current_user: UserDto = Depends(get_current_user),
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
@@ -118,7 +122,7 @@ class GenerationProgressUpdate(BaseModel):
     """Progress update for generation streaming."""
     status: str = Field(..., description="Status: searching, generating, saving, done")
     message: str = Field(..., description="Progress message")
-    error: Optional[str] = Field(None, description="Error message if any")
+    error: str | None = Field(None, description="Error message if any")
 
 
 @router.post("/{group_id}/generate", response_model=FlashcardGroupDto)
@@ -162,8 +166,8 @@ async def generate_flashcards_stream(
     """Queue flashcard generation request with streaming progress updates."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "flashcard_generation")
-    
-    async def generate_stream() -> AsyncGenerator[bytes, None]:
+
+    async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming progress updates"""
         try:
             # Queuing request
@@ -171,8 +175,8 @@ async def generate_flashcards_stream(
                 status="queuing",
                 message="Queuing flashcard generation request..."
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
             result = service.queue_generation(
                 group_id=group_id,
                 project_id=project_id,
@@ -181,29 +185,29 @@ async def generate_flashcards_stream(
                 custom_instructions=request.custom_instructions,
                 user_id=current_user.id,
             )
-            
+
             # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
                 message="Flashcard generation request queued successfully"
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing flashcard generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing flashcard generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
-    
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
+
     return StreamingResponse(
         generate_stream(),
         media_type="text/event-stream",

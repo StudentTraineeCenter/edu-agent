@@ -1,30 +1,28 @@
 """Router for quiz CRUD operations."""
 
-from typing import AsyncGenerator, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from collections.abc import AsyncGenerator
 
 from auth import get_current_user
 from dependencies import (
-    get_quiz_service,
-    get_search_service,
-    get_content_agent_config,
-    get_usage_service,
     get_queue_service,
+    get_quiz_service,
+    get_usage_service,
 )
-from edu_shared.services.queue import QueueService
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import NotFoundError, QuizService, SearchService, UsageService
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.schemas.users import UserDto
+from edu_shared.services import NotFoundError, QuizService, UsageService
+from edu_shared.services.queue import QueueService
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
 from routers.schemas import (
-    QuizCreate,
-    QuizUpdate,
-    QuizQuestionCreate,
-    QuizQuestionUpdate,
-    QuizQuestionReorder,
     GenerateRequest,
+    QuizCreate,
+    QuizQuestionCreate,
+    QuizQuestionReorder,
+    QuizQuestionUpdate,
+    QuizUpdate,
 )
 
 router = APIRouter(prefix="/api/v1/projects/{project_id}/quizzes", tags=["quizzes"])
@@ -120,7 +118,7 @@ class GenerationProgressUpdate(BaseModel):
     """Progress update for generation streaming."""
     status: str = Field(..., description="Status: searching, generating, saving, done")
     message: str = Field(..., description="Progress message")
-    error: Optional[str] = Field(None, description="Error message if any")
+    error: str | None = Field(None, description="Error message if any")
 
 
 @router.post("/{quiz_id}/generate", response_model=QuizDto)
@@ -164,8 +162,8 @@ async def generate_quiz_stream(
     """Queue quiz generation request with streaming progress updates."""
     # Check usage limit before processing
     usage_service.check_and_increment(current_user.id, "quiz_generation")
-    
-    async def generate_stream() -> AsyncGenerator[bytes, None]:
+
+    async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming progress updates"""
         try:
             # Queuing request
@@ -173,8 +171,8 @@ async def generate_quiz_stream(
                 status="queuing",
                 message="Queuing quiz generation request..."
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
             result = service.queue_generation(
                 quiz_id=quiz_id,
                 project_id=project_id,
@@ -183,29 +181,29 @@ async def generate_quiz_stream(
                 custom_instructions=request.custom_instructions,
                 user_id=current_user.id,
             )
-            
+
             # Done (queued)
             progress = GenerationProgressUpdate(
                 status="done",
                 message="Quiz generation request queued successfully"
             )
-            yield f"data: {progress.model_dump_json()}\n\n".encode("utf-8")
-            
+            yield f"data: {progress.model_dump_json()}\n\n".encode()
+
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing quiz generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
         except Exception as e:
             error_progress = GenerationProgressUpdate(
                 status="done",
                 message="Error queuing quiz generation",
                 error=str(e)
             )
-            yield f"data: {error_progress.model_dump_json()}\n\n".encode("utf-8")
-    
+            yield f"data: {error_progress.model_dump_json()}\n\n".encode()
+
     return StreamingResponse(
         generate_stream(),
         media_type="text/event-stream",

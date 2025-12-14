@@ -1,15 +1,15 @@
 """Service for tracking and enforcing user usage limits."""
 
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from edu_shared.exceptions import UsageLimitExceededError
 from edu_shared.db.models import UserUsage
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.usage import UsageLimitDto, UsageDto
+from edu_shared.exceptions import UsageLimitExceededError
+from edu_shared.schemas.usage import UsageDto, UsageLimitDto
 
 
 class UsageService:
@@ -102,7 +102,7 @@ class UsageService:
                 db.refresh(usage)
             except UsageLimitExceededError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -138,7 +138,7 @@ class UsageService:
                         limit=self.max_document_uploads_per_day,
                     ),
                 )
-            except Exception as e:
+            except Exception:
                 raise
 
     def _get_or_create_usage(self, db: Session, user_id: str) -> UserUsage:
@@ -160,13 +160,13 @@ class UsageService:
                     flashcard_generations_today=0,
                     quiz_generations_today=0,
                     document_uploads_today=0,
-                    last_reset_date=datetime.now(timezone.utc),
+                    last_reset_date=datetime.now(UTC),
                 )
                 db.add(usage)
                 db.commit()
                 db.refresh(usage)
             return usage
-        except Exception as e:
+        except Exception:
             db.rollback()
             raise
 
@@ -182,7 +182,7 @@ class UsageService:
         Returns:
             Updated UserUsage model instance
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         last_reset = usage.last_reset_date
 
         # Check if it's a new day (compare dates, not times)
@@ -195,7 +195,7 @@ class UsageService:
                 usage.last_reset_date = now
                 db.commit()
                 db.refresh(usage)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 

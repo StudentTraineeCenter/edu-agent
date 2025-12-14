@@ -1,8 +1,10 @@
 """Services for managing entities."""
 
-from edu_shared.services.chats import ChatService
-from edu_shared.services.documents import DocumentService
 from edu_shared.exceptions import NotFoundError
+from edu_shared.services.chats import ChatService
+from edu_shared.services.document_processing import DocumentProcessingService
+from edu_shared.services.document_upload import DocumentUploadService
+from edu_shared.services.documents import DocumentService
 from edu_shared.services.flashcard_groups import FlashcardGroupService
 from edu_shared.services.mind_maps import MindMapService
 from edu_shared.services.notes import NoteService
@@ -13,16 +15,15 @@ from edu_shared.services.search import SearchService
 from edu_shared.services.study_sessions import StudySessionService
 from edu_shared.services.usage import UsageService
 from edu_shared.services.users import UserService
-from edu_shared.services.document_processing import DocumentProcessingService
-from edu_shared.services.document_upload import DocumentUploadService
 
 __all__ = [
     "ChatService",
-    "DocumentService",
     "DocumentProcessingService",
+    "DocumentService",
     "DocumentUploadService",
     "FlashcardGroupService",
     "MindMapService",
+    "NotFoundError",
     "NoteService",
     "PracticeService",
     "ProjectService",
@@ -31,6 +32,5 @@ __all__ = [
     "StudySessionService",
     "UsageService",
     "UserService",
-    "NotFoundError",
 ]
 

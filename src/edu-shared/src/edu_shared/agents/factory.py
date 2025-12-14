@@ -1,25 +1,23 @@
 import json
 from typing import Any
 
-from langchain_openai import AzureChatOpenAI
-
+from edu_shared.agents.context import CustomAgentContext, CustomAgentState
+from edu_shared.agents.prompts_utils import render_prompt
+from edu_shared.agents.tools.flashcard import tools as flashcard_tools
+from edu_shared.agents.tools.mind_map import tools as mind_map_tools
+from edu_shared.agents.tools.note import tools as note_tools
+from edu_shared.agents.tools.quiz import tools as quiz_tools
+from edu_shared.agents.tools.rag import tools as rag_tools
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
+    ModelRequest,
     after_model,
     dynamic_prompt,
     wrap_tool_call,
-    ModelRequest,
 )
 from langchain_core.messages import ToolMessage
+from langchain_openai import AzureChatOpenAI
 from langgraph.runtime import Runtime
-
-from edu_shared.agents.context import CustomAgentContext, CustomAgentState
-from edu_shared.agents.prompts_utils import render_prompt
-from edu_shared.agents.tools.rag import tools as rag_tools
-from edu_shared.agents.tools.flashcard import tools as flashcard_tools
-from edu_shared.agents.tools.quiz import tools as quiz_tools
-from edu_shared.agents.tools.note import tools as note_tools
-from edu_shared.agents.tools.mind_map import tools as mind_map_tools
 
 
 @wrap_tool_call

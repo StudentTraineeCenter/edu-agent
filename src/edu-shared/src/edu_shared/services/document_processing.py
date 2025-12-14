@@ -118,7 +118,7 @@ class DocumentProcessingService:
 
                 # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
-            except Exception as e:
+            except Exception:
                 self._mark_document_failed(db=db, document_id=document_id)
                 raise
 

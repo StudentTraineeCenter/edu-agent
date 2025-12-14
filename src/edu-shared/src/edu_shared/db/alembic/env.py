@@ -2,11 +2,13 @@ import os
 from logging.config import fileConfig
 
 from alembic import context
+from edu_shared.db import (
+    models,  # noqa: F401 - Import models to register with Base.metadata
+)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 from edu_shared.db.base import Base
-from edu_shared.db import models  # noqa: F401 - Import models to register with Base.metadata
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides

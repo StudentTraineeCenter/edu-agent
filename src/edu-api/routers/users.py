@@ -1,11 +1,10 @@
 """Router for user operations."""
 
-from fastapi import APIRouter, HTTPException, Depends
-
 from auth import get_current_user
 from dependencies import get_user_service
-from edu_shared.services import NotFoundError, UserService
 from edu_shared.schemas.users import UserDto
+from edu_shared.services import NotFoundError, UserService
+from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 

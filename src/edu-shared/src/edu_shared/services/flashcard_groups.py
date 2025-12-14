@@ -2,21 +2,21 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from edu_shared.db.models import FlashcardGroup, Flashcard
-from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.flashcards import FlashcardGroupDto, FlashcardDto
-from edu_shared.exceptions import NotFoundError
-from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services.search import SearchService
 from langchain_openai import AzureChatOpenAI
-from edu_shared.db.models import Project
+
+from edu_shared.agents.base import ContentAgentConfig
+from edu_shared.agents.flashcard_agent import FlashcardAgent
+from edu_shared.db.models import Flashcard, FlashcardGroup
+from edu_shared.db.session import get_session_factory
+from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
+from edu_shared.services.search import SearchService
 
 if TYPE_CHECKING:
-    from edu_shared.services.queue import QueueService    
+    from edu_shared.services.queue import QueueService
 
 class FlashcardGroupService:
     """Service for managing flashcard groups."""
@@ -29,8 +29,8 @@ class FlashcardGroupService:
         self,
         project_id: str,
         name: str,
-        description: Optional[str] = None,
-        study_session_id: Optional[str] = None,
+        description: str | None = None,
+        study_session_id: str | None = None,
     ) -> FlashcardGroupDto:
         """Create a new flashcard group.
 
@@ -59,7 +59,7 @@ class FlashcardGroupService:
                 db.refresh(flashcard_group)
 
                 return self._model_to_dto(flashcard_group)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -92,12 +92,12 @@ class FlashcardGroupService:
                 return self._model_to_dto(flashcard_group)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_flashcard_groups(
-        self, project_id: str, study_session_id: Optional[str] = None
-    ) -> List[FlashcardGroupDto]:
+        self, project_id: str, study_session_id: str | None = None
+    ) -> list[FlashcardGroupDto]:
         """List all flashcard groups for a project.
 
         Args:
@@ -117,15 +117,15 @@ class FlashcardGroupService:
                     query = query.filter(FlashcardGroup.study_session_id.is_(None))
                 flashcard_groups = query.order_by(FlashcardGroup.created_at.desc()).all()
                 return [self._model_to_dto(group) for group in flashcard_groups]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_flashcard_group(
         self,
         group_id: str,
         project_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        name: str | None = None,
+        description: str | None = None,
     ) -> FlashcardGroupDto:
         """Update a flashcard group.
 
@@ -158,7 +158,7 @@ class FlashcardGroupService:
                     flashcard_group.name = name
                 if description is not None:
                     flashcard_group.description = description
-                
+
                 flashcard_group.updated_at = datetime.now()
 
                 db.commit()
@@ -167,7 +167,7 @@ class FlashcardGroupService:
                 return self._model_to_dto(flashcard_group)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -198,7 +198,7 @@ class FlashcardGroupService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -219,12 +219,12 @@ class FlashcardGroupService:
         group_id: str,
         project_id: str,
         search_service: SearchService,
-        llm: Optional[AzureChatOpenAI] = None,
-        agent_config: Optional[ContentAgentConfig] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
-        count: Optional[int] = None,
-        difficulty: Optional[str] = None,
+        llm: AzureChatOpenAI | None = None,
+        agent_config: ContentAgentConfig | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        count: int | None = None,
+        difficulty: str | None = None,
     ) -> FlashcardGroupDto:
         """Generate flashcards using AI and populate an existing flashcard group.
         
@@ -301,7 +301,7 @@ class FlashcardGroupService:
                 return self._model_to_dto(group)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -312,7 +312,7 @@ class FlashcardGroupService:
         question: str,
         answer: str,
         difficulty_level: str = "medium",
-        position: Optional[int] = None,
+        position: int | None = None,
     ) -> FlashcardDto:
         """Create a new flashcard in a group.
 
@@ -372,7 +372,7 @@ class FlashcardGroupService:
                 return self._flashcard_model_to_dto(flashcard)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -409,12 +409,12 @@ class FlashcardGroupService:
                 return self._flashcard_model_to_dto(flashcard)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_flashcards(
         self, group_id: str, project_id: str
-    ) -> List[FlashcardDto]:
+    ) -> list[FlashcardDto]:
         """List all flashcards in a group.
 
         Args:
@@ -436,7 +436,7 @@ class FlashcardGroupService:
                     .all()
                 )
                 return [self._flashcard_model_to_dto(flashcard) for flashcard in flashcards]
-            except Exception as e:
+            except Exception:
                 raise
 
     def update_flashcard(
@@ -444,10 +444,10 @@ class FlashcardGroupService:
         flashcard_id: str,
         group_id: str,
         project_id: str,
-        question: Optional[str] = None,
-        answer: Optional[str] = None,
-        difficulty_level: Optional[str] = None,
-        position: Optional[int] = None,
+        question: str | None = None,
+        answer: str | None = None,
+        difficulty_level: str | None = None,
+        position: int | None = None,
     ) -> FlashcardDto:
         """Update a flashcard.
 
@@ -495,7 +495,7 @@ class FlashcardGroupService:
                 return self._flashcard_model_to_dto(flashcard)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -530,7 +530,7 @@ class FlashcardGroupService:
                 db.commit()
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -552,11 +552,11 @@ class FlashcardGroupService:
         group_id: str,
         project_id: str,
         queue_service: "QueueService",
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
-        count: Optional[int] = None,
-        difficulty: Optional[str] = None,
-        user_id: Optional[str] = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        count: int | None = None,
+        difficulty: str | None = None,
+        user_id: str | None = None,
     ) -> FlashcardGroupDto:
         """Queue a flashcard generation request to be processed by a worker.
         
@@ -576,11 +576,15 @@ class FlashcardGroupService:
         Raises:
             NotFoundError: If flashcard group not found
         """
-        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, FlashcardGenerationData
-        
+        from edu_shared.schemas.queue import (
+            FlashcardGenerationData,
+            QueueTaskMessage,
+            TaskType,
+        )
+
         # Verify flashcard group exists
         group = self.get_flashcard_group(group_id=group_id, project_id=project_id)
-        
+
         # Prepare task data
         task_data: FlashcardGenerationData = {
             "project_id": project_id,
@@ -596,14 +600,14 @@ class FlashcardGroupService:
             task_data["count"] = count
         if difficulty:
             task_data["difficulty"] = difficulty
-        
+
         # Send message to queue
         task_message: QueueTaskMessage = {
             "type": TaskType.FLASHCARD_GENERATION,
             "data": task_data,
         }
         queue_service.send_message(task_message)
-        
+
         return group
 
     @contextmanager

@@ -1,8 +1,9 @@
 import logging
+
+from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
-from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
             else:
                 serializable_error["ctx"] = str(ctx)
         serializable_errors.append(serializable_error)
-    
+
     logger.warning(
         f"Validation error: {serializable_errors}",
         extra={
@@ -137,7 +138,7 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle general exceptions."""
     logger.error(
-        f"Unhandled exception: {type(exc).__name__}: {str(exc)}",
+        f"Unhandled exception: {type(exc).__name__}: {exc!s}",
         extra={
             "exception_type": type(exc).__name__,
             "exception_message": str(exc),

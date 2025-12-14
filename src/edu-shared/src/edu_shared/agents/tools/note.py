@@ -2,12 +2,12 @@
 
 import asyncio
 import json
-from langchain.tools import tool
-from langgraph.prebuilt import ToolRuntime
 
 from edu_shared.agents.context import CustomAgentContext
-from edu_shared.services.notes import NoteService
 from edu_shared.schemas.notes import NoteDto
+from edu_shared.services.notes import NoteService
+from langchain.tools import tool
+from langgraph.prebuilt import ToolRuntime
 
 
 def build_enhanced_prompt(
@@ -30,7 +30,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
         return
     try:
         usage.check_and_increment(user_id, feature)
-    except Exception as e:
+    except Exception:
         # Log but don't fail
         pass
 
@@ -60,7 +60,7 @@ async def create_note(
         title="Generated Note",
         description="AI-generated study note",
     )
-    
+
     # Then generate and populate it
     result = await svc.generate_and_populate(
         note_id=note.id,
@@ -98,13 +98,13 @@ async def create_note_scoped(
         )
 
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
-    
+
     if not ctx.llm:
         return json.dumps(
             {"error": "LLM not available in context"},
             ensure_ascii=False
         )
-    
+
     svc = NoteService()
     # Create a new note first
     note = svc.create_note(
@@ -112,7 +112,7 @@ async def create_note_scoped(
         title="Generated Note",
         description="AI-generated study note",
     )
-    
+
     # Then generate and populate it
     result = await svc.generate_and_populate(
         note_id=note.id,

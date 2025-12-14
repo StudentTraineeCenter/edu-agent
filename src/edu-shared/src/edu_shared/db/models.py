@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
@@ -211,7 +211,7 @@ class FlashcardGroup(Base):
     )
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    study_session_id: Mapped[Optional[str]] = mapped_column(
+    study_session_id: Mapped[str | None] = mapped_column(
         String,
         ForeignKey("study_sessions.id", ondelete="CASCADE"),
         nullable=True,
@@ -479,7 +479,7 @@ class StudySession(Base):
     )  # Contains flashcards, focus_topics, learning_objectives
     estimated_time_minutes: Mapped[int] = mapped_column(Integer)
     session_length_minutes: Mapped[int] = mapped_column(Integer)  # Requested length
-    focus_topics: Mapped[Optional[list[str]]] = mapped_column(
+    focus_topics: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True
     )  # Optional focus topics
 

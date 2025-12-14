@@ -1,7 +1,6 @@
 """Exceptions for shared services."""
 
 
-from typing import Optional
 
 
 class NotFoundError(Exception):
@@ -20,7 +19,7 @@ class UsageLimitExceededError(Exception):
         usage_type: str,
         current_count: int,
         limit: int,
-        message: Optional[str] = None,
+        message: str | None = None,
     ):
         self.usage_type = usage_type
         self.current_count = current_count

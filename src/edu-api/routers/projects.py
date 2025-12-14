@@ -1,12 +1,12 @@
 """Router for project CRUD operations."""
 
-from fastapi import APIRouter, HTTPException, Depends
-
 from auth import get_current_user
 from dependencies import get_project_service
-from edu_shared.services import NotFoundError, ProjectService
 from edu_shared.schemas.projects import ProjectDto
 from edu_shared.schemas.users import UserDto
+from edu_shared.services import NotFoundError, ProjectService
+from fastapi import APIRouter, Depends, HTTPException
+
 from routers.schemas import ProjectCreate, ProjectUpdate
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])

@@ -2,18 +2,18 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
+
+from langchain_openai import AzureChatOpenAI
 
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.agents.mind_map_agent import MindMapAgent
-from langchain_openai import AzureChatOpenAI
-from edu_shared.db.models import MindMap
+from edu_shared.db.models import MindMap, Project
 from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.mind_maps import MindMapDto
 from edu_shared.exceptions import NotFoundError
+from edu_shared.schemas.mind_maps import MindMapDto
 from edu_shared.services.search import SearchService
-from edu_shared.db.models import Project
 
 if TYPE_CHECKING:
     from edu_shared.services.queue import QueueService
@@ -31,8 +31,8 @@ class MindMapService:
         user_id: str,
         project_id: str,
         title: str,
-        description: Optional[str] = None,
-        map_data: Optional[dict[str, Any]] = None,
+        description: str | None = None,
+        map_data: dict[str, Any] | None = None,
     ) -> MindMapDto:
         """Create a new mind map.
 
@@ -63,7 +63,7 @@ class MindMapService:
                 db.refresh(mind_map)
 
                 return self._model_to_dto(mind_map)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -100,12 +100,12 @@ class MindMapService:
                 return self._model_to_dto(mind_map)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 raise
 
     def list_mind_maps(
         self, project_id: str, user_id: str
-    ) -> List[MindMapDto]:
+    ) -> list[MindMapDto]:
         """List all mind maps for a project.
 
         Args:
@@ -127,7 +127,7 @@ class MindMapService:
                     .all()
                 )
                 return [self._model_to_dto(m) for m in mind_maps]
-            except Exception as e:
+            except Exception:
                 raise
 
     def _model_to_dto(self, mind_map: MindMap) -> MindMapDto:
@@ -148,10 +148,10 @@ class MindMapService:
         user_id: str,
         project_id: str,
         search_service: SearchService,
-        llm: Optional[AzureChatOpenAI] = None,
-        agent_config: Optional[ContentAgentConfig] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
+        llm: AzureChatOpenAI | None = None,
+        agent_config: ContentAgentConfig | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
     ) -> MindMapDto:
         """Generate a mind map using AI.
         
@@ -222,7 +222,7 @@ class MindMapService:
                 db.refresh(mind_map)
 
                 return self._model_to_dto(mind_map)
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -232,10 +232,10 @@ class MindMapService:
         project_id: str,
         user_id: str,
         search_service: SearchService,
-        llm: Optional[AzureChatOpenAI] = None,
-        agent_config: Optional[ContentAgentConfig] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
+        llm: AzureChatOpenAI | None = None,
+        agent_config: ContentAgentConfig | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
     ) -> MindMapDto:
         """Generate mind map content using AI and populate an existing mind map.
         
@@ -308,14 +308,14 @@ class MindMapService:
                 mind_map.description = result.description
                 mind_map.map_data = map_data
                 mind_map.updated_at = datetime.now()
-                
+
                 db.commit()
                 db.refresh(mind_map)
 
                 return self._model_to_dto(mind_map)
             except NotFoundError:
                 raise
-            except Exception as e:
+            except Exception:
                 db.rollback()
                 raise
 
@@ -324,9 +324,9 @@ class MindMapService:
         user_id: str,
         project_id: str,
         queue_service: "QueueService",
-        mind_map_id: Optional[str] = None,
-        topic: Optional[str] = None,
-        custom_instructions: Optional[str] = None,
+        mind_map_id: str | None = None,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
     ) -> MindMapDto:
         """Queue a mind map generation request to be processed by a worker.
         
@@ -344,8 +344,12 @@ class MindMapService:
         Raises:
             NotFoundError: If mind_map_id is provided but mind map not found
         """
-        from edu_shared.schemas.queue import QueueTaskMessage, TaskType, MindMapGenerationData
-        
+        from edu_shared.schemas.queue import (
+            MindMapGenerationData,
+            QueueTaskMessage,
+            TaskType,
+        )
+
         # If mind_map_id is provided, verify it exists
         if mind_map_id:
             mind_map = self.get_mind_map(
@@ -363,7 +367,7 @@ class MindMapService:
                 map_data={"nodes": [], "edges": []},
             )
             mind_map_id = mind_map.id
-        
+
         # Prepare task data
         task_data: MindMapGenerationData = {
             "project_id": project_id,
@@ -374,14 +378,14 @@ class MindMapService:
             task_data["topic"] = topic
         if custom_instructions:
             task_data["custom_instructions"] = custom_instructions
-        
+
         # Send message to queue
         task_message: QueueTaskMessage = {
             "type": TaskType.MIND_MAP_GENERATION,
             "data": task_data,
         }
         queue_service.send_message(task_message)
-        
+
         return mind_map
 
     @contextmanager
