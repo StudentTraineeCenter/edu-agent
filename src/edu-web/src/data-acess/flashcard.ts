@@ -30,31 +30,31 @@ export const flashcardGroupsAtom = Atom.family((projectId: string) =>
   ).pipe(Atom.keepAlive),
 )
 
-export const flashcardGroupAtom = Atom.family(
-  (input: { projectId: string; flashcardGroupId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
-        const { apiClient } = yield* ApiClientService
-        return yield* apiClient.getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet(
-          input.projectId,
-          input.flashcardGroupId,
-        )
-      }).pipe(Effect.provide(ApiClientService.Default)),
-    ).pipe(Atom.keepAlive),
-)
+export const flashcardGroupAtom = Atom.family((input: string) => {
+  const [projectId, flashcardGroupId] = input.split(':')
+  return Atom.make(
+    Effect.gen(function* () {
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.getFlashcardGroupApiV1ProjectsProjectIdFlashcardGroupsGroupIdGet(
+        projectId,
+        flashcardGroupId,
+      )
+    }).pipe(Effect.provide(ApiClientService.Default)),
+  ).pipe(Atom.keepAlive)
+})
 
-export const flashcardsAtom = Atom.family(
-  (input: { projectId: string; flashcardGroupId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
-        const { apiClient } = yield* ApiClientService
-        return yield* apiClient.listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet(
-          input.projectId,
-          input.flashcardGroupId,
-        )
-      }).pipe(Effect.provide(ApiClientService.Default)),
-    ).pipe(Atom.keepAlive),
-)
+export const flashcardsAtom = Atom.family((input: string) => {
+  const [projectId, flashcardGroupId] = input.split(':')
+  return Atom.make(
+    Effect.gen(function* () {
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.listFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdFlashcardsGet(
+        projectId,
+        flashcardGroupId,
+      )
+    }).pipe(Effect.provide(ApiClientService.Default)),
+  ).pipe(Atom.keepAlive)
+})
 
 const FlashcardProgressUpdate = Schema.Struct({
   status: Schema.String,
@@ -231,10 +231,7 @@ export const createFlashcardAtom = runtime.fn(
       )
 
     registry.refresh(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
     return resp
   }),
@@ -264,10 +261,7 @@ export const updateFlashcardAtom = runtime.fn(
       )
 
     registry.refresh(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
     return resp
   }),
@@ -287,10 +281,7 @@ export const reorderFlashcardsAtom = runtime.fn(
     // const resp = yield* client.reorderFlashcards(...)
 
     registry.refresh(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
     // return resp.data
     throw new Error('Flashcard reordering not supported in current API')
@@ -312,10 +303,7 @@ export const deleteFlashcardAtom = runtime.fn(
     )
 
     registry.refresh(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
   }),
 )

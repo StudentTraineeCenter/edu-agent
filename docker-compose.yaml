@@ -10,9 +10,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/postgres
-      - SUPABASE_JWT_SECRET=l8ud9Kh4GQrFP/xdbiovT58fe+wu+5VocTEqwUUcu1XnwhjEB6XhAdK/lrsXQ6Tp6IzurWsj0ckQEX7dMka0RA==
+      - AZURE_CLIENT_ID=30ed8f6e-6076-4e68-acb3-225c1972cb32
+      - AZURE_KEY_VAULT_URI=https://kv-eduagent-dev-swc-4xae.vault.azure.net/
     depends_on:
       - db
       - azurite
@@ -28,8 +27,8 @@ services:
       context: .
       dockerfile: src/edu-worker/Dockerfile
     environment:
-      # Must match the API connection string exactly
-      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      - AZURE_KEY_VAULT_URI=https://kv-eduagent-dev-swc-4xae.vault.azure.net/
+      - AZURE_CLIENT_ID=30ed8f6e-6076-4e68-acb3-225c1972cb32
     depends_on:
       - azurite
       - db

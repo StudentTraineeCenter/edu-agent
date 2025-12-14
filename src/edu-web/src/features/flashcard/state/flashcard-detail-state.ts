@@ -13,6 +13,14 @@ const runtime = makeAtomRuntime(
   ),
 )
 
+type FlashcardGroupKeyParams = {
+  projectId: string
+  flashcardGroupId: string
+}
+
+type FlashcardGroupKey =
+  `${FlashcardGroupKeyParams['projectId']}:${FlashcardGroupKeyParams['flashcardGroupId']}`
+
 type CardId = string
 
 export type FlashcardDetailState = {
@@ -21,6 +29,7 @@ export type FlashcardDetailState = {
   readonly showAnswer: boolean
   readonly pendingPracticeRecords: Record<string, PracticeRecordCreate>
   readonly isCompleted: boolean
+  readonly isReady: boolean // Whether the queue has been initialized at least once
   // Progress within this session
   readonly sessionCorrectIds: ReadonlySet<CardId>
   readonly sessionWrongIds: ReadonlySet<CardId>
@@ -54,6 +63,7 @@ const initialState: FlashcardDetailState = {
   showAnswer: false,
   pendingPracticeRecords: {},
   isCompleted: false,
+  isReady: false,
   sessionCorrectIds: new Set(),
   sessionWrongIds: new Set(),
   initialCardIds: new Set(),
@@ -86,6 +96,7 @@ export const flashcardDetailStateAtom = Atom.family(
                 currentCardId: queue.length > 0 ? queue[0] : null,
                 showAnswer: false,
                 initialCardIds,
+                isReady: true,
               }
             },
             SetCurrentCardId: ({ cardId }) => {
@@ -154,6 +165,7 @@ export const flashcardDetailStateAtom = Atom.family(
                 queue: shuffled,
                 initialCardIds: new Set(wrongIdsArray),
                 currentCardId: shuffled.length > 0 ? shuffled[0] : null,
+                isReady: true,
               }
             },
             Reset: () => {
@@ -194,68 +206,84 @@ export const flashcardStatsAtom = Atom.family((flashcardGroupId: string) =>
   ),
 )
 
-export const currentFlashcardAtom = Atom.family(
-  (input: { projectId: string; flashcardGroupId: string }) =>
-    Atom.make(
-      Effect.fn(function* (get) {
-        const state = get(flashcardDetailStateAtom(input.flashcardGroupId))
-        const flashcardsResult = get(flashcardsAtom(input))
+const currentFlashcardAtomFamily = Atom.family((key: FlashcardGroupKey) => {
+  const [, flashcardGroupId] = key.split(':')
+  return Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(flashcardDetailStateAtom(flashcardGroupId))
+      const flashcardsResult = get(flashcardsAtom(key))
 
-        if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
-          return null
-        }
+      if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
+        return null
+      }
 
-        const { currentCardId } = state.value
-        if (!currentCardId) {
-          console.log('No currentCardId in state', {
-            flashcardGroupId: input.flashcardGroupId,
-            queueLength: state.value.queue.length,
-          })
-          return null
-        }
+      const { currentCardId } = state.value
+      if (!currentCardId) {
+        console.log('No currentCardId in state', {
+          flashcardGroupId,
+          queueLength: state.value.queue.length,
+        })
+        return null
+      }
 
-        const flashcards = flashcardsResult.value
-        const card = flashcards.find((f) => f.id === currentCardId)
+      const flashcards = flashcardsResult.value
+      const card = flashcards.find((f) => f.id === currentCardId)
 
-        if (!card) {
-          console.warn('Current card not found in flashcards', {
-            currentCardId,
-            flashcardGroupId: input.flashcardGroupId,
-            availableIds: flashcards.map((f) => f.id).slice(0, 5),
-            totalFlashcards: flashcards.length,
-          })
-        }
+      if (!card) {
+        console.warn('Current card not found in flashcards', {
+          currentCardId,
+          flashcardGroupId,
+          availableIds: flashcards.map((f) => f.id).slice(0, 5),
+          totalFlashcards: flashcards.length,
+        })
+      }
 
-        return card ?? null
-      }),
-    ),
-)
+      return card ?? null
+    }),
+  )
+})
 
-export const answeredCardsAtom = Atom.family(
-  (input: { projectId: string; flashcardGroupId: string }) =>
-    Atom.make(
-      Effect.fn(function* (get) {
-        const state = get(flashcardDetailStateAtom(input.flashcardGroupId))
-        const flashcardsResult = get(flashcardsAtom(input))
+export const currentFlashcardAtom = ({
+  projectId,
+  flashcardGroupId,
+}: FlashcardGroupKeyParams) => {
+  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
+  return currentFlashcardAtomFamily(key)
+}
 
-        if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
-          return { correct: [], incorrect: [] }
-        }
+const answeredCardsAtomFamily = Atom.family((key: FlashcardGroupKey) => {
+  const [, flashcardGroupId] = key.split(':')
+  return Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(flashcardDetailStateAtom(flashcardGroupId))
+      const flashcardsResult = get(flashcardsAtom(key))
 
-        const flashcards = flashcardsResult.value
-        const { sessionCorrectIds, sessionWrongIds } = state.value
+      if (Option.isNone(state) || !Result.isSuccess(flashcardsResult)) {
+        return { correct: [], incorrect: [] }
+      }
 
-        const correct = flashcards.filter((f: { id: string }) =>
-          sessionCorrectIds.has(f.id),
-        )
-        const incorrect = flashcards.filter((f: { id: string }) =>
-          sessionWrongIds.has(f.id),
-        )
+      const flashcards = flashcardsResult.value
+      const { sessionCorrectIds, sessionWrongIds } = state.value
 
-        return { correct, incorrect }
-      }),
-    ),
-)
+      const correct = flashcards.filter((f: { id: string }) =>
+        sessionCorrectIds.has(f.id),
+      )
+      const incorrect = flashcards.filter((f: { id: string }) =>
+        sessionWrongIds.has(f.id),
+      )
+
+      return { correct, incorrect }
+    }),
+  )
+})
+
+export const answeredCardsAtom = ({
+  projectId,
+  flashcardGroupId,
+}: FlashcardGroupKeyParams) => {
+  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
+  return answeredCardsAtomFamily(key)
+}
 
 export const setShowAnswerAtom = runtime.fn(
   Effect.fn(function* (input: { flashcardGroupId: string; show: boolean }) {
@@ -384,10 +412,9 @@ export const initializeQueueAtom = runtime.fn(
     const registry = yield* Registry.AtomRegistry
 
     // Get flashcards atom and wait for it to be ready
-    const flashcardsAtomInstance = flashcardsAtom({
-      projectId: input.projectId,
-      flashcardGroupId: input.flashcardGroupId,
-    })
+    const flashcardsAtomInstance = flashcardsAtom(
+      `${input.projectId}:${input.flashcardGroupId}`,
+    )
 
     // Wait for flashcards to load
     const flashcardsResult = yield* Effect.gen(function* () {
@@ -477,10 +504,7 @@ export const gotItRightAtom = runtime.fn(
     if (!currentCardId) return
 
     const flashcardsResult = registry.get(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
     if (!Result.isSuccess(flashcardsResult)) return
 
@@ -541,10 +565,7 @@ export const gotItWrongAtom = runtime.fn(
     if (!currentCardId) return
 
     const flashcardsResult = registry.get(
-      flashcardsAtom({
-        projectId: input.projectId,
-        flashcardGroupId: input.flashcardGroupId,
-      }),
+      flashcardsAtom(`${input.projectId}:${input.flashcardGroupId}`),
     )
     if (!Result.isSuccess(flashcardsResult)) return
 

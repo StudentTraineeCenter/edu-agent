@@ -34,9 +34,9 @@ export const FlashcardContent = ({
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
 
-  if (!state) {
+  if (!state || !state.isReady) {
     return (
-      <div className="flex flex-1 items-center justify-center gap-2 text-muted-foreground">
+      <div className="flex flex-1 items-center justify-center min-h-screen gap-2 text-muted-foreground">
         <Loader2Icon className="size-4 animate-spin" />
         <span>Loading flashcards...</span>
       </div>
@@ -59,7 +59,7 @@ export const FlashcardContent = ({
 
   if (!currentCard) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center min-h-screen">
         <p className="text-muted-foreground">No flashcards available</p>
       </div>
     )

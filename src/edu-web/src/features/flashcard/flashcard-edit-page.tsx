@@ -68,9 +68,11 @@ const FlashcardHeaderContent = ({
   projectId: string
   flashcardGroupId: string
 }) => {
-  const groupResult = useAtomValue(
-    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  const flashcardGroupKey = useMemo(
+    () => `${projectId}:${flashcardGroupId}`,
+    [projectId, flashcardGroupId],
   )
+  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupKey))
 
   return Result.builder(groupResult)
     .onSuccess((res) => (
@@ -103,12 +105,12 @@ export const FlashcardEditPage = ({
   flashcardGroupId,
   projectId,
 }: FlashcardEditPageProps) => {
-  const flashcardsResult = useAtomValue(
-    flashcardsAtom({ projectId, flashcardGroupId }),
+  const flashcardGroupKey = useMemo(
+    () => `${projectId}:${flashcardGroupId}`,
+    [projectId, flashcardGroupId],
   )
-  const groupResult = useAtomValue(
-    flashcardGroupAtom({ projectId, flashcardGroupId }),
-  )
+  const flashcardsResult = useAtomValue(flashcardsAtom(flashcardGroupKey))
+  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupKey))
   const [createFlashcardResult, createFlashcard] = useAtom(
     createFlashcardAtom,
     { mode: 'promise' },

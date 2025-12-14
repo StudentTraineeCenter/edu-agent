@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Shuffle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string
@@ -24,9 +25,11 @@ const FlashcardHeaderContent = ({
   flashcardGroupId,
   projectId,
 }: FlashcardHeaderContentProps & { projectId: string }) => {
-  const groupResult = useAtomValue(
-    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  const flashcardGroupKey = useMemo(
+    () => `${projectId}:${flashcardGroupId}`,
+    [projectId, flashcardGroupId],
   )
+  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupKey))
 
   return Result.builder(groupResult)
     .onSuccess((res) => (
@@ -64,9 +67,11 @@ export const FlashcardHeader = ({
   flashcardGroupId,
   projectId,
 }: FlashcardHeaderProps) => {
-  const groupResult = useAtomValue(
-    flashcardGroupAtom({ projectId, flashcardGroupId }),
+  const flashcardGroupKey = useMemo(
+    () => `${projectId}:${flashcardGroupId}`,
+    [projectId, flashcardGroupId],
   )
+  const groupResult = useAtomValue(flashcardGroupAtom(flashcardGroupKey))
   const initializeQueue = useAtomSet(initializeQueueAtom, {
     mode: 'promise',
   })
