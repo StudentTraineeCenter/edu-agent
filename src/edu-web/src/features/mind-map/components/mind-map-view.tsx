@@ -94,11 +94,9 @@ function convertToTree(
 const MindMapNode = ({
   data,
   depth = 0,
-  isLast = false,
 }: {
   data: MindMapNodeData
   depth?: number
-  isLast?: boolean
 }) => {
   const [isExpanded, setIsExpanded] = useState(true)
   const hasChildren = data.children && data.children.length > 0
@@ -185,11 +183,7 @@ const MindMapNode = ({
                 <div className="absolute -left-[33px] top-1/2 h-full w-1 bg-background" />
               )}
 
-              <MindMapNode
-                data={child}
-                depth={depth + 1}
-                isLast={index === data.children!.length - 1}
-              />
+              <MindMapNode data={child} depth={depth + 1} />
             </div>
           ))}
         </div>
