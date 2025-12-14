@@ -1,0 +1,47 @@
+exclude = ["server"]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Changed comment to match your setting.
+target-version = "py313"
+
+[lint]
+# Best Practice Rulesets:
+# E, W: pycodestyle (standard linting)
+# F: Pyflakes (standard linting)
+# I: isort (sorts imports automatically)
+# B: flake8-bugbear (finds potential bugs and design problems)
+# UP: pyupgrade (keeps your syntax modern, e.g. f-strings)
+# SIM: flake8-simplify (suggests simplifications)
+# RUF: Ruff-specific rules (high quality custom checks)
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+# Ignore rules that conflict with the formatter
+# E501: Line too long (Ruff formatter handles this, so the linter doesn't need to complain)
+ignore = ["E501", "UP007"]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[lint.per-file-ignores]
+# Ignore "unused imports" in __init__.py files, as they are often intentional exports.
+"__init__.py" = ["F401"]
+
+[format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
