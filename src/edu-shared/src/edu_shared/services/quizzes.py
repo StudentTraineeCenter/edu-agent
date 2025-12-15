@@ -236,7 +236,9 @@ class QuizService:
 
                 # Get project language code
                 project = db.query(Project).filter(Project.id == project_id).first()
-                language_code = getattr(project, "language_code", "en") if project else "en"
+                if not project:
+                    raise NotFoundError(f"Project {project_id} not found")
+                language_code = project.language_code
 
                 # Generate quiz using AI
                 quiz_agent = QuizAgent(
@@ -250,8 +252,8 @@ class QuizService:
                 result = await quiz_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
-                    custom_instructions=custom_instructions,
                     language_code=language_code,
+                    custom_instructions=custom_instructions,
                     **kwargs,
                 )
 

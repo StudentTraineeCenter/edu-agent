@@ -170,7 +170,9 @@ class MindMapService:
             try:
                 # Get project language code
                 project = db.query(Project).filter(Project.id == project_id).first()
-                language_code = getattr(project, "language_code", "en") if project else "en"
+                if not project:
+                    raise NotFoundError(f"Project {project_id} not found")
+                language_code = project.language_code
 
                 # Generate mind map using AI
                 mind_map_agent = MindMapAgent(
@@ -181,8 +183,8 @@ class MindMapService:
                 result = await mind_map_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
-                    custom_instructions=custom_instructions,
                     language_code=language_code,
+                    custom_instructions=custom_instructions,
                 )
 
                 # Convert agent result to map_data format
@@ -278,8 +280,8 @@ class MindMapService:
                 result = await mind_map_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
-                    custom_instructions=custom_instructions,
                     language_code=language_code,
+                    custom_instructions=custom_instructions,
                 )
 
                 # Convert agent result to map_data format

@@ -9,7 +9,7 @@ from langchain_openai import AzureChatOpenAI
 
 from edu_shared.agents.base import ContentAgentConfig
 from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.db.models import Flashcard, FlashcardGroup
+from edu_shared.db.models import Flashcard, FlashcardGroup, Project
 from edu_shared.db.session import get_session_factory
 from edu_shared.exceptions import NotFoundError
 from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
@@ -247,6 +247,19 @@ class FlashcardGroupService:
         with self._get_db_session() as db:
             try:
                 # Find existing flashcard group
+                project = db.query(Project).filter(Project.id == project_id).first()
+                if not project:
+                    raise NotFoundError(f"Project {project_id} not found")
+                
+                language_code = project.language_code
+                
+                group = db.query(FlashcardGroup).filter(
+                    FlashcardGroup.id == group_id,
+                    FlashcardGroup.project_id == project_id,
+                ).first()
+                if not group:
+                    raise NotFoundError(f"Flashcard group {group_id} not found")
+
                 group = db.query(FlashcardGroup).filter(
                     FlashcardGroup.id == group_id,
                     FlashcardGroup.project_id == project_id,
@@ -268,6 +281,7 @@ class FlashcardGroupService:
                 result = await flashcard_agent.generate(
                     project_id=project_id,
                     topic=topic or "",
+                    language_code=language_code,
                     custom_instructions=custom_instructions,
                     **kwargs,
                 )

@@ -69,8 +69,8 @@ class BaseContentAgent(ABC, Generic[T]):
         self,
         project_id: str,
         topic: str,
+        language_code: str,
         custom_instructions: str | None = None,
-        language_code: str | None = None,
         **kwargs: Any
     ) -> T:
         """
