@@ -36,17 +36,16 @@ EduAgent helps students study course materials through intelligent document proc
 
 ## ✨ Features
 
-- **📄 Document Processing** - Upload PDF, DOCX, TXT, and RTF files with automatic text extraction and semantic search
-- **💬 AI Chat Tutor** - Interactive conversations with an AI assistant that understands your course materials
-- **📝 Auto-Generated Quizzes** - AI-powered multiple-choice questions based on your documents
-- **🎴 Smart Flashcards** - Automatically generated flashcard sets for efficient studying
-- **📝 AI-Generated Notes** - Create comprehensive study notes from your documents with AI assistance
-- **🗺️ Mind Maps** - Visual knowledge maps generated from your course materials
-- **📋 Study Plans** - Personalized study plans based on your performance and progress
-- **📊 Study Tracking** - Monitor your progress with detailed attempt tracking and analytics
-- **🌐 Multi-language Support** - Study materials in multiple languages
-- **🔐 Supabase Authentication** - Secure authentication and authorization
-- **🔍 Semantic Search** - Vector-based search across your documents using PostgreSQL pgvector
+- **📂 Project-Based Workspaces** - Organize everything into projects that group documents, chats, quizzes, flashcards, notes, mind maps, and practice history
+- **📄 Document Pipeline** - Upload PDF, DOCX, TXT, and RTF, process them via Azure Content Understanding, and chunk + embed them into PostgreSQL pgvector
+- **🔍 RAG-Powered Semantic Search** - Query your own materials with vector search and filtering by project/document
+- **💬 AI Chat Tutor** - Chat with an AI that uses RAG over your project documents and can call tools for quizzes, flashcards, notes, and more
+- **📝 Auto-Generated Quizzes** - Generate and regenerate MCQ quizzes from any project or document with answer checking and attempt tracking
+- **🎴 Smart Flashcards** - Create flashcard groups from documents or quizzes, with simple progress tracking per flashcard
+- **📝 AI-Generated Notes** - Turn dense readings into structured summaries and study notes per project/document
+- **🗺️ Mind Maps** - Build AI-generated concept maps that visualize the relationships inside a project’s materials
+- **🎯 Adaptive Practice Sessions** - Run study sessions that mix flashcards and quizzes, with practice records and basic analytics
+- **🔐 Supabase Auth + Usage Limits** - Supabase-backed authentication with per-user daily limits for chats, generations, and uploads
 
 ## 🏗️ Tech Stack
 
