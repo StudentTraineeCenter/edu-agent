@@ -6,9 +6,10 @@ from auth import get_current_user
 from dependencies import (
     get_note_service,
 )
-from edu_shared.schemas.notes import NoteDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import NoteService, NotFoundError
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.notes import NoteDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import NoteService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field

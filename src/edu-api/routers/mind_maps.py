@@ -7,9 +7,10 @@ from dependencies import (
     get_mind_map_service,
     get_usage_service,
 )
-from edu_shared.schemas.mind_maps import MindMapDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import MindMapService, NotFoundError, UsageService
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.mind_maps import MindMapDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import MindMapService, UsageService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field

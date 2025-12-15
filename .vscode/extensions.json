@@ -5,7 +5,6 @@
     "charliermarsh.ruff",
     "tamasfe.even-better-toml",
     "aaron-bond.better-comments",
-    "biener.markdown-mermaid",
-    "postman.postman-for-vscode"
+    "biener.markdown-mermaid"
   ]
 }

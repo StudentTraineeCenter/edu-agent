@@ -7,9 +7,10 @@ from dependencies import (
     get_quiz_service,
     get_usage_service,
 )
-from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import NotFoundError, QuizService, UsageService
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.quizzes import QuizDto, QuizQuestionDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import QuizService, UsageService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field

@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from edu_shared.keyvault import KeyVaultSettingsSource
+from edu_core.keyvault import KeyVaultSettingsSource
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,7 +48,9 @@ class Settings(BaseSettings):
     ):
         """Customize settings sources to include Key Vault (highest priority)."""
         return (
-            KeyVaultSettingsSource(settings_cls, "https://kv-eduagent-dev-swc-fzgz.vault.azure.net/"),  # Key Vault first (highest priority)
+            KeyVaultSettingsSource(
+                settings_cls, "https://kv-eduagent-dev-swc-fzgz.vault.azure.net/"
+            ),  # Key Vault first (highest priority)
             init_settings,
             env_settings,
             dotenv_settings,

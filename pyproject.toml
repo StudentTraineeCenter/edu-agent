@@ -11,5 +11,8 @@ members = [
     "src/edu-api",
     "src/edu-worker",
     "src/edu-shared",
+    "src/shared/core",
+    "src/shared/ai",
+    "src/shared/queue",
     "deploy/azure",
 ]

@@ -3,9 +3,9 @@
 from contextlib import contextmanager
 from uuid import uuid4
 
-from edu_shared.db.models import Flashcard, PracticeRecord, QuizQuestion
-from edu_shared.db.session import get_session_factory
-from edu_shared.schemas.practice import PracticeRecordDto
+from edu_core.db.models import Flashcard, PracticeRecord, QuizQuestion
+from edu_core.db.session import get_session_factory
+from edu_core.schemas.practice import PracticeRecordDto
 
 
 class PracticeService:

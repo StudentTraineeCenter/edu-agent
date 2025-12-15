@@ -1,5 +1,12 @@
-import { useAuth } from '@/hooks/use-auth'
-import { useTheme } from '@/providers/theme-provider'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -7,8 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -16,21 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Progress } from '@/components/ui/progress'
-import { useConfirmationDialog } from '@/components/confirmation-dialog'
+import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb'
-import { useAtomValue } from '@effect-atom/atom-react'
 import { usageAtom } from '@/data-acess/usage'
-import { Result } from '@effect-atom/atom-react'
+import { useAuth } from '@/hooks/use-auth'
+import { useTheme } from '@/providers/theme-provider'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Loader2Icon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
-import { Trash2Icon, Loader2Icon } from 'lucide-react'
 
 export function SettingsPage() {
   const { user } = useAuth()
@@ -232,7 +231,9 @@ export function SettingsPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">Mind Map Generations</span>
+                        <span className="font-medium">
+                          Mind Map Generations
+                        </span>
                         <span className="text-muted-foreground">
                           {usage.mindmap_generations.used} /{' '}
                           {usage.mindmap_generations.limit}

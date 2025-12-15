@@ -1,13 +1,13 @@
 import json
 from typing import Any
 
-from edu_shared.agents.context import CustomAgentContext, CustomAgentState
-from edu_shared.agents.prompts_utils import render_prompt
-from edu_shared.agents.tools.flashcard import tools as flashcard_tools
-from edu_shared.agents.tools.mind_map import tools as mind_map_tools
-from edu_shared.agents.tools.note import tools as note_tools
-from edu_shared.agents.tools.quiz import tools as quiz_tools
-from edu_shared.agents.tools.rag import tools as rag_tools
+from edu_ai.agents.context import CustomAgentContext, CustomAgentState
+from edu_ai.agents.prompts_utils import render_prompt
+from edu_ai.agents.tools.flashcard import tools as flashcard_tools
+from edu_ai.agents.tools.mind_map import tools as mind_map_tools
+from edu_ai.agents.tools.note import tools as note_tools
+from edu_ai.agents.tools.quiz import tools as quiz_tools
+from edu_ai.agents.tools.rag import tools as rag_tools
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
     ModelRequest,

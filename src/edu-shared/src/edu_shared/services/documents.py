@@ -4,10 +4,10 @@ from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
-from edu_shared.db.models import Document
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import NotFoundError
-from edu_shared.schemas.documents import DocumentDto, DocumentStatus
+from edu_core.db.models import Document
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.documents import DocumentDto, DocumentStatus
 
 
 class DocumentService:

@@ -2,10 +2,10 @@
 
 from contextlib import contextmanager
 
-from edu_shared.db.models import User
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import NotFoundError
-from edu_shared.schemas.users import UserDto
+from edu_core.db.models import User
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.users import UserDto
 
 
 class UserService:

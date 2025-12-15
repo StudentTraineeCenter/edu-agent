@@ -2,14 +2,16 @@
 
 from auth import get_current_user
 from dependencies import get_practice_service
-from edu_shared.schemas.practice import PracticeRecordDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import PracticeService
+from edu_core.schemas.practice import PracticeRecordDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import PracticeService
 from fastapi import APIRouter, Depends, HTTPException
 
 from routers.schemas import PracticeRecordBatchCreate, PracticeRecordCreate
 
-router = APIRouter(prefix="/api/v1/projects/{project_id}/practice-records", tags=["practice-records"])
+router = APIRouter(
+    prefix="/api/v1/projects/{project_id}/practice-records", tags=["practice-records"]
+)
 
 
 @router.get("", response_model=list[PracticeRecordDto])
@@ -80,4 +82,3 @@ async def create_practice_records_batch(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

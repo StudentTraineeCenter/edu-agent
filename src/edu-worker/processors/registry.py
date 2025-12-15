@@ -1,7 +1,8 @@
 """Processor registry for mapping task types to processors."""
 
-from edu_shared.schemas.queue import TaskType
-from edu_shared.services.search import SearchService
+from edu_core.services.search import SearchService
+from edu_queue.schemas import TaskType
+
 from processors.base import BaseProcessor
 from processors.chat_title import ChatTitleProcessor
 from processors.document import DocumentProcessor
@@ -29,7 +30,7 @@ class ProcessorRegistry:
         azure_openai_embedding_deployment: str,
     ):
         """Initialize the registry with required services.
-        
+
         Args:
             search_service: SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -57,13 +58,13 @@ class ProcessorRegistry:
 
     def get_processor(self, task_type: TaskType) -> BaseProcessor:
         """Get processor for a task type.
-        
+
         Args:
             task_type: The task type
-            
+
         Returns:
             Processor instance for the task type
-            
+
         Raises:
             ValueError: If task type is unknown
         """

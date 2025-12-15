@@ -4,15 +4,15 @@ from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from edu_shared.agents.prompts_utils import render_prompt
-from edu_shared.db.session import get_session_factory
+from edu_ai.agents.prompts_utils import render_prompt
+from edu_core.db.session import get_session_factory
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
-    from edu_shared.services.search import SearchService
+    from edu_core.services.search import SearchService
 
 logger = logging.getLogger(__name__)
 

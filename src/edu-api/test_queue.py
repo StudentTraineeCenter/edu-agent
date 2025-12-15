@@ -1,8 +1,12 @@
 from uuid import uuid4
 
 from config import get_settings
-from edu_shared.schemas.queue import FlashcardGenerationData, QueueTaskMessage, TaskType
-from edu_shared.services.queue import QueueService
+from edu_queue.schemas import (
+    FlashcardGenerationData,
+    QueueTaskMessage,
+    TaskType,
+)
+from edu_queue.service import QueueService
 from rich.console import Console
 
 console = Console(force_terminal=True)
@@ -21,7 +25,9 @@ def main():
     # Note: group_id is now required - the flashcard group should already exist in the database
     task_data: FlashcardGenerationData = {
         "project_id": str(uuid4()),
-        "group_id": str(uuid4()),  # This should be an existing group_id from the database
+        "group_id": str(
+            uuid4()
+        ),  # This should be an existing group_id from the database
         "user_id": str(uuid4()),
         "topic": "Machine Learning Fundamentals",
         "custom_instructions": "Create flashcards for the topic of Machine Learning Fundamentals",

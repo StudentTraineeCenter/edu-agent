@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from edu_shared.db.models import StudySession
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import NotFoundError
-from edu_shared.schemas.study_sessions import StudySessionDto
+from edu_core.db.models import StudySession
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.study_sessions import StudySessionDto
 
 
 class StudySessionService:

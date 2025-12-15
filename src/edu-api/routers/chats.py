@@ -10,14 +10,15 @@ from dependencies import (
     get_queue_service,
     get_usage_service,
 )
-from edu_shared.schemas.chats import (
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.chats import (
     ChatDto,
     SourceDto,
     StreamingChatMessage,
     ToolCallDto,
 )
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import ChatService, NotFoundError, UsageService
+from edu_core.schemas.users import UserDto
+from edu_core.services import ChatService, UsageService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -124,14 +125,14 @@ async def send_streaming_message(
     current_user: UserDto = Depends(get_current_user),
     chat_service: ChatService = Depends(get_chat_service_with_streaming),
     usage_service: UsageService = Depends(get_usage_service),
-    queue_service = Depends(get_queue_service),
+    queue_service=Depends(get_queue_service),
 ):
     """Send a streaming message to a chat."""
     user_id = current_user.id
 
     # Check usage limit before processing
     usage_service.check_and_increment(user_id, "chat_message")
-    
+
     # Set queue service on chat service instance
     chat_service._queue_service = queue_service
 
@@ -204,4 +205,3 @@ async def send_streaming_message(
             "Access-Control-Allow-Headers": "*",
         },
     )
-

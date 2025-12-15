@@ -2,11 +2,12 @@
 
 from datetime import datetime
 
-from edu_shared.db.models import Chat
-from edu_shared.schemas.queue import ChatTitleGenerationData
-from processors.llm import create_llm_non_streaming
-from processors.base import BaseProcessor
+from edu_core.db.models import Chat
+from edu_queue.schemas import ChatTitleGenerationData
 from rich.console import Console
+
+from processors.base import BaseProcessor
+from processors.llm import create_llm_non_streaming
 
 console = Console(force_terminal=True)
 
@@ -21,7 +22,7 @@ class ChatTitleProcessor(BaseProcessor[ChatTitleGenerationData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
             azure_openai_endpoint: Azure OpenAI endpoint URL
@@ -33,7 +34,7 @@ class ChatTitleProcessor(BaseProcessor[ChatTitleGenerationData]):
 
     async def process(self, payload: ChatTitleGenerationData) -> None:
         """Generate and update chat title.
-        
+
         Args:
             payload: Chat title generation data
         """
@@ -44,29 +45,31 @@ class ChatTitleProcessor(BaseProcessor[ChatTitleGenerationData]):
             self.azure_openai_api_version,
             temperature=0.25,
         )
-        
+
         # Generate title
         try:
             prompt = f"""Generate a concise, descriptive title (max 5 words) for a chat based on this conversation:
 
-User: "{payload['user_message']}"
-Assistant: "{payload['ai_response']}"
+User: "{payload["user_message"]}"
+Assistant: "{payload["ai_response"]}"
 
 Only respond with the title, nothing else. Do not use quotes."""
 
             response = await llm.ainvoke(prompt)
             title = response.content.strip()
-            
+
             # Remove quotes if present
             title = title.strip('"').strip("'")
-            
+
             # Truncate if too long
             if len(title) > 60:
                 title = title[:57] + "..."
         except Exception as e:
-            console.print(f"[yellow]Error generating title, using default: {e}[/yellow]")
+            console.print(
+                f"[yellow]Error generating title, using default: {e}[/yellow]"
+            )
             title = "New Chat"
-        
+
         # Update chat in database
         with self._get_db_session() as db:
             chat = (

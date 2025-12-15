@@ -1,10 +1,11 @@
 """Processor for quiz generation tasks."""
 
-from edu_shared.agents.quiz_agent import QuizAgent
-from edu_shared.schemas.queue import QuizGenerationData
-from processors.llm import create_llm_non_streaming
-from processors.base import BaseProcessor
+from edu_ai.agents.quiz_agent import QuizAgent
+from edu_queue.schemas import QuizGenerationData
 from rich.console import Console
+
+from processors.base import BaseProcessor
+from processors.llm import create_llm_non_streaming
 
 console = Console(force_terminal=True)
 
@@ -20,7 +21,7 @@ class QuizProcessor(BaseProcessor[QuizGenerationData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             search_service: SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -34,10 +35,10 @@ class QuizProcessor(BaseProcessor[QuizGenerationData]):
 
     async def process(self, payload: QuizGenerationData) -> None:
         """Generate quiz questions using AI and populate the quiz.
-        
+
         Args:
             payload: Quiz generation data
-            
+
         Raises:
             NotFoundError: If quiz or project not found
         """
@@ -47,12 +48,12 @@ class QuizProcessor(BaseProcessor[QuizGenerationData]):
             self.azure_openai_endpoint,
             self.azure_openai_api_version,
         )
-        
+
         quiz_agent = QuizAgent(
             search_service=self.search_service,
             llm=llm,
         )
-        
+
         await quiz_agent.generate_and_save(
             project_id=payload["project_id"],
             topic=payload.get("topic"),

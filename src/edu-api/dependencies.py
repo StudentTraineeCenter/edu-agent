@@ -1,8 +1,8 @@
 """FastAPI dependencies for service construction."""
 
 from config import Settings, get_settings
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.services import (
+from edu_ai.agents.base import ContentAgentConfig
+from edu_core.services import (
     ChatService,
     DocumentService,
     DocumentUploadService,
@@ -17,7 +17,7 @@ from edu_shared.services import (
     UsageService,
     UserService,
 )
-from edu_shared.services.queue import QueueService
+from edu_queue.service import QueueService
 from fastapi import Depends
 
 

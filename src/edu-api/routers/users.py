@@ -2,8 +2,9 @@
 
 from auth import get_current_user
 from dependencies import get_user_service
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import NotFoundError, UserService
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.users import UserDto
+from edu_core.services import UserService
 from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
@@ -50,4 +51,3 @@ async def delete_user(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

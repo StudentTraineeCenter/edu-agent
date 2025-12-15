@@ -1,0 +1,15 @@
+[project]
+name = "edu-queue"
+version = "0.1.0"
+description = "Queue-related DTOs and services for Edu"
+requires-python = ">=3.12"
+dependencies = [
+    "azure-storage-queue>=12.14.1",
+    "pydantic>=2.12.5",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
+
+

@@ -1,6 +1,6 @@
 import logging
 
-from edu_shared.exceptions import NotFoundError, UsageLimitExceededError
+from edu_core.exceptions import NotFoundError, UsageLimitExceededError
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError

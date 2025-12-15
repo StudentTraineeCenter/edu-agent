@@ -2,9 +2,9 @@
 
 from auth import get_current_user
 from dependencies import get_usage_service
-from edu_shared.schemas.usage import UsageDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import UsageService
+from edu_core.schemas.usage import UsageDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import UsageService
 from fastapi import APIRouter, Depends, status
 
 router = APIRouter(prefix="/api/v1/usage", tags=["usage"])

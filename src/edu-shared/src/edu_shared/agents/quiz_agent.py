@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from edu_shared.agents.base import BaseContentAgent
-from edu_shared.db.models import Project, Quiz, QuizQuestion
-from edu_shared.exceptions import NotFoundError
+from edu_ai.agents.base import BaseContentAgent
+from edu_core.db.models import Project, Quiz, QuizQuestion
+from edu_core.exceptions import NotFoundError
 from pydantic import BaseModel, Field
 
 

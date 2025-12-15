@@ -8,10 +8,10 @@ from langchain_core.documents import Document as LangchainDocument
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
 
-from edu_shared.db.models import Document, Project
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import NotFoundError
-from edu_shared.schemas.search import SearchResultItem
+from edu_core.db.models import Document, Project
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.search import SearchResultItem
 
 
 class SearchService:

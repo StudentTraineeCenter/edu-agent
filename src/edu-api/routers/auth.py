@@ -1,7 +1,7 @@
 """Router for authentication operations."""
 
 from auth import get_current_user
-from edu_shared.schemas.users import UserDto
+from edu_core.schemas.users import UserDto
 from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])

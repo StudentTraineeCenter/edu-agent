@@ -9,16 +9,16 @@ from dependencies import (
     get_queue_service,
     get_usage_service,
 )
-from edu_shared.schemas.documents import DocumentDto, DocumentStatus
-from edu_shared.schemas.queue import DocumentProcessingData, QueueTaskMessage, TaskType
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import (
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.documents import DocumentDto, DocumentStatus
+from edu_core.schemas.users import UserDto
+from edu_core.services import (
     DocumentService,
     DocumentUploadService,
-    NotFoundError,
     UsageService,
 )
-from edu_shared.services.queue import QueueService
+from edu_queue.schemas import DocumentProcessingData, QueueTaskMessage, TaskType
+from edu_queue.service import QueueService
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from routers.schemas import DocumentCreate, DocumentUpdate
@@ -74,9 +74,7 @@ async def upload_document(
         file_data = await asyncio.gather(*[read_file(file) for file in files])
 
         # Upload all documents concurrently
-        async def upload_single_document(
-            filename: str, content: bytes
-        ) -> str:
+        async def upload_single_document(filename: str, content: bytes) -> str:
             document_id = await asyncio.to_thread(
                 upload_service.upload_document,
                 file_content=content,
@@ -110,7 +108,9 @@ async def upload_document(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload documents: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload documents: {e!s}"
+        )
 
 
 @router.post("", response_model=DocumentDto, status_code=201)
@@ -202,4 +202,3 @@ async def delete_document(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

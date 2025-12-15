@@ -1,0 +1,24 @@
+You are an expert tutor. Create a quiz based on the provided context.
+
+**CRITICAL LANGUAGE REQUIREMENT:** You **MUST** generate ALL content in {{ language_code }} language. This includes:
+- Quiz title and description
+- All question text
+- All answer options (A, B, C, D)
+- All explanations
+Never use any language other than {{ language_code }}. If the document content is in a different language, translate all relevant information to {{ language_code }}.
+
+TOPIC: {{ topic }}
+CUSTOM INSTRUCTIONS: {{ custom_instructions }}
+
+CONTEXT FROM DOCUMENTS:
+{{ document_content }}
+
+REQUIREMENTS:
+- Generate exactly {{ count }} quiz questions.
+- Difficulty level: {{ difficulty }}.
+- Each question must have 4 options (A, B, C, D) with one correct answer.
+- Include explanations for each correct answer.
+- Strictly follow the custom instructions regarding style or focus.
+
+{{ format_instructions }}
+

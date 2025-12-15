@@ -1,10 +1,11 @@
 """Processor for mind map generation tasks."""
 
-from edu_shared.agents.mind_map_agent import MindMapAgent
-from edu_shared.schemas.queue import MindMapGenerationData
-from processors.llm import create_llm_non_streaming
-from processors.base import BaseProcessor
+from edu_ai.agents.mind_map_agent import MindMapAgent
+from edu_queue.schemas import MindMapGenerationData
 from rich.console import Console
+
+from processors.base import BaseProcessor
+from processors.llm import create_llm_non_streaming
 
 console = Console(force_terminal=True)
 
@@ -20,7 +21,7 @@ class MindMapProcessor(BaseProcessor[MindMapGenerationData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             search_service: SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -34,10 +35,10 @@ class MindMapProcessor(BaseProcessor[MindMapGenerationData]):
 
     async def process(self, payload: MindMapGenerationData) -> None:
         """Generate mind map content using AI and populate the mind map.
-        
+
         Args:
             payload: Mind map generation data
-            
+
         Raises:
             NotFoundError: If mind_map_id is provided but mind map not found
         """
@@ -47,12 +48,12 @@ class MindMapProcessor(BaseProcessor[MindMapGenerationData]):
             self.azure_openai_endpoint,
             self.azure_openai_api_version,
         )
-        
+
         mind_map_agent = MindMapAgent(
             search_service=self.search_service,
             llm=llm,
         )
-        
+
         mind_map = await mind_map_agent.generate_and_save(
             project_id=payload["project_id"],
             topic=payload.get("topic"),

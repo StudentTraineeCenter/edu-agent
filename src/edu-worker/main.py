@@ -6,9 +6,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from azure.storage.queue import QueueClient, QueueMessage
 from config import get_settings
-from edu_shared.db.session import init_db
-from edu_shared.schemas.queue import QueueTaskMessage, TaskType
-from edu_shared.services.search import SearchService
+from edu_core.db.session import init_db
+from edu_core.services.search import SearchService
+from edu_queue.schemas import QueueTaskMessage
 from processors.registry import ProcessorRegistry
 from rich.console import Console
 
@@ -20,7 +20,7 @@ async def process_message(
     registry: ProcessorRegistry,
 ):
     """Process a queue message using the appropriate processor.
-    
+
     Args:
         msg: The queue message to process
         registry: ProcessorRegistry for getting processors
@@ -35,14 +35,16 @@ async def process_message(
         task_type = task_message["type"]
         task_data = task_message["data"]
 
-        console.log(f"Received task: {task_type} for project: {task_data.get('project_id', 'N/A')}")
+        console.log(
+            f"Received task: {task_type} for project: {task_data.get('project_id', 'N/A')}"
+        )
 
         # Get processor for this task type
         processor = registry.get_processor(task_type)
-        
+
         # Process the task
         await processor.process(task_data)
-        
+
         console.log(f"Completed task: {task_type}")
 
 
@@ -96,7 +98,9 @@ def main():
 
             if messages:
                 # Submit all messages to thread pool
-                futures = {executor.submit(process_in_thread, msg): msg for msg in messages}
+                futures = {
+                    executor.submit(process_in_thread, msg): msg for msg in messages
+                }
 
                 # Wait for completion (non-blocking check)
                 for future in as_completed(futures):

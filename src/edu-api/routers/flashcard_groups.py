@@ -7,9 +7,10 @@ from dependencies import (
     get_flashcard_group_service,
     get_usage_service,
 )
-from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import FlashcardGroupService, NotFoundError, UsageService
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import FlashcardGroupService, UsageService
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field

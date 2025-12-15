@@ -1,15 +1,25 @@
+"""Queue service for sending messages to Azure Queue."""
+
 import base64
 import json
+import logging
 
 from azure.storage.queue import QueueClient
-from edu_shared.schemas.queue import QueueTaskMessage
-from rich.console import Console
+from edu_queue.schemas import QueueTaskMessage
 
-console = Console(force_terminal=True)
+logger = logging.getLogger(__name__)
 
 
 class QueueService:
+    """Service for sending messages to Azure Queue."""
+
     def __init__(self, connection_string: str, queue_name: str):
+        """Initialize the queue service.
+
+        Args:
+            connection_string: Azure Storage connection string
+            queue_name: Name of the queue
+        """
         self.queue_client = QueueClient.from_connection_string(
             conn_str=connection_string, queue_name=queue_name
         )
@@ -18,6 +28,12 @@ class QueueService:
         """
         Sends a QueueTaskMessage to the Azure Queue.
         Automatically handles Base64 encoding required by Azure Functions.
+
+        Args:
+            message: The queue task message to send
+
+        Raises:
+            Exception: If sending the message fails
         """
         try:
             # 1. Convert dict to JSON string
@@ -29,10 +45,8 @@ class QueueService:
 
             # 3. Send to Azure
             self.queue_client.send_message(base64_message)
-            console.print(
-                f"[bold green]Message sent to queue: {self.queue_client.queue_name}[/bold green]"
-            )
+            logger.info(f"Message sent to queue: {self.queue_client.queue_name}")
 
         except Exception as e:
-            console.print(f"[bold red]Error sending message: {e!s}[/bold red]")
+            logger.error(f"Error sending message: {e!s}")
             raise e

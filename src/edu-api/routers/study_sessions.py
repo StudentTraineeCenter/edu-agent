@@ -2,21 +2,26 @@
 
 from auth import get_current_user
 from dependencies import get_study_session_service
-from edu_shared.schemas.study_sessions import StudySessionDto
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import NotFoundError, StudySessionService
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.study_sessions import StudySessionDto
+from edu_core.schemas.users import UserDto
+from edu_core.services import StudySessionService
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from routers.schemas import StudySessionCreate
 
-router = APIRouter(prefix="/api/v1/projects/{project_id}/study-sessions", tags=["study-sessions"])
+router = APIRouter(
+    prefix="/api/v1/projects/{project_id}/study-sessions", tags=["study-sessions"]
+)
 router_global = APIRouter(prefix="/api/v1/study-sessions", tags=["study-sessions"])
 
 
 @router.get("", response_model=list[StudySessionDto])
 async def list_study_sessions(
     project_id: str,
-    limit: int = Query(50, ge=1, le=100, description="Maximum number of sessions to return"),
+    limit: int = Query(
+        50, ge=1, le=100, description="Maximum number of sessions to return"
+    ),
     current_user: UserDto = Depends(get_current_user),
     service: StudySessionService = Depends(get_study_session_service),
 ):
@@ -57,7 +62,7 @@ async def create_study_session(
     service: StudySessionService = Depends(get_study_session_service),
 ):
     """Generate/create a study session.
-    
+
     Note: AI generation is not yet implemented in edu-shared service.
     This endpoint creates a basic study session structure.
     """
@@ -76,4 +81,3 @@ async def create_study_session(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

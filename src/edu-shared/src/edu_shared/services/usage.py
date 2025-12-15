@@ -6,10 +6,10 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from edu_shared.db.models import UserUsage
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import UsageLimitExceededError
-from edu_shared.schemas.usage import UsageDto, UsageLimitDto
+from edu_core.db.models import UserUsage
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import UsageLimitExceededError
+from edu_core.schemas.usage import UsageDto, UsageLimitDto
 
 
 class UsageService:

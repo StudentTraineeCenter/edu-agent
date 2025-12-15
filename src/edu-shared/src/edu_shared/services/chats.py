@@ -6,21 +6,20 @@ from datetime import datetime
 from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
-from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, Field
-
-from edu_shared.agents.context import CustomAgentContext
-from edu_shared.agents.factory import make_agent
-from edu_shared.db.models import (
+from edu_ai.agents.context import CustomAgentContext
+from edu_ai.agents.factory import make_agent
+from edu_core.db.models import (
     Chat,
     ChatMessage,
     ChatMessageSource,
     ChatMessageToolCall,
 )
-from edu_shared.db.session import get_session_factory
-from edu_shared.exceptions import NotFoundError
-from edu_shared.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
+from edu_core.db.session import get_session_factory
+from edu_core.exceptions import NotFoundError
+from edu_core.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
+from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
+from langchain_openai import AzureChatOpenAI
+from pydantic import BaseModel, Field
 
 
 class MessageChunk(BaseModel):
@@ -28,11 +27,21 @@ class MessageChunk(BaseModel):
 
     chunk: str = Field(default="", description="Text chunk of the response")
     done: bool = Field(default=False, description="Whether this is the final chunk")
-    status: str | None = Field(default=None, description="Status message for this chunk (e.g., thinking, searching, etc.)")
-    sources: list[ChatMessageSource] | None = Field(default_factory=list, description="Source document objects, if any")
-    tools: list | None = Field(default_factory=list, description="Associated tool call objects, if any")
+    status: str | None = Field(
+        default=None,
+        description="Status message for this chunk (e.g., thinking, searching, etc.)",
+    )
+    sources: list[ChatMessageSource] | None = Field(
+        default_factory=list, description="Source document objects, if any"
+    )
+    tools: list | None = Field(
+        default_factory=list, description="Associated tool call objects, if any"
+    )
     id: str | None = Field(default=None, description="Optional message id")
-    response: str | None = Field(default=None, description="Full concatenated response, present in final chunk if desired")
+    response: str | None = Field(
+        default=None,
+        description="Full concatenated response, present in final chunk if desired",
+    )
 
 
 class ChatService:
@@ -48,7 +57,7 @@ class ChatService:
         queue_service=None,
     ) -> None:
         """Initialize the chat service.
-        
+
         Args:
             search_service: Optional SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -322,7 +331,9 @@ class ChatService:
             MessageChunk instances containing message chunks and metadata
         """
         if not self.agent:
-            raise ValueError("Agent not initialized. SearchService and Azure OpenAI config required.")
+            raise ValueError(
+                "Agent not initialized. SearchService and Azure OpenAI config required."
+            )
 
         with self._get_db_session() as db:
             # Generate message ID early so it's available in error handler
@@ -337,9 +348,14 @@ class ChatService:
                     raise NotFoundError(f"Chat {chat_id} not found")
 
                 # Get project language code
-                from edu_shared.db.models import Project
-                project = db.query(Project).filter(Project.id == chat.project_id).first()
-                language_code = getattr(project, "language_code", "en") if project else "en"
+                from edu_core.db.models import Project
+
+                project = (
+                    db.query(Project).filter(Project.id == chat.project_id).first()
+                )
+                language_code = (
+                    getattr(project, "language_code", "en") if project else "en"
+                )
 
                 messages = [ChatMessage(**msg) for msg in chat.messages]
                 is_first_message = len(messages) == 0
@@ -382,14 +398,14 @@ class ChatService:
                         if is_first_message:
                             # Try to get queue_service from the service instance
                             # If not available, fall back to synchronous generation
-                            queue_service = getattr(self, '_queue_service', None)
+                            queue_service = getattr(self, "_queue_service", None)
                             if queue_service:
-                                from edu_shared.schemas.queue import (
+                                from edu_queue.schemas import (
                                     ChatTitleGenerationData,
                                     QueueTaskMessage,
                                     TaskType,
                                 )
-                                
+
                                 task_data: ChatTitleGenerationData = {
                                     "chat_id": chat_id,
                                     "project_id": chat.project_id,
@@ -397,14 +413,16 @@ class ChatService:
                                     "user_message": message,
                                     "ai_response": chunk_data.response,
                                 }
-                                
+
                                 task_message: QueueTaskMessage = {
                                     "type": TaskType.CHAT_TITLE_GENERATION,
                                     "data": task_data,
                                 }
                                 queue_service.send_message(task_message)
                             else:
-                                print("Queue service not available, falling back to synchronous generation")
+                                print(
+                                    "Queue service not available, falling back to synchronous generation"
+                                )
                                 # Fallback to synchronous generation if queue not available
                                 generated_title = await self._generate_chat_title(
                                     message, chunk_data.response
@@ -491,7 +509,10 @@ class ChatService:
                         message, metadata = data
 
                         # Skip messages from tools node - tool outputs should only be sent via tools field
-                        if isinstance(metadata, dict) and metadata.get("langgraph_node") == "tools":
+                        if (
+                            isinstance(metadata, dict)
+                            and metadata.get("langgraph_node") == "tools"
+                        ):
                             continue
 
                         # Skip ToolMessage content - tool outputs should only be sent via tools field
@@ -651,4 +672,3 @@ Only respond with the title, nothing else. Do not use quotes."""
             raise
         finally:
             db.close()
-

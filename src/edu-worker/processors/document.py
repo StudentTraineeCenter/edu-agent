@@ -6,18 +6,18 @@ from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient
+from content_understanding import AzureContentUnderstandingClient
+from edu_core.db.models import Document, DocumentSegment
+from edu_core.schemas.documents import DocumentStatus
+from edu_queue.schemas import DocumentProcessingData
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
     RecursiveCharacterTextSplitter,
 )
-
-from edu_shared.db.models import Document, DocumentSegment
-from edu_shared.schemas.documents import DocumentStatus
-from edu_shared.schemas.queue import DocumentProcessingData
-from edu_shared.services.content_understanding import AzureContentUnderstandingClient
-from processors.base import BaseProcessor
 from rich.console import Console
+
+from processors.base import BaseProcessor
 
 console = Console(force_terminal=True)
 
@@ -38,7 +38,7 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             azure_storage_connection_string: Azure Storage connection string
             azure_storage_input_container_name: Input container name
@@ -62,23 +62,22 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
         )
 
         token_provider = get_bearer_token_provider(
-            DefaultAzureCredential(),
-            "https://cognitiveservices.azure.com/.default"
+            DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         )
         self.embeddings = AzureOpenAIEmbeddings(
             azure_deployment=azure_openai_embedding_deployment,
             azure_endpoint=azure_openai_endpoint,
             api_version=azure_openai_api_version,
-            azure_ad_token_provider=token_provider
+            azure_ad_token_provider=token_provider,
         )
         self.analyzer_id = azure_cu_analyzer_id
 
     async def process(self, payload: DocumentProcessingData) -> None:
         """Process document asynchronously: analyze, index, and create embeddings.
-        
+
         Args:
             payload: Document processing data
-            
+
         Raises:
             Exception: If processing fails
         """
@@ -136,7 +135,7 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
 
                 # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
-                
+
                 console.log(f"Processed document {document_id}")
             except Exception:
                 self._mark_document_failed(db=db, document_id=document_id)
@@ -231,16 +230,12 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
         chunks = self.split_markdown_with_headers(text=content)
 
         # Create segments in database
-        self._create_document_segments(
-            document_id=document_id, chunks=chunks, db=db
-        )
+        self._create_document_segments(document_id=document_id, chunks=chunks, db=db)
 
         # Generate embeddings for all segments
         await self._generate_embeddings_for_segments(document_id=document_id, db=db)
 
-    async def _generate_embeddings_for_segments(
-        self, db, document_id: str
-    ) -> None:
+    async def _generate_embeddings_for_segments(self, db, document_id: str) -> None:
         """Generate embeddings for document segments with rate limiting.
 
         Args:
@@ -324,9 +319,7 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
         return chunks
 
     @staticmethod
-    def _update_document_processed_status(
-        db, document_id: str, summary: str
-    ) -> None:
+    def _update_document_processed_status(db, document_id: str, summary: str) -> None:
         """Update document status to processed.
 
         Args:

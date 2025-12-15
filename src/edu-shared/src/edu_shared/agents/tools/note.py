@@ -2,11 +2,12 @@
 
 import asyncio
 import json
+from contextlib import suppress
 
-from edu_shared.agents.context import CustomAgentContext
-from edu_shared.agents.note_agent import NoteAgent
-from edu_shared.schemas.notes import NoteDto
-from edu_shared.services.notes import NoteService
+from edu_ai.agents.context import CustomAgentContext
+from edu_ai.agents.note_agent import NoteAgent
+from edu_core.schemas.notes import NoteDto
+from edu_core.services.notes import NoteService
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -29,20 +30,18 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
     """Increment usage tracking, log errors but don't fail."""
     if not usage:
         return
-    try:
+    with suppress(Exception):
         usage.check_and_increment(user_id, feature)
-    except Exception:
-        # Log but don't fail
-        pass
 
 
 @tool(
     "note_create",
-    description="Create a study note (markdown document) from project documents. custom_instructions should include topic, format preferences (length), and any context.",
+    description="Create a study note (markdown) from project documents. Provide a short topic plus optional custom instructions (length, structure, focus, etc.).",
 )
 async def create_note(
-    custom_instructions: str,
+    topic: str,
     runtime: ToolRuntime[CustomAgentContext],
+    custom_instructions: str | None = None,
 ) -> str:
     """Create a study note from project documents."""
     ctx = runtime.context
@@ -67,10 +66,10 @@ async def create_note(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     note = await note_agent.generate_and_save(
         project_id=ctx.project_id,
-        topic=custom_instructions,
+        topic=topic,
         custom_instructions=custom_instructions,
         note_id=note.id,
     )
@@ -122,7 +121,7 @@ async def create_note_scoped(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     note = await note_agent.generate_and_save(
         project_id=ctx.project_id,
         topic=query,

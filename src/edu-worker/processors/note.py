@@ -1,10 +1,11 @@
 """Processor for note generation tasks."""
 
-from edu_shared.agents.note_agent import NoteAgent
-from edu_shared.schemas.queue import NoteGenerationData
-from processors.llm import create_llm_non_streaming
-from processors.base import BaseProcessor
+from edu_ai.agents.note_agent import NoteAgent
+from edu_queue.schemas import NoteGenerationData
 from rich.console import Console
+
+from processors.base import BaseProcessor
+from processors.llm import create_llm_non_streaming
 
 console = Console(force_terminal=True)
 
@@ -20,7 +21,7 @@ class NoteProcessor(BaseProcessor[NoteGenerationData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             search_service: SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -34,10 +35,10 @@ class NoteProcessor(BaseProcessor[NoteGenerationData]):
 
     async def process(self, payload: NoteGenerationData) -> None:
         """Generate note content using AI and populate the note.
-        
+
         Args:
             payload: Note generation data
-            
+
         Raises:
             NotFoundError: If note or project not found
         """
@@ -47,12 +48,12 @@ class NoteProcessor(BaseProcessor[NoteGenerationData]):
             self.azure_openai_endpoint,
             self.azure_openai_api_version,
         )
-        
+
         note_agent = NoteAgent(
             search_service=self.search_service,
             llm=llm,
         )
-        
+
         note = await note_agent.generate_and_save(
             project_id=payload["project_id"],
             topic=payload.get("topic"),

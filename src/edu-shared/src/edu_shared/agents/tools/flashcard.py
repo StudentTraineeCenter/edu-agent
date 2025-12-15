@@ -2,11 +2,12 @@
 
 import asyncio
 import json
+from contextlib import suppress
 
-from edu_shared.agents.context import CustomAgentContext
-from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
-from edu_shared.services.flashcard_groups import FlashcardGroupService
+from edu_ai.agents.context import CustomAgentContext
+from edu_ai.agents.flashcard_agent import FlashcardAgent
+from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
+from edu_core.services.flashcard_groups import FlashcardGroupService
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -29,21 +30,19 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
     """Increment usage tracking, log errors but don't fail."""
     if not usage:
         return
-    try:
+    with suppress(Exception):
         usage.check_and_increment(user_id, feature)
-    except Exception:
-        # Log but don't fail
-        pass
 
 
 @tool(
     "flashcards_create",
-    description="Create flashcards from project documents. Use count 15-30. custom_instructions should include topic, format preferences (length, difficulty), and any context like existing flashcards to add more to.",
+    description="Create flashcards from project documents. Use count 15-30. Provide a short topic plus optional custom instructions (format, difficulty, focus, etc.).",
 )
 async def create_flashcards(
     count: int,
-    custom_instructions: str,
+    topic: str,
     runtime: ToolRuntime[CustomAgentContext],
+    custom_instructions: str | None = None,
 ) -> str:
     """Create flashcards from project documents."""
     ctx = runtime.context
@@ -68,10 +67,10 @@ async def create_flashcards(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     group = await flashcard_agent.generate_and_save(
         project_id=ctx.project_id,
-        topic=custom_instructions,
+        topic=topic,
         custom_instructions=custom_instructions,
         group_id=group.id,
         count=count,
@@ -133,7 +132,7 @@ async def create_flashcards_scoped(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     group = await flashcard_agent.generate_and_save(
         project_id=ctx.project_id,
         topic=query,

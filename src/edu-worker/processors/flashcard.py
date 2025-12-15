@@ -1,10 +1,11 @@
 """Processor for flashcard generation tasks."""
 
-from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.schemas.queue import FlashcardGenerationData
-from processors.llm import create_llm_non_streaming
-from processors.base import BaseProcessor
+from edu_ai.agents.flashcard_agent import FlashcardAgent
+from edu_queue.schemas import FlashcardGenerationData
 from rich.console import Console
+
+from processors.base import BaseProcessor
+from processors.llm import create_llm_non_streaming
 
 console = Console(force_terminal=True)
 
@@ -20,7 +21,7 @@ class FlashcardProcessor(BaseProcessor[FlashcardGenerationData]):
         azure_openai_api_version: str,
     ):
         """Initialize the processor.
-        
+
         Args:
             search_service: SearchService for RAG
             azure_openai_chat_deployment: Azure OpenAI chat deployment name
@@ -34,10 +35,10 @@ class FlashcardProcessor(BaseProcessor[FlashcardGenerationData]):
 
     async def process(self, payload: FlashcardGenerationData) -> None:
         """Generate flashcards using AI and populate the flashcard group.
-        
+
         Args:
             payload: Flashcard generation data
-            
+
         Raises:
             NotFoundError: If flashcard group or project not found
         """
@@ -47,12 +48,12 @@ class FlashcardProcessor(BaseProcessor[FlashcardGenerationData]):
             self.azure_openai_endpoint,
             self.azure_openai_api_version,
         )
-        
+
         flashcard_agent = FlashcardAgent(
             search_service=self.search_service,
             llm=llm,
         )
-        
+
         await flashcard_agent.generate_and_save(
             project_id=payload["project_id"],
             topic=payload.get("topic"),

@@ -1,8 +1,8 @@
 
 import jwt as pyjwt
 from config import get_settings
-from edu_shared.schemas.users import UserDto
-from edu_shared.services import UserService
+from edu_core.schemas.users import UserDto
+from edu_core.services import UserService
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 

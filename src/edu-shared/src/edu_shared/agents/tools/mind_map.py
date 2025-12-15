@@ -2,11 +2,12 @@
 
 import asyncio
 import json
+from contextlib import suppress
 
-from edu_shared.agents.context import CustomAgentContext
-from edu_shared.agents.mind_map_agent import MindMapAgent
-from edu_shared.schemas.mind_maps import MindMapDto
-from edu_shared.services.mind_maps import MindMapService
+from edu_ai.agents.context import CustomAgentContext
+from edu_ai.agents.mind_map_agent import MindMapAgent
+from edu_core.schemas.mind_maps import MindMapDto
+from edu_core.services.mind_maps import MindMapService
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -25,18 +26,26 @@ def build_enhanced_prompt(
     return prompt
 
 
+def increment_usage(usage, user_id: str, feature: str) -> None:
+    """Increment usage tracking, log errors but don't fail."""
+    if not usage:
+        return
+    with suppress(Exception):
+        usage.check_and_increment(user_id, feature)
+
+
 @tool(
     "mindmap_create",
-    description="Create a mind map (visual diagram) from project documents. custom_instructions should include topic, format preferences, and any context.",
+    description="Create a mind map (visual diagram) from project documents. Provide a short topic plus optional custom instructions (structure, depth, focus, etc.).",
 )
 async def create_mind_map(
-    custom_instructions: str,
+    topic: str,
     runtime: ToolRuntime[CustomAgentContext],
+    custom_instructions: str | None = None,
 ) -> str:
     """Create a mind map from project documents."""
     ctx = runtime.context
-    # TODO: Add mindmap_generation to usage tracking
-    # increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
+    increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
     if not ctx.llm:
         return json.dumps(
@@ -49,10 +58,10 @@ async def create_mind_map(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     mind_map = await mind_map_agent.generate_and_save(
         project_id=ctx.project_id,
-        topic=custom_instructions,
+        topic=topic,
         custom_instructions=custom_instructions,
         user_id=ctx.user_id,
     )
@@ -76,8 +85,7 @@ async def create_mind_map_scoped(
 ) -> str:
     """Create a mind map from specific documents."""
     ctx = runtime.context
-    # TODO: Add mindmap_generation to usage tracking
-    # increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
+    increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
     if not ctx.agent_config:
         return json.dumps(
@@ -98,7 +106,7 @@ async def create_mind_map_scoped(
         search_service=ctx.search,
         llm=ctx.llm,
     )
-    
+
     mind_map = await mind_map_agent.generate_and_save(
         project_id=ctx.project_id,
         topic=query,

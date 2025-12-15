@@ -6,7 +6,7 @@ import logging
 
 from azure.storage.queue import QueueClient
 
-from edu_shared.schemas.queue import QueueTaskMessage
+from edu_queue.schemas import QueueTaskMessage
 
 logger = logging.getLogger(__name__)
 
