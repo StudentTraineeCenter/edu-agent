@@ -86,60 +86,61 @@ Before you begin, ensure you have the following installed:
 
 ## 🚀 Quick Start
 
-Get EduAgent running locally in minutes:
+Get EduAgent running locally using Docker for the backend and Vite for the frontend:
 
 ```bash
 # Clone the repository
 git clone https://github.com/StudentTraineeCenter/edu-agent.git
 cd edu-agent
 
-# Start PostgreSQL database
-docker-compose up -d db
+# Start backend stack (API, worker, Postgres, Azurite)
+docker-compose up --build api worker db azurite
 
-# Set up backend
-cd server
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# In a separate terminal, run DB migrations (one-time)
+# Make sure DATABASE_URL is set correctly for your local Postgres
+export DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
 alembic upgrade head
 
-# Configure environment variables (see Configuration section)
-cp .env.example .env
-# Edit .env with your Azure credentials
-
-# Start API server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# In a new terminal, set up frontend
-cd web
+# In a new terminal, start the web frontend
+cd src/edu-web
 pnpm install
 pnpm dev
 ```
 
-Visit `http://localhost:3000` to access the application.
+Visit `http://localhost:3000` for the web app and `http://localhost:8000` for the API.
 
 ## 📦 Installation
 
-### Backend Setup
+### Backend Setup (API + Worker)
+
+The Python services use a **uv workspace** with `pyproject.toml` + `uv.lock`.
 
 ```bash
-cd server
+cd edu-agent
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install uv if you don't have it yet (see https://docs.astral.sh/uv/)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-pip install -r requirements.txt
+# Install all workspace dependencies (api, worker, shared)
+uv sync
 
-# Run database migrations
+# Run database migrations (DATABASE_URL must be set)
+export DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/postgres"
 alembic upgrade head
+
+# Start API locally (without Docker)
+cd src/edu-api
+uv run python main.py
+
+# Optional: in another terminal, start the worker locally
+cd src/edu-worker
+uv run python main.py
 ```
 
 ### Frontend Setup
 
 ```bash
-cd web
+cd src/edu-web
 
 # Install dependencies
 pnpm install
@@ -152,30 +153,61 @@ pnpm gen:types
 
 ### Backend Environment Variables
 
-Create a `.env` file in the `server/` directory:
+You can configure the backend either via **Azure Key Vault** (recommended for production) or via local environment variables / `.env` files (recommended for local dev).
 
 ```env
-# Azure Key Vault (required for production)
-# All other Azure service credentials are retrieved from Key Vault
-AZURE_KEY_VAULT_URI=https://your-key-vault.vault.azure.net/
+# Azure Key Vault (production)
+AZURE_KEY_VAULT_URI=
 
 # Usage Limits (optional, defaults shown)
-MAX_CHAT_MESSAGES_PER_DAY=100
-MAX_FLASHCARD_GENERATIONS_PER_DAY=100
-MAX_QUIZ_GENERATIONS_PER_DAY=100
-MAX_DOCUMENT_UPLOADS_PER_DAY=100
+MAX_DOCUMENT_UPLOADS_PER_DAY=5
+MAX_QUIZ_GENERATIONS_PER_DAY=10
+MAX_FLASHCARD_GENERATIONS_PER_DAY=10
+MAX_CHAT_MESSAGES_PER_DAY=50
 ```
 
-**Note:** For local development, you can set individual environment variables instead of using Key Vault. The application will fall back to environment variables if Key Vault is not configured or if a secret is not found. See [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for detailed configuration options.
+For local development, you can skip Key Vault and set individual environment variables directly:
+
+```env
+# Database
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/postgres
+
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT=https://your-openai-endpoint.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_DEFAULT_MODEL=gpt-4o
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
+AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-06-01
+
+# Azure Storage
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+AZURE_STORAGE_INPUT_CONTAINER_NAME=input
+AZURE_STORAGE_OUTPUT_CONTAINER_NAME=output
+
+# Azure Content Understanding / Document Intelligence
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
+AZURE_DOCUMENT_INTELLIGENCE_KEY=your-cu-key
+AZURE_CU_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
+AZURE_CU_KEY=your-cu-key
+AZURE_CU_ANALYZER_ID=prebuilt-documentAnalyzer
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_JWT_SECRET=your-jwt-secret
+```
+
+**Note:** The backend uses `python-dotenv`, so `.env` files at the project root work fine for local dev. See [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for the full list and details.
 
 ### Frontend Environment Variables
 
-Create a `.env` file in the `web/` directory:
+Create a `.env` file in the `src/edu-web/` directory:
 
 ```env
 VITE_SERVER_URL=http://localhost:8000
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
 
 For detailed configuration instructions, see the [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md).
@@ -184,33 +216,19 @@ For detailed configuration instructions, see the [Local Development Guide](./doc
 
 ```
 edu-agent/
-├── server/                 # FastAPI backend
-│   ├── api/               # API routes and endpoints
-│   │   ├── v1/           # API version 1
-│   │   │   └── endpoints/ # Individual endpoint modules
-│   │   └── endpoints.py  # Main endpoint definitions
-│   ├── core/             # Core business logic
-│   │   ├── agents/       # AI agent implementations
-│   │   └── services/     # Business logic services
-│   ├── db/               # Database layer
-│   │   ├── models.py     # SQLAlchemy models
-│   │   └── alembic/      # Database migrations
-│   └── schemas/          # Pydantic schemas
-├── web/                   # React frontend
-│   ├── src/
-│   │   ├── components/   # Reusable React components
-│   │   ├── features/     # Feature modules
-│   │   ├── routes/       # Route definitions
-│   │   └── integrations/ # API integration layer
-│   └── public/           # Static assets
-├── infra/                 # Infrastructure as Code
-│   └── modules/          # Terraform modules
-├── docs/                  # Documentation
-│   ├── FEATURES.md       # Feature documentation
-│   ├── LOCAL_DEVELOPMENT.md
-│   ├── AZURE_DEPLOYMENT.md
-│   └── PRIVACY_POLICY.md
-└── docker-compose.yaml    # Local development services
+├── src/
+│   ├── edu-api/        # FastAPI backend (public API)
+│   ├── edu-worker/     # Background worker (queue/AI processing)
+│   ├── edu-web/        # React frontend (Vite + TanStack)
+│   └── edu-shared/     # Shared DB models, agents, services, schemas
+├── deploy/
+│   └── azure/          # Azure Terraform + ACR build tooling
+├── docs/               # Documentation (features, local dev, privacy, etc.)
+├── alembic.ini         # Alembic config pointing at src/edu-shared/db/alembic
+├── docker-compose.yaml # Local stack (api, worker, db, azurite)
+├── pyproject.toml      # uv workspace definition
+├── uv.lock             # Locked dependency graph
+└── ruff.toml           # Backend linting/formatting configuration
 ```
 
 ## 🔧 Development
@@ -218,11 +236,7 @@ edu-agent/
 ### Backend Development
 
 ```bash
-cd server
-source venv/bin/activate
-
-# Run development server with auto-reload
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# From repo root
 
 # Create a new database migration
 alembic revision --autogenerate -m "description"
@@ -230,14 +244,15 @@ alembic revision --autogenerate -m "description"
 # Apply migrations
 alembic upgrade head
 
-# Run tests (if available)
-pytest
+# Run API with uv (auto-respects workspace venv)
+cd src/edu-api
+uv run python main.py
 ```
 
 ### Frontend Development
 
 ```bash
-cd web
+cd src/edu-web
 
 # Start development server
 pnpm dev
@@ -262,15 +277,15 @@ pnpm gen:types
 
 Both backend and frontend use linting and formatting tools:
 
-- **Backend**: Ruff (configured in `server/ruff.toml`)
-- **Frontend**: ESLint + Prettier (configured in `web/`)
+- **Backend**: Ruff (configured in `ruff.toml`, run via `ruff format .` and `ruff check .`)
+- **Frontend**: ESLint + Prettier (configured in `src/edu-web/`)
 
 ## 📚 API Documentation
 
 Once the backend server is running, API documentation is available at:
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Scalar UI (OpenAPI docs)**: `http://localhost:8000/`
+- **Health Check**: `http://localhost:8000/health`
 - **OpenAPI Schema**: `http://localhost:8000/openapi.json`
 
 ## 📖 Documentation
@@ -278,8 +293,8 @@ Once the backend server is running, API documentation is available at:
 Comprehensive documentation is available in the `docs/` directory:
 
 - **[Features](./docs/FEATURES.md)** - Detailed overview of platform features and capabilities
-- **[Local Development](./docs/LOCAL_DEVELOPMENT.md)** - Complete setup and development guide
-- **[Azure Deployment](./docs/AZURE_DEPLOYMENT.md)** - Production deployment instructions for Azure
+- **[Local Development](./docs/LOCAL_DEVELOPMENT.md)** - Complete setup and development guide (Docker + uv workspace)
+- **[Azure Deployment](./docs/AZURE_DEPLOYMENT.md)** - Production deployment instructions for Azure (using `deploy/azure`)
 - **[Privacy Policy](./docs/PRIVACY_POLICY.md)** - Privacy and data handling information
 
 ## 🤝 Contributing
