@@ -11,7 +11,6 @@ members = [
     "edu-core",
     "edu-db",
     "edu-queue",
-    "edu-shared",
     "edu-worker",
 ]
 
@@ -426,45 +425,6 @@ dependencies = [
 requires-dist = [
     { name = "azure-storage-queue", specifier = ">=12.14.1" },
     { name = "pydantic", specifier = ">=2.12.5" },
-]
-
-[[package]]
-name = "edu-shared"
-version = "0.1.0"
-source = { editable = "src/edu-shared" }
-dependencies = [
-    { name = "alembic" },
-    { name = "azure-identity" },
-    { name = "azure-keyvault-secrets" },
-    { name = "edu-core" },
-    { name = "jinja2" },
-    { name = "langchain-agent" },
-    { name = "langchain-core" },
-    { name = "langchain-postgres" },
-    { name = "langchain-text-splitters" },
-    { name = "pgvector" },
-    { name = "psycopg2-binary" },
-    { name = "pydantic" },
-    { name = "rich" },
-    { name = "sqlalchemy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.17.2" },
-    { name = "azure-identity", specifier = ">=1.25.1" },
-    { name = "azure-keyvault-secrets", specifier = ">=4.10.0" },
-    { name = "edu-core", editable = "src/shared/core" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "langchain-agent", specifier = ">=0.1.1" },
-    { name = "langchain-core", specifier = ">=1.1.3" },
-    { name = "langchain-postgres", specifier = ">=0.0.16" },
-    { name = "langchain-text-splitters", specifier = ">=1.0.0" },
-    { name = "pgvector", specifier = ">=0.2.5,<0.4" },
-    { name = "psycopg2-binary", specifier = ">=2.9.11" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "rich", specifier = ">=14.2.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.45" },
 ]
 
 [[package]]
