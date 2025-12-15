@@ -73,16 +73,18 @@ EduAgent helps students study course materials through intelligent document proc
 
 Before you begin, ensure you have the following installed:
 
-- **Python 3.11+** - [Download Python](https://www.python.org/downloads/)
+- **Python 3.12+** - [Download Python](https://www.python.org/downloads/)
 - **Node.js 18+** - [Download Node.js](https://nodejs.org/)
 - **pnpm** - `npm install -g pnpm`
 - **Docker & Docker Compose** - [Install Docker](https://docs.docker.com/get-docker/)
-- **Azure Account** - With the following services configured:
-  - Azure OpenAI
-  - Azure Content Understanding (Document Intelligence)
-  - Azure Blob Storage
-- **Supabase Account** - For authentication:
-  - Supabase project with authentication enabled
+- **Terraform** - [Install Terraform](https://developer.hashicorp.com/terraform/install)
+- **Azure and Supabase** - Provisioned via Terraform:
+  - Terraform modules will set up:
+    - Azure OpenAI
+    - Azure Content Understanding (AI Foundry)
+    - Azure Blob Storage
+    - Supabase project with authentication enabled
+  - See [infrastructure documentation](docs/AZURE_DEPLOYMENT.md) for setup instructions
 
 ## 🚀 Quick Start
 
@@ -169,33 +171,14 @@ MAX_CHAT_MESSAGES_PER_DAY=50
 For local development, you can skip Key Vault and set individual environment variables directly:
 
 ```env
-# Database
-DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/postgres
+# Azure Key Vault (local)
+AZURE_KEY_VAULT_URI=
 
-# Azure OpenAI
-AZURE_OPENAI_ENDPOINT=https://your-openai-endpoint.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_DEFAULT_MODEL=gpt-4o
-AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
-AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
-AZURE_OPENAI_API_VERSION=2024-06-01
-
-# Azure Storage
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
-AZURE_STORAGE_INPUT_CONTAINER_NAME=input
-AZURE_STORAGE_OUTPUT_CONTAINER_NAME=output
-
-# Azure Content Understanding / Document Intelligence
-AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
-AZURE_DOCUMENT_INTELLIGENCE_KEY=your-cu-key
-AZURE_CU_ENDPOINT=https://your-cu-endpoint.cognitiveservices.azure.com/
-AZURE_CU_KEY=your-cu-key
-AZURE_CU_ANALYZER_ID=prebuilt-documentAnalyzer
-
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SUPABASE_JWT_SECRET=your-jwt-secret
+# Usage Limits (optional, defaults shown)
+MAX_DOCUMENT_UPLOADS_PER_DAY=5
+MAX_QUIZ_GENERATIONS_PER_DAY=10
+MAX_FLASHCARD_GENERATIONS_PER_DAY=10
+MAX_CHAT_MESSAGES_PER_DAY=50
 ```
 
 **Note:** The backend uses `python-dotenv`, so `.env` files at the project root work fine for local dev. See [Local Development Guide](./docs/LOCAL_DEVELOPMENT.md) for the full list and details.
@@ -323,13 +306,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: Check the [docs](./docs/) directory
 - **Issues**: [GitHub Issues](https://github.com/StudentTraineeCenter/edu-agent/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/StudentTraineeCenter/edu-agent/discussions)
 
 ## 🙏 Acknowledgments
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/)
+- Built with [uv](https://github.com/astral-sh/uv), [FastAPI](https://fastapi.tiangolo.com/), and [React](https://react.dev/)
 - Powered by [Azure AI Services](https://azure.microsoft.com/en-us/products/ai-services)
-- UI components from [Radix UI](https://www.radix-ui.com/)
+- UI built with [Radix UI](https://www.radix-ui.com/) and [shadcn/ui](https://ui.shadcn.com/)
 
 ---
 

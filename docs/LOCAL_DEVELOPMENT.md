@@ -14,7 +14,7 @@ This guide covers how to set up and run EduAgent locally for development.
 
 ## Prerequisites
 
-- Python 3.11+ (for server)
+- Python 3.12+ (for server)
 - Node.js 18+ and pnpm (for web frontend)
 - Docker and Docker Compose (for PostgreSQL database)
 - Azure credentials (for Azure services):
