@@ -1,26 +1,15 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Effect, Order, Array as Arr, Data } from 'effect'
-import { flashcardGroupsAtom } from './flashcard'
-import { notesAtom } from './note'
-import { quizzesAtom } from './quiz'
-import { mindMapsAtom } from './mind-map'
-import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { ApiClientService } from '@/integrations/api/http'
-import { Layer } from 'effect'
 import type {
   FlashcardGroupDto,
+  MindMapDto,
   NoteDto,
   QuizDto,
-  MindMapDto,
 } from '@/integrations/api/client'
-
-const runtime = makeAtomRuntime(
-  Layer.mergeAll(
-    BrowserKeyValueStore.layerLocalStorage,
-    ApiClientService.Default,
-  ),
-)
+import { Atom } from '@effect-atom/atom-react'
+import { Array as Arr, Data, Effect, Order } from 'effect'
+import { flashcardGroupsAtom } from './flashcard'
+import { mindMapsAtom } from './mind-map'
+import { notesAtom } from './note'
+import { quizzesAtom } from './quiz'
 
 export type StudyResource = Data.TaggedEnum<{
   FlashcardGroup: { readonly data: FlashcardGroupDto }
