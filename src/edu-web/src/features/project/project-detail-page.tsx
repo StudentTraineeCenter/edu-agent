@@ -4,8 +4,8 @@ import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { useEffect } from 'react'
 import { chatsAtom, createChatAtom } from '@/data-acess/chat'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, Loader2Icon } from 'lucide-react'
-import { documentsAtom } from '@/data-acess/document'
+import { PlusIcon, Loader2Icon, RotateCw } from 'lucide-react'
+import { documentsAtom, refreshDocumentsAtom } from '@/data-acess/document'
 import { studyResourcesAtom } from '@/data-acess/study-resources'
 import { useUploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
 import { ProjectHeader } from './components/project-header'
@@ -92,24 +92,26 @@ const AIContentSection = ({ projectId }: { projectId: string }) => {
         <span>Loading AI content…</span>
       </div>
     ))
-    .onSuccess((studyResources) => (
-      <>
-        {studyResources.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
-            <p>No AI content yet.</p>
-          </div>
-        )}
+    .onSuccess((resources) => {
+      return (
+        <>
+          {resources.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              <p>No AI content yet.</p>
+            </div>
+          )}
 
-        <ul className="space-y-2">
-          {studyResources.map((resource) => (
-            <StudyResourceListItem
-              key={resource.data.id}
-              studyResource={resource}
-            />
-          ))}
-        </ul>
-      </>
-    ))
+          <ul className="space-y-2">
+            {resources.map((resource) => (
+              <StudyResourceListItem
+                key={resource.data.id}
+                studyResource={resource}
+              />
+            ))}
+          </ul>
+        </>
+      )
+    })
     .render()
 }
 
@@ -125,6 +127,9 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
   })
   const openUploadDialog = useUploadDocumentDialog((state) => state.open)
   const openGenerationDialog = useGenerationDialog((state) => state.open)
+  const refreshDocuments = useAtomSet(refreshDocumentsAtom, {
+    mode: 'promise',
+  })
 
   const handleCreateChat = async () => {
     const chat = await createChat({ projectId })
@@ -140,6 +145,10 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
 
   const handleGenerateResource = () => {
     openGenerationDialog(projectId)
+  }
+
+  const handleRefreshDocuments = async () => {
+    await refreshDocuments(projectId)
   }
 
   return (
@@ -173,10 +182,20 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
         <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
           <div className="flex items-center justify-between shrink-0 mb-2">
             <h3 className="text-lg font-semibold">Documents</h3>
-            <Button onClick={handleCreateDocument} size="sm">
-              <PlusIcon className="size-4" />
-              <span>Upload</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRefreshDocuments}
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+              >
+                <RotateCw className="size-4" />
+              </Button>
+              <Button onClick={handleCreateDocument} size="sm">
+                <PlusIcon className="size-4" />
+                <span>Upload</span>
+              </Button>
+            </div>
           </div>
           <div
             className={cn(
@@ -198,10 +217,12 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
         <div className="flex flex-col border rounded-lg p-4 min-h-0 flex-1">
           <div className="flex items-center justify-between shrink-0 mb-2">
             <h3 className="text-lg font-semibold">AI Content</h3>
-            <Button size="sm" onClick={handleGenerateResource}>
-              <PlusIcon className="size-4" />
-              <span>Generate</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleGenerateResource}>
+                <PlusIcon className="size-4" />
+                <span>Generate</span>
+              </Button>
+            </div>
           </div>
           <div
             className={cn(

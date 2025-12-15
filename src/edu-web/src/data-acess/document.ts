@@ -6,6 +6,7 @@ import { usageAtom } from './usage'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
+import type { DocumentDto } from '@/integrations/api'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -16,6 +17,9 @@ const runtime = makeAtomRuntime(
 
 type DocumentsAction = Data.TaggedEnum<{
   Del: { readonly documentId: string }
+  Update: {
+    readonly document: Result.Result<DocumentDto>
+  }
 }>
 const DocumentsAction = Data.taggedEnum<DocumentsAction>()
 
@@ -43,6 +47,12 @@ export const documentsAtom = Atom.family((projectId: string) =>
         const update = DocumentsAction.$match(action, {
           Del: ({ documentId }) => {
             return result.value.filter((d) => d.id !== documentId)
+          },
+          Update: ({ document }) => {
+            if (!Result.isSuccess(document)) return result.value
+            return result.value.map((d) =>
+              d.id === document.value.id ? document.value : d,
+            )
           },
         })
 
@@ -172,5 +182,27 @@ export const refreshDocumentsAtom = runtime.fn(
   Effect.fn(function* (projectId: string) {
     const registry = yield* Registry.AtomRegistry
     registry.refresh(documentsRemoteAtom(projectId))
+  }),
+)
+
+export const refreshDocumentAtom = runtime.fn(
+  Effect.fn(function* (input: { projectId: string; documentId: string }) {
+    const registry = yield* Registry.AtomRegistry
+    const { apiClient } = yield* ApiClientService
+
+    // Fetch the latest document data
+    const document =
+      yield* apiClient.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
+        input.projectId,
+        input.documentId,
+      )
+
+    // Update the document in the documents list atom
+    registry.set(
+      documentsAtom(input.projectId),
+      DocumentsAction.Update({
+        document: Result.success(document),
+      }),
+    )
   }),
 )

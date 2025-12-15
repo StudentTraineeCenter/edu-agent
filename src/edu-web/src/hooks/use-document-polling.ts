@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo } from 'react'
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { Result } from '@effect-atom/atom-react'
-import { documentsAtom, refreshDocumentsAtom } from '@/data-acess/document'
+import { documentsAtom, refreshDocumentAtom } from '@/data-acess/document'
 
 const POLL_INTERVAL_MS = 3000 // Poll every 3 seconds
 
@@ -11,19 +11,19 @@ const POLL_INTERVAL_MS = 3000 // Poll every 3 seconds
  */
 export const useDocumentPolling = (projectId: string) => {
   const documentsResult = useAtomValue(documentsAtom(projectId))
-  const refreshDocuments = useAtomSet(refreshDocumentsAtom, {
+  const refreshDocument = useAtomSet(refreshDocumentAtom, {
     mode: 'promise',
   })
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Check if there are unready documents
-  const hasUnreadyDocuments = useMemo(() => {
+  // Get list of unready document IDs
+  const unreadyDocumentIds = useMemo(() => {
     if (Result.isSuccess(documentsResult)) {
-      return documentsResult.value.some(
-        (doc) => doc.status !== 'indexed' && doc.status !== 'failed',
-      )
+      return documentsResult.value
+        .filter((doc) => doc.status !== 'indexed' && doc.status !== 'failed')
+        .map((doc) => doc.id)
     }
-    return false
+    return []
   }, [documentsResult])
 
   useEffect(() => {
@@ -34,10 +34,15 @@ export const useDocumentPolling = (projectId: string) => {
     }
 
     // Only poll if we have unready documents
-    if (hasUnreadyDocuments) {
+    if (unreadyDocumentIds.length > 0) {
       // Start polling
       intervalRef.current = setInterval(() => {
-        refreshDocuments(projectId)
+        // Poll each unready document individually
+        unreadyDocumentIds.forEach((documentId) => {
+          refreshDocument({ projectId, documentId }).catch(() => {
+            // Silently handle errors - document might have been deleted or become ready
+          })
+        })
       }, POLL_INTERVAL_MS)
     }
 
@@ -48,5 +53,5 @@ export const useDocumentPolling = (projectId: string) => {
         intervalRef.current = null
       }
     }
-  }, [hasUnreadyDocuments, projectId, refreshDocuments])
+  }, [unreadyDocumentIds, projectId, refreshDocument])
 }
