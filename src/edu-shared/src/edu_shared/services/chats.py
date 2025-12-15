@@ -8,13 +8,13 @@ from uuid import uuid4
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from edu_ai.agents.context import CustomAgentContext
 from edu_ai.agents.factory import make_agent
-from edu_core.db.models import (
+from edu_db.models import (
     Chat,
     ChatMessage,
     ChatMessageSource,
     ChatMessageToolCall,
 )
-from edu_core.db.session import get_session_factory
+from edu_db.session import get_session_factory
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
 from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
@@ -348,7 +348,7 @@ class ChatService:
                     raise NotFoundError(f"Chat {chat_id} not found")
 
                 # Get project language code
-                from edu_core.db.models import Project
+                from edu_db.models import Project
 
                 project = (
                     db.query(Project).filter(Project.id == chat.project_id).first()

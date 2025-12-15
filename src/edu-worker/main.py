@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from azure.storage.queue import QueueClient, QueueMessage
 from config import get_settings
-from edu_core.db.session import init_db
+from edu_db.session import init_db
 from edu_core.services.search import SearchService
 from edu_queue.schemas import QueueTaskMessage
 from processors.registry import ProcessorRegistry

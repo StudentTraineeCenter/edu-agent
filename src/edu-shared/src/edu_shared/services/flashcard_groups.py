@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from edu_core.db.models import Flashcard, FlashcardGroup
-from edu_core.db.session import get_session_factory
+from edu_db.models import Flashcard, FlashcardGroup
+from edu_db.session import get_session_factory
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from edu_core.db.models import Flashcard, FlashcardGroup, Project
+from edu_db.models import Flashcard, FlashcardGroup, Project
 from edu_core.exceptions import NotFoundError
 from pydantic import BaseModel, Field
 

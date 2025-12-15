@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from edu_core.db.models import Chat
+from edu_db.models import Chat
 from edu_queue.schemas import ChatTitleGenerationData
 from rich.console import Console
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from edu_ai.agents.prompts_utils import render_prompt
-from edu_core.db.session import get_session_factory
+from edu_db.session import get_session_factory
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel

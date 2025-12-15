@@ -1,0 +1,21 @@
+[project]
+name = "edu-db"
+version = "0.1.0"
+description = "Database models and session helpers for EduAgent"
+readme = "README.md"
+authors = [
+    { name = "Richard Amare", email = "amarerichard@icloud.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.17.2",
+    "pgvector>=0.2.5,<0.4",
+    "psycopg2-binary>=2.9.11",
+    "sqlalchemy>=2.0.45",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.9,<0.10.0"]
+build-backend = "uv_build"
+
+

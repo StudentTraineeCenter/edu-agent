@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Generic, TypeVar
 
-from edu_core.db.session import get_session_factory
+from edu_db.session import get_session_factory
 
 T = TypeVar("T")
 

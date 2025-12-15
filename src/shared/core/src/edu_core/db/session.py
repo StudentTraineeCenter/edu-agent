@@ -3,7 +3,7 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from edu_core.db.base import Base
+from edu_db.base import Base
 
 # 1. Global Placeholders (Initially None)
 _engine = None
@@ -52,7 +52,7 @@ def create_db_and_tables() -> None:
         raise RuntimeError("Database not initialized.")
 
     # Import models so Base.metadata finds them
-    from edu_core.db import models  # noqa: F401
+    from edu_db import models  # noqa: F401
 
     Base.metadata.create_all(_engine)
 

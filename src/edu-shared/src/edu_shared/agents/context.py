@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from edu_core.db.models import ChatMessageSource
+from edu_db.models import ChatMessageSource
 from edu_core.services.search import SearchService
 from langchain.agents import AgentState
 from langchain_openai import AzureChatOpenAI

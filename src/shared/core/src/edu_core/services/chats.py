@@ -12,13 +12,13 @@ from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessag
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 
-from edu_core.db.models import (
+from edu_db.models import (
     Chat,
     ChatMessage,
     ChatMessageSource,
     ChatMessageToolCall,
 )
-from edu_core.db.session import get_session_factory
+from edu_db.session import get_session_factory
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
 
@@ -349,7 +349,7 @@ class ChatService:
                     raise NotFoundError(f"Chat {chat_id} not found")
 
                 # Get project language code
-                from edu_core.db.models import Project
+                from edu_db.models import Project
 
                 project = (
                     db.query(Project).filter(Project.id == chat.project_id).first()

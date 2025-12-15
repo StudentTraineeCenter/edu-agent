@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from config import get_settings
-from edu_core.db.session import init_db
+from edu_db.session import init_db
 from edu_core.exceptions import NotFoundError, UsageLimitExceededError
 from exception_handlers import (
     general_exception_handler,

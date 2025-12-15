@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from edu_ai.agents.base import BaseContentAgent
-from edu_core.db.models import Note, Project
+from edu_db.models import Note, Project
 from edu_core.exceptions import NotFoundError
 from pydantic import BaseModel, Field
 

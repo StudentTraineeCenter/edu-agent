@@ -6,8 +6,8 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from edu_core.db.models import UserUsage
-from edu_core.db.session import get_session_factory
+from edu_db.models import UserUsage
+from edu_db.session import get_session_factory
 from edu_core.exceptions import UsageLimitExceededError
 from edu_core.schemas.usage import UsageDto, UsageLimitDto
 

@@ -7,7 +7,7 @@ from uuid import uuid4
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient
 from content_understanding import AzureContentUnderstandingClient
-from edu_core.db.models import Document, DocumentSegment
+from edu_db.models import Document, DocumentSegment
 from edu_core.schemas.documents import DocumentStatus
 from edu_queue.schemas import DocumentProcessingData
 from langchain_openai import AzureOpenAIEmbeddings

@@ -4,8 +4,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
-from edu_core.db.models import Project
-from edu_core.db.session import get_session_factory
+from edu_db.models import Project
+from edu_db.session import get_session_factory
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.projects import ProjectDto
 

@@ -4,7 +4,7 @@ from typing import Any
 from uuid import uuid4
 
 from edu_ai.agents.base import BaseContentAgent
-from edu_core.db.models import MindMap, Project
+from edu_db.models import MindMap, Project
 from edu_core.exceptions import NotFoundError
 from pydantic import BaseModel, Field
 
