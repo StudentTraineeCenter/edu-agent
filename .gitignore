@@ -12,3 +12,5 @@ wheels/
 .env*
 !.env.example
 .idea
+
+.DS_Store

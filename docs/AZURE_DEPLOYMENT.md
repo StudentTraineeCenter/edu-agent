@@ -1,6 +1,6 @@
 # Azure Deployment Guide
 
-This guide covers how to deploy EduAgent to Azure using Terraform.
+This guide covers how to deploy EduAgent to Azure using Terraform and the tooling in `deploy/azure/`.
 
 ## Table of Contents
 
@@ -30,32 +30,40 @@ This guide covers how to deploy EduAgent to Azure using Terraform.
 
 ### Step 1: Configure Terraform Variables
 
-Create a `terraform.tfvars` file in the `infra/` directory:
+Create a `terraform.tfvars` file in the `deploy/azure/terraform/` directory:
 
 ```hcl
 # Azure Authentication
 azure_subscription_id = "your-subscription-id"
 azure_tenant_id      = "your-tenant-id"
-azure_app_client_id  = "your-app-client-id"
 
 # Infrastructure Configuration
 location     = "Sweden Central"
 region_code  = "swc"
 project_name = "edu-agent"
 environment  = "dev"
-workload     = ""
 
-# Container Registry Configuration
-acr_repository_api = "edu-agent-api"
-acr_tag_api       = "latest"
-acr_repository_web = "edu-agent-web"
-acr_tag_web       = "latest"
+# Container Registry Configuration (optional overrides)
+acr_repository_api    = "edu-api"
+acr_tag_api           = "latest"
+acr_repository_worker = "edu-worker"
+acr_tag_worker        = "latest"
+acr_repository_web    = "edu-agent-web"
+acr_tag_web           = "latest"
+
+# Supabase (provisioned by Terraform)
+supabase_access_token      = "your-supabase-personal-access-token"
+supabase_organization_id   = "your-supabase-org-id"
+supabase_database_password = "strong-db-password"
+supabase_service_role_key  = "service-role-key-or-null-if-set-manually-later"
+supabase_jwt_secret        = "jwt-secret-or-null-if-set-manually-later"
+supabase_anon_key          = "anon-key-or-null-if-set-manually-later"
 ```
 
 ### Step 2: Initialize Terraform
 
 ```bash
-cd infra
+cd deploy/azure/terraform
 terraform init
 ```
 
@@ -67,16 +75,17 @@ This downloads the required Terraform providers (Azure RM, Random).
 terraform plan
 ```
 
-Review the plan to see what resources will be created:
+Review the plan to see what resources will be created, including:
 
 - Resource Group
-- Storage Account (for document storage)
+- Storage Account and blob containers
 - Azure Container Registry (ACR)
 - Key Vault (for secrets)
-- AI Foundry Hub and Project (for Azure OpenAI)
-- AI Services (for Content Understanding)
-- App Service Plan
-- App Services (API and Web)
+- Azure AI Foundry (OpenAI + embeddings)
+- Container Apps (API + worker)
+- Linux Web App (for the built SPA)
+- Log Analytics + Application Insights
+- Supabase project (database + auth)
 - RBAC assignments
 
 ### Step 4: Deploy Infrastructure
@@ -85,74 +94,50 @@ Review the plan to see what resources will be created:
 terraform apply
 ```
 
-Type `yes` when prompted. This will create all Azure resources. The deployment typically takes 10-15 minutes.
+Type `yes` when prompted. This will create all Azure resources. The deployment typically takes 10–15 minutes.
 
-**Note:** The database module is currently disabled. If you need Azure-managed PostgreSQL, uncomment the database module in `main.tf` and provide database credentials.
+Terraform will also:
 
-### Step 5: Build and Push Docker Images
+- Seed Key Vault with secrets for Azure AI, Supabase, and storage
+- Wire up identities and RBAC so container apps can read from Key Vault
 
-After infrastructure is deployed, build and push the Docker images:
+### Step 5: Build and Push Docker Images with ACR Tasks
 
-#### Build and Push API Image
+After infrastructure is deployed, build and push the Docker images using the remote ACR build script (no local Docker daemon required for the build itself):
 
 ```bash
-cd infra
-./build-push-server.sh [TAG]
+cd deploy/azure
+
+# Build all containers (API, worker, web) using ACR Tasks
+python build.py
+
+# Or build specific containers
+python build.py --container edu-api
+python build.py --container edu-worker
+python build.py --container edu-web
+
+# Optionally override the ACR name (otherwise read from terraform output)
+python build.py --acr-name myacr
 ```
 
-Example:
+Build configuration is controlled via `deploy/azure/build-config.yaml`:
+
+- Image names, tags, and Dockerfile paths
+- Vite build-time environment variables for the web app:
+  - `VITE_SERVER_URL` (from `container_app_api_url` terraform output)
+  - `VITE_SUPABASE_URL` (from `supabase_api_url` terraform output)
+  - `VITE_SUPABASE_ANON_KEY` (from the `supabase_anon_key` variable)
+
+### Step 6: Get Application URLs
 
 ```bash
-./build-push-server.sh latest
-```
-
-#### Build and Push Web Image
-
-```bash
-cd infra
-./build-push-web.sh [TAG]
-```
-
-Example:
-
-```bash
-./build-push-web.sh latest
-```
-
-The build scripts will:
-
-1. Login to Azure
-2. Login to Azure Container Registry
-3. Build the Docker image (for linux/amd64 platform)
-4. Push the image to ACR
-
-### Step 6: Restart App Services
-
-After pushing new images, restart the App Services to pull the latest images:
-
-```bash
-# Get app names from Terraform outputs
-API_APP=$(terraform output -raw api_app_name)
-WEB_APP=$(terraform output -raw web_app_name)
-RESOURCE_GROUP=$(terraform output -raw resource_group_name)
-
-# Restart API
-az webapp restart --name "$API_APP" --resource-group "$RESOURCE_GROUP"
-
-# Restart Web
-az webapp restart --name "$WEB_APP" --resource-group "$RESOURCE_GROUP"
-```
-
-### Step 7: Get Application URLs
-
-```bash
-cd infra
+cd deploy/azure/terraform
 terraform output
 ```
 
 This will show:
 
-- `app_api_url` - API application URL
+- `container_app_api_url` - API container app URL (used by the SPA)
 - `app_web_url` - Web application URL
 - `acr_name` - Container registry name
 - `resource_group_name` - Resource group name
@@ -162,10 +147,23 @@ This will show:
 To update the deployment:
 
 1. Make code changes
-2. Build and push new Docker images with updated tags
-3. Update `acr_tag_api` and/or `acr_tag_web` in `terraform.tfvars`
-4. Run `terraform apply` to update App Service configurations
-5. Restart App Services
+2. (Optional) Update `acr_tag_*` values in `deploy/azure/terraform/terraform.tfvars`
+3. Build and push new Docker images:
+
+   ```bash
+   cd deploy/azure
+   python build.py                      # all containers
+   # or: python build.py --container edu-api --container edu-worker --container edu-web
+   ```
+
+4. If you changed image tags or infra settings, run:
+
+   ```bash
+   cd deploy/azure/terraform
+   terraform apply
+   ```
+
+5. The container apps will automatically use the new images on the next revision. The web app can be updated either via ACR webhooks (for the configured scope) or a standard redeploy.
 
 ## Destroying Infrastructure
 
@@ -292,14 +290,13 @@ The following environment variables are automatically configured by Terraform in
 The Terraform configuration creates the following resources:
 
 - **Resource Group**: Container for all resources
-- **Storage Account**: For document blob storage
+- **Storage Account**: For document blob storage and Azure Storage queue
 - **Azure Container Registry**: For Docker images
-- **Key Vault**: For storing secrets
-- **AI Foundry Hub**: For Azure OpenAI services
+- **Key Vault**: For storing secrets (DB, AI, Supabase, storage)
+- **AI Foundry Hub**: For Azure OpenAI services (GPT‑4o, embeddings)
 - **AI Services**: For Content Understanding
-- **App Service Plan**: Hosting plan for App Services
-- **App Service (API)**: Python FastAPI backend
-- **App Service (Web)**: React frontend
+- **Container Apps (API + Worker)**: Python FastAPI backend and background worker
+- **Linux Web App (Web)**: React SPA hosting
 
 ## Additional Resources
 

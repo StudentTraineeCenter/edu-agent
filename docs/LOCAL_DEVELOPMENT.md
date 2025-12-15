@@ -30,57 +30,49 @@ This guide covers how to set up and run EduAgent locally for development.
 ## Quick Start
 
 ```bash
-# 1. Start database
-docker-compose up -d db
+# 1. Start backend stack (API, worker, Postgres, Azurite)
+docker-compose up --build api worker db azurite
 
-# 2. Set up database schema
+# 2. Set up database schema (separate terminal, one-time)
 cd server
 pip install -r requirements.txt
 alembic upgrade head
 
-# 3. Configure environment variables (see Detailed Setup)
-# Create .env files with your Azure credentials
-
-# 4. Start API server
-cd server
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# 5. Start web frontend (in a new terminal)
-cd web
+# 3. Start web frontend (in a new terminal)
+cd src/edu-web
 pnpm install
 pnpm dev
 ```
 
 The application will be available at:
 
-- API: `http://localhost:8000`
+- API (via docker-compose): `http://localhost:8000`
 - Web: `http://localhost:3000`
 
 ## Detailed Setup
 
-### Step 1: Start PostgreSQL Database
+### Step 1: Start Local Stack (API, Worker, DB, Azurite)
 
-The application uses PostgreSQL with pgvector extension. Start it using Docker Compose:
+The application uses:
+
+- PostgreSQL with pgvector (database)
+- Azure Storage emulator (Azurite) for queues/blobs
+- FastAPI API (`src/edu-api`)
+- Background worker (`src/edu-worker`)
+
+Start everything with Docker Compose:
 
 ```bash
-# Create .env file in project root if it doesn't exist
-cat > .env << EOF
-POSTGRES_DB=postgres
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-EOF
-
-# Start database
-docker-compose up -d db
+docker-compose up --build api worker db azurite
 ```
 
-Verify the database is running:
+Verify services are running:
 
 ```bash
 docker-compose ps
 ```
 
-You should see the `db` container running on port 5432.
+You should see `api`, `worker`, `db`, and `azurite` containers.
 
 ### Step 2: Set Up Database Schema
 
@@ -189,31 +181,27 @@ MAX_DOCUMENT_UPLOADS_PER_DAY=100
 
 **Note:** The server uses `python-dotenv` to load environment variables from `.env` files automatically. If `AZURE_KEY_VAULT_URI` is set, the application will attempt to fetch secrets from Key Vault first, falling back to environment variables if a secret is not found.
 
-### Step 4: Start the API Server
+### Step 4: Start the API Server (without Docker, optional)
+
+If you prefer to run the API directly (outside Docker):
 
 ```bash
-cd server
-
-# Install dependencies (if not already installed)
-pip install -r requirements.txt
-
-# Start the development server with auto-reload
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+cd src/edu-api
+uv run python main.py
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:8000`.
 
 **API Endpoints:**
 
+- Scalar UI (OpenAPI docs): `http://localhost:8000/`
 - OpenAPI schema: `http://localhost:8000/openapi.json`
-- Health check: `http://localhost:8000/health` (if implemented)
-
-The `--reload` flag enables automatic reloading when code changes are detected.
+- Health check: `http://localhost:8000/health`
 
 ### Step 5: Set Up Web Frontend
 
 ```bash
-cd web
+cd src/edu-web
 
 # Install dependencies
 pnpm install
@@ -256,34 +244,17 @@ This generates types from `http://localhost:8000/openapi.json` to `src/integrati
 
 ```
 edu-agent/
-├── infra/              # Terraform infrastructure code
-│   ├── main.tf        # Main Terraform configuration
-│   ├── variables.tf  # Variable definitions
-│   ├── outputs.tf    # Output values
-│   └── modules/      # Terraform modules
-├── server/            # Python FastAPI backend
-│   ├── main.py       # Application entry point
-│   ├── api/          # API routes and endpoints
-│   │   ├── v1/       # API version 1
-│   │   └── endpoints/ # Individual endpoint modules
-│   ├── core/          # Core services and business logic
-│   │   ├── agents/    # AI agent implementations
-│   │   └── services/ # Business logic services
-│   ├── db/            # Database models and migrations
-│   │   ├── models.py  # SQLAlchemy models
-│   │   └── alembic/   # Database migrations
-│   ├── schemas/       # Pydantic schemas
-│   └── requirements.txt
-├── web/               # React frontend
-│   ├── src/           # Source code
-│   │   ├── components/ # React components
-│   │   ├── features/   # Feature modules
-│   │   ├── hooks/      # React hooks
-│   │   └── integrations/ # API integrations
-│   ├── package.json  # Dependencies
-│   └── vite.config.ts
-├── docker-compose.yaml # Local database setup
-└── docs/              # Documentation
+├── src/
+│   ├── edu-api/        # FastAPI backend (public API)
+│   ├── edu-worker/     # Background worker (queue/AI processing)
+│   ├── edu-web/        # React frontend (Vite + TanStack)
+│   └── edu-shared/     # Shared models, DB session, Key Vault helpers, etc.
+├── server/             # Legacy backend (DB models, Alembic migrations, schemas)
+├── deploy/
+│   └── azure/          # Azure Terraform + ACR build tooling
+├── infra/              # (Legacy) Terraform infra — superseded by deploy/azure
+├── docker-compose.yaml # Local stack (api, worker, db, azurite)
+└── docs/               # Documentation
 ```
 
 ## Development Workflow
@@ -292,17 +263,18 @@ edu-agent/
 
 1. **Backend Changes:**
 
-   - Edit Python files in `server/`
-   - The server will auto-reload on save (if using `--reload`)
+   - Primary API: edit Python files in `src/edu-api/`
+   - Worker: edit Python files in `src/edu-worker/`
    - Run migrations if database schema changes: `alembic revision --autogenerate -m "description"`
 
 2. **Frontend Changes:**
 
-   - Edit TypeScript/React files in `web/src/`
+   - Edit TypeScript/React files in `src/edu-web/src/`
    - Changes are hot-reloaded automatically
    - Regenerate types if API changes: `pnpm gen:types`
 
 3. **Database Changes:**
+
    - Modify models in `server/db/models.py`
    - Generate migration: `alembic revision --autogenerate -m "description"`
    - Apply migration: `alembic upgrade head`
