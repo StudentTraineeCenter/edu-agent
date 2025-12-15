@@ -26,6 +26,16 @@ def get_settings_dep() -> Settings:
     return get_settings()
 
 
+def get_queue_service(
+    settings: Settings = Depends(get_settings_dep),
+) -> QueueService:
+    """Get QueueService instance with configuration from settings."""
+    return QueueService(
+        connection_string=settings.azure_storage_connection_string,
+        queue_name=settings.azure_storage_queue_name,
+    )
+
+
 def get_usage_service(
     settings: Settings = Depends(get_settings_dep),
 ) -> UsageService:
@@ -150,14 +160,4 @@ def get_document_upload_service(
         database_url=settings.database_url,
         azure_storage_connection_string=settings.azure_storage_connection_string,
         azure_storage_input_container_name=settings.azure_storage_input_container_name,
-    )
-
-
-def get_queue_service(
-    settings: Settings = Depends(get_settings_dep),
-) -> QueueService:
-    """Get QueueService instance with configuration from settings."""
-    return QueueService(
-        connection_string=settings.azure_storage_connection_string,
-        queue_name=settings.azure_storage_queue_name,
     )

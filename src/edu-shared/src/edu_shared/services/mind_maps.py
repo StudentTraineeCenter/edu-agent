@@ -2,7 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from edu_shared.db.models import MindMap

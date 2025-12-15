@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-pythn.vscode-pylance",
+    "charliermarsh.ruff",
+    "tamasfe.even-better-toml",
+    "aaron-bond.better-comments",
+    "biener.markdown-mermaid",
+    "postman.postman-for-vscode"
+  ]
+}
