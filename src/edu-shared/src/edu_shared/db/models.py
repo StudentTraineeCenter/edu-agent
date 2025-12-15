@@ -510,6 +510,7 @@ class UserUsage(Base):
     chat_messages_today: Mapped[int] = mapped_column(Integer, default=0)
     flashcard_generations_today: Mapped[int] = mapped_column(Integer, default=0)
     quiz_generations_today: Mapped[int] = mapped_column(Integer, default=0)
+    mindmap_generations_today: Mapped[int] = mapped_column(Integer, default=0)
     document_uploads_today: Mapped[int] = mapped_column(Integer, default=0)
 
     # Last reset date

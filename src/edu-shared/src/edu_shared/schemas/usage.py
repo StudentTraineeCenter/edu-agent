@@ -18,6 +18,9 @@ class UsageDto(BaseModel):
     quiz_generations: UsageLimitDto = Field(
         description="Quiz generation usage statistics"
     )
+    mindmap_generations: UsageLimitDto = Field(
+        description="Mind map generation usage statistics"
+    )
     document_uploads: UsageLimitDto = Field(
         description="Document upload usage statistics"
     )

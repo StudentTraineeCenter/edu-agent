@@ -20,26 +20,33 @@ class UsageService:
         max_chat_messages_per_day: int = 50,
         max_flashcard_generations_per_day: int = 10,
         max_quiz_generations_per_day: int = 10,
+        max_mindmap_generations_per_day: int = 10,
         max_document_uploads_per_day: int = 5,
     ) -> None:
         """Initialize the usage service.
-        
+
         Args:
             max_chat_messages_per_day: Maximum chat messages per day
             max_flashcard_generations_per_day: Maximum flashcard generations per day
             max_quiz_generations_per_day: Maximum quiz generations per day
+            max_mindmap_generations_per_day: Maximum mind map generations per day
             max_document_uploads_per_day: Maximum document uploads per day
         """
         self.max_chat_messages_per_day = max_chat_messages_per_day
         self.max_flashcard_generations_per_day = max_flashcard_generations_per_day
         self.max_quiz_generations_per_day = max_quiz_generations_per_day
+        self.max_mindmap_generations_per_day = max_mindmap_generations_per_day
         self.max_document_uploads_per_day = max_document_uploads_per_day
 
     def check_and_increment(
         self,
         user_id: str,
         usage_type: Literal[
-            "chat_message", "flashcard_generation", "quiz_generation", "document_upload"
+            "chat_message",
+            "flashcard_generation",
+            "quiz_generation",
+            "mindmap_generation",
+            "document_upload",
         ],
     ) -> None:
         """Check if user has exceeded limit and increment counter.
@@ -61,6 +68,7 @@ class UsageService:
                     "chat_message": usage.chat_messages_today,
                     "flashcard_generation": usage.flashcard_generations_today,
                     "quiz_generation": usage.quiz_generations_today,
+                    "mindmap_generation": usage.mindmap_generations_today,
                     "document_upload": usage.document_uploads_today,
                 }
 
@@ -68,6 +76,7 @@ class UsageService:
                     "chat_message": self.max_chat_messages_per_day,
                     "flashcard_generation": self.max_flashcard_generations_per_day,
                     "quiz_generation": self.max_quiz_generations_per_day,
+                    "mindmap_generation": self.max_mindmap_generations_per_day,
                     "document_upload": self.max_document_uploads_per_day,
                 }
 
@@ -85,18 +94,14 @@ class UsageService:
                 # Increment counter
                 if usage_type == "chat_message":
                     usage.chat_messages_today += 1
-                    new_count = usage.chat_messages_today
                 elif usage_type == "flashcard_generation":
                     usage.flashcard_generations_today += 1
-                    new_count = usage.flashcard_generations_today
                 elif usage_type == "quiz_generation":
                     usage.quiz_generations_today += 1
-                    new_count = usage.quiz_generations_today
+                elif usage_type == "mindmap_generation":
+                    usage.mindmap_generations_today += 1
                 elif usage_type == "document_upload":
                     usage.document_uploads_today += 1
-                    new_count = usage.document_uploads_today
-                else:
-                    new_count = 0
 
                 db.commit()
                 db.refresh(usage)
@@ -133,6 +138,10 @@ class UsageService:
                         used=usage.quiz_generations_today,
                         limit=self.max_quiz_generations_per_day,
                     ),
+                    mindmap_generations=UsageLimitDto(
+                        used=usage.mindmap_generations_today,
+                        limit=self.max_mindmap_generations_per_day,
+                    ),
                     document_uploads=UsageLimitDto(
                         used=usage.document_uploads_today,
                         limit=self.max_document_uploads_per_day,
@@ -159,6 +168,7 @@ class UsageService:
                     chat_messages_today=0,
                     flashcard_generations_today=0,
                     quiz_generations_today=0,
+                    mindmap_generations_today=0,
                     document_uploads_today=0,
                     last_reset_date=datetime.now(UTC),
                 )
@@ -191,6 +201,7 @@ class UsageService:
                 usage.chat_messages_today = 0
                 usage.flashcard_generations_today = 0
                 usage.quiz_generations_today = 0
+                usage.mindmap_generations_today = 0
                 usage.document_uploads_today = 0
                 usage.last_reset_date = now
                 db.commit()

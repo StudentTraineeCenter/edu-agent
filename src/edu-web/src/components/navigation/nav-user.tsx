@@ -1,10 +1,10 @@
 import {
-  ChevronsUpDown,
-  MessageSquare,
-  FileText,
   Brain,
+  ChevronsUpDown,
+  FileText,
   HelpCircle,
   LogOutIcon,
+  MessageSquare,
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -22,9 +22,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { usageAtom } from '@/data-acess/usage'
 import { currentUserAtom, signOutAtom } from '@/data-acess/auth'
+import { usageAtom } from '@/data-acess/usage'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { useNavigate } from '@tanstack/react-router'
 
 const UsageSection = () => {
@@ -51,6 +51,15 @@ const UsageSection = () => {
           <span className="text-xs font-medium">
             {usage.flashcard_generations.used} /{' '}
             {usage.flashcard_generations.limit}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs">Mind Maps</span>
+          </div>
+          <span className="text-xs font-medium">
+            {usage.mindmap_generations.used} / {usage.mindmap_generations.limit}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">

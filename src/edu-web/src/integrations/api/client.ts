@@ -1079,6 +1079,10 @@ export class UsageDto extends S.Class<UsageDto>('UsageDto')({
    */
   quiz_generations: UsageLimitDto,
   /**
+   * Mind map generation usage statistics
+   */
+  mindmap_generations: UsageLimitDto,
+  /**
    * Document upload usage statistics
    */
   document_uploads: UsageLimitDto,

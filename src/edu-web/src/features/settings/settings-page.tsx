@@ -232,6 +232,23 @@ export function SettingsPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">Mind Map Generations</span>
+                        <span className="text-muted-foreground">
+                          {usage.mindmap_generations.used} /{' '}
+                          {usage.mindmap_generations.limit}
+                        </span>
+                      </div>
+                      <Progress
+                        value={
+                          (usage.mindmap_generations.used /
+                            usage.mindmap_generations.limit) *
+                          100
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
                         <span className="font-medium">Document Uploads</span>
                         <span className="text-muted-foreground">
                           {usage.document_uploads.used} /{' '}

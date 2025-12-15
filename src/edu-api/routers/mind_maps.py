@@ -5,10 +5,11 @@ from collections.abc import AsyncGenerator
 from auth import get_current_user
 from dependencies import (
     get_mind_map_service,
+    get_usage_service,
 )
 from edu_shared.schemas.mind_maps import MindMapDto
 from edu_shared.schemas.users import UserDto
-from edu_shared.services import MindMapService, NotFoundError
+from edu_shared.services import MindMapService, NotFoundError, UsageService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -68,12 +69,16 @@ async def create_mind_map(
     request: MindMapCreate,
     current_user: UserDto = Depends(get_current_user),
     service: MindMapService = Depends(get_mind_map_service),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Generate/create a mind map.
 
     Note: AI generation is not yet implemented in edu-shared service.
     This endpoint creates a basic mind map structure.
     """
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "mindmap_generation")
+
     try:
         # For now, create a basic mind map
         # TODO: Implement AI generation using search_service and agent_config
@@ -94,8 +99,12 @@ async def create_mind_map_stream(
     request: MindMapCreate,
     current_user: UserDto = Depends(get_current_user),
     service: MindMapService = Depends(get_mind_map_service),
+    usage_service: UsageService = Depends(get_usage_service),
 ):
     """Queue mind map generation request with streaming progress updates."""
+
+    # Check usage limit before processing
+    usage_service.check_and_increment(current_user.id, "mindmap_generation")
 
     async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming progress updates"""
@@ -106,7 +115,7 @@ async def create_mind_map_stream(
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
-            result = service.queue_generation(
+            service.queue_generation(
                 user_id=current_user.id,
                 project_id=project_id,
                 topic=request.title or request.custom_instructions or "",
