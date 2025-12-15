@@ -1,7 +1,6 @@
-"""Service for processing documents with Azure Content Understanding."""
+"""Processor for document processing tasks."""
 
 import asyncio
-from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
@@ -14,17 +13,20 @@ from langchain_text_splitters import (
 )
 
 from edu_shared.db.models import Document, DocumentSegment
-from edu_shared.db.session import get_session_factory
 from edu_shared.schemas.documents import DocumentStatus
+from edu_shared.schemas.queue import DocumentProcessingData
 from edu_shared.services.content_understanding import AzureContentUnderstandingClient
+from processors.base import BaseProcessor
+from rich.console import Console
+
+console = Console(force_terminal=True)
 
 
-class DocumentProcessingService:
-    """Service for processing documents with Azure Content Understanding."""
+class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
+    """Processor for processing documents with Azure Content Understanding."""
 
     def __init__(
         self,
-        database_url: str,
         azure_storage_connection_string: str,
         azure_storage_input_container_name: str,
         azure_storage_output_container_name: str,
@@ -34,11 +36,10 @@ class DocumentProcessingService:
         azure_openai_embedding_deployment: str,
         azure_openai_endpoint: str,
         azure_openai_api_version: str,
-    ) -> None:
-        """Initialize the document processing service.
-
+    ):
+        """Initialize the processor.
+        
         Args:
-            database_url: Database connection URL
             azure_storage_connection_string: Azure Storage connection string
             azure_storage_input_container_name: Input container name
             azure_storage_output_container_name: Output container name
@@ -49,7 +50,6 @@ class DocumentProcessingService:
             azure_openai_endpoint: Azure OpenAI endpoint
             azure_openai_api_version: Azure OpenAI API version
         """
-        self.database_url = database_url
         self.blob_service_client = BlobServiceClient.from_connection_string(
             azure_storage_connection_string
         )
@@ -73,21 +73,39 @@ class DocumentProcessingService:
         )
         self.analyzer_id = azure_cu_analyzer_id
 
-    async def process_document(
-        self, document_id: str, file_content: bytes, project_id: str
-    ) -> None:
+    async def process(self, payload: DocumentProcessingData) -> None:
         """Process document asynchronously: analyze, index, and create embeddings.
-
+        
         Args:
-            document_id: The document ID
-            file_content: The file content as bytes
-            project_id: The project ID
-
+            payload: Document processing data
+            
         Raises:
             Exception: If processing fails
         """
+        document_id = payload["document_id"]
+        project_id = payload["project_id"]
+
         with self._get_db_session() as db:
             try:
+                # Get document to find blob name
+                document = db.query(Document).filter(Document.id == document_id).first()
+                if not document:
+                    raise ValueError(f"Document {document_id} not found")
+
+                # Get blob from input container
+                file_extension = (
+                    document.file_type if document.file_type != "unknown" else ""
+                )
+                if file_extension:
+                    blob_name = f"{project_id}/{document_id}.{file_extension}"
+                else:
+                    blob_name = f"{project_id}/{document_id}"
+
+                blob_client = self.blob_service_client.get_blob_client(
+                    container=self.input_container, blob=blob_name
+                )
+                file_content = blob_client.download_blob().readall()
+
                 # Step 1: Extract text using Content Understanding
                 analyzed_result = await asyncio.to_thread(
                     self._analyze_document, file_content=file_content
@@ -118,10 +136,11 @@ class DocumentProcessingService:
 
                 # Step 5: Mark document as indexed
                 self._mark_document_indexed(db=db, document_id=document_id)
+                
+                console.log(f"Processed document {document_id}")
             except Exception:
                 self._mark_document_failed(db=db, document_id=document_id)
                 raise
-
 
     def _analyze_document(self, file_content: bytes) -> dict:
         """Analyze document using Azure Content Understanding.
@@ -304,7 +323,6 @@ class DocumentProcessingService:
                     chunks.extend(chunker.split_text(sec.page_content))
         return chunks
 
-
     @staticmethod
     def _update_document_processed_status(
         db, document_id: str, summary: str
@@ -373,17 +391,3 @@ class DocumentProcessingService:
         ]
         db.add_all(segments)
         db.commit()
-
-    @contextmanager
-    def _get_db_session(self):
-        """Context manager for database sessions."""
-        SessionLocal = get_session_factory()
-        db = SessionLocal()
-        try:
-            yield db
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
-

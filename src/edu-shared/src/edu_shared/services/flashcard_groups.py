@@ -5,25 +5,25 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from langchain_openai import AzureChatOpenAI
-
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.agents.flashcard_agent import FlashcardAgent
-from edu_shared.db.models import Flashcard, FlashcardGroup, Project
+from edu_shared.db.models import Flashcard, FlashcardGroup
 from edu_shared.db.session import get_session_factory
 from edu_shared.exceptions import NotFoundError
 from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
-from edu_shared.services.search import SearchService
 
 if TYPE_CHECKING:
     from edu_shared.services.queue import QueueService
 
+
 class FlashcardGroupService:
     """Service for managing flashcard groups."""
 
-    def __init__(self) -> None:
-        """Initialize the flashcard group service."""
-        pass
+    def __init__(self, queue_service: "QueueService") -> None:
+        """Initialize the flashcard group service.
+
+        Args:
+            queue_service: QueueService instance for async generation tasks
+        """
+        self.queue_service = queue_service
 
     def create_flashcard_group(
         self,
@@ -109,13 +109,19 @@ class FlashcardGroupService:
         """
         with self._get_db_session() as db:
             try:
-                query = db.query(FlashcardGroup).filter(FlashcardGroup.project_id == project_id)
+                query = db.query(FlashcardGroup).filter(
+                    FlashcardGroup.project_id == project_id
+                )
                 if study_session_id is not None:
-                    query = query.filter(FlashcardGroup.study_session_id == study_session_id)
+                    query = query.filter(
+                        FlashcardGroup.study_session_id == study_session_id
+                    )
                 else:
                     # Exclude groups that belong to study sessions by default
                     query = query.filter(FlashcardGroup.study_session_id.is_(None))
-                flashcard_groups = query.order_by(FlashcardGroup.created_at.desc()).all()
+                flashcard_groups = query.order_by(
+                    FlashcardGroup.created_at.desc()
+                ).all()
                 return [self._model_to_dto(group) for group in flashcard_groups]
             except Exception:
                 raise
@@ -213,111 +219,6 @@ class FlashcardGroupService:
             created_at=flashcard_group.created_at,
             updated_at=flashcard_group.updated_at,
         )
-
-    async def generate_and_populate(
-        self,
-        group_id: str,
-        project_id: str,
-        search_service: SearchService,
-        llm: AzureChatOpenAI | None = None,
-        agent_config: ContentAgentConfig | None = None,
-        topic: str | None = None,
-        custom_instructions: str | None = None,
-        count: int | None = None,
-        difficulty: str | None = None,
-    ) -> FlashcardGroupDto:
-        """Generate flashcards using AI and populate an existing flashcard group.
-        
-        Args:
-            group_id: The flashcard group ID to populate
-            project_id: The project ID
-            search_service: SearchService instance for RAG
-            agent_config: ContentAgentConfig for AI generation
-            topic: Optional topic for generation
-            custom_instructions: Optional custom instructions
-            count: Optional count of flashcards to generate
-            difficulty: Optional difficulty level
-            
-        Returns:
-            Updated FlashcardGroupDto
-            
-        Raises:
-            NotFoundError: If flashcard group not found
-        """
-        with self._get_db_session() as db:
-            try:
-                # Find existing flashcard group
-                project = db.query(Project).filter(Project.id == project_id).first()
-                if not project:
-                    raise NotFoundError(f"Project {project_id} not found")
-                
-                language_code = project.language_code
-                
-                group = db.query(FlashcardGroup).filter(
-                    FlashcardGroup.id == group_id,
-                    FlashcardGroup.project_id == project_id,
-                ).first()
-                if not group:
-                    raise NotFoundError(f"Flashcard group {group_id} not found")
-
-                group = db.query(FlashcardGroup).filter(
-                    FlashcardGroup.id == group_id,
-                    FlashcardGroup.project_id == project_id,
-                ).first()
-                if not group:
-                    raise NotFoundError(f"Flashcard group {group_id} not found")
-
-                # Generate flashcards using AI
-                flashcard_agent = FlashcardAgent(
-                    search_service=search_service,
-                    llm=llm,
-                    config=agent_config,
-                )
-                kwargs = {}
-                if count is not None:
-                    kwargs["count"] = count
-                if difficulty is not None:
-                    kwargs["difficulty"] = difficulty
-                result = await flashcard_agent.generate(
-                    project_id=project_id,
-                    topic=topic or "",
-                    language_code=language_code,
-                    custom_instructions=custom_instructions,
-                    **kwargs,
-                )
-
-                # Update group with generated name and description
-                group.name = result.name
-                group.description = result.description
-                group.updated_at = datetime.now()
-                db.flush()
-
-                # Delete existing flashcards and create new ones
-                db.query(Flashcard).filter(Flashcard.group_id == group_id).delete()
-
-                # Save flashcards to database
-                for position, flashcard_item in enumerate(result.flashcards):
-                    flashcard = Flashcard(
-                        id=str(uuid4()),
-                        group_id=group_id,
-                        project_id=project_id,
-                        question=flashcard_item.question,
-                        answer=flashcard_item.answer,
-                        difficulty_level=flashcard_item.difficulty_level,
-                        position=position,
-                        created_at=datetime.now(),
-                    )
-                    db.add(flashcard)
-
-                db.commit()
-                db.refresh(group)
-
-                return self._model_to_dto(group)
-            except NotFoundError:
-                raise
-            except Exception:
-                db.rollback()
-                raise
 
     def create_flashcard(
         self,
@@ -426,9 +327,7 @@ class FlashcardGroupService:
             except Exception:
                 raise
 
-    def list_flashcards(
-        self, group_id: str, project_id: str
-    ) -> list[FlashcardDto]:
+    def list_flashcards(self, group_id: str, project_id: str) -> list[FlashcardDto]:
         """List all flashcards in a group.
 
         Args:
@@ -449,7 +348,9 @@ class FlashcardGroupService:
                     .order_by(Flashcard.position.asc())
                     .all()
                 )
-                return [self._flashcard_model_to_dto(flashcard) for flashcard in flashcards]
+                return [
+                    self._flashcard_model_to_dto(flashcard) for flashcard in flashcards
+                ]
             except Exception:
                 raise
 
@@ -565,7 +466,6 @@ class FlashcardGroupService:
         self,
         group_id: str,
         project_id: str,
-        queue_service: "QueueService",
         topic: str | None = None,
         custom_instructions: str | None = None,
         count: int | None = None,
@@ -573,7 +473,7 @@ class FlashcardGroupService:
         user_id: str | None = None,
     ) -> FlashcardGroupDto:
         """Queue a flashcard generation request to be processed by a worker.
-        
+
         Args:
             group_id: The flashcard group ID to populate
             project_id: The project ID
@@ -583,10 +483,10 @@ class FlashcardGroupService:
             count: Optional count of flashcards to generate
             difficulty: Optional difficulty level
             user_id: Optional user ID for queue message
-            
+
         Returns:
             Existing FlashcardGroupDto (generation will happen asynchronously)
-            
+
         Raises:
             NotFoundError: If flashcard group not found
         """
@@ -620,7 +520,7 @@ class FlashcardGroupService:
             "type": TaskType.FLASHCARD_GENERATION,
             "data": task_data,
         }
-        queue_service.send_message(task_message)
+        self.queue_service.send_message(task_message)
 
         return group
 
@@ -636,4 +536,3 @@ class FlashcardGroupService:
             raise
         finally:
             db.close()
-

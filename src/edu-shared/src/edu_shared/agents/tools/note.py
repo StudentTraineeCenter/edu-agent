@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from edu_shared.agents.context import CustomAgentContext
+from edu_shared.agents.note_agent import NoteAgent
 from edu_shared.schemas.notes import NoteDto
 from edu_shared.services.notes import NoteService
 from langchain.tools import tool
@@ -61,17 +62,20 @@ async def create_note(
         description="AI-generated study note",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        note_id=note.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    note_agent = NoteAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    note = await note_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=custom_instructions,
         custom_instructions=custom_instructions,
+        note_id=note.id,
     )
 
-    note_dto = NoteDto.model_validate(result)
+    note_dto = NoteDto.model_validate(svc._model_to_dto(note))
     result_dict = note_dto.model_dump()
 
     return json.dumps(result_dict, ensure_ascii=False, default=str)
@@ -113,17 +117,20 @@ async def create_note_scoped(
         description="AI-generated study note",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        note_id=note.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    note_agent = NoteAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    note = await note_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=query,
         custom_instructions=enhanced_prompt,
+        note_id=note.id,
     )
 
-    note_dto = NoteDto.model_validate(result)
+    note_dto = NoteDto.model_validate(svc._model_to_dto(note))
     result_dict = note_dto.model_dump()
 
     return json.dumps(result_dict, ensure_ascii=False, default=str)

@@ -25,6 +25,7 @@ def get_settings_dep() -> Settings:
     """Get application settings."""
     return get_settings()
 
+
 def get_usage_service(
     settings: Settings = Depends(get_settings_dep),
 ) -> UsageService:
@@ -35,6 +36,7 @@ def get_usage_service(
         max_quiz_generations_per_day=settings.max_quiz_generations_per_day,
         max_document_uploads_per_day=settings.max_document_uploads_per_day,
     )
+
 
 def get_project_service() -> ProjectService:
     """Get ProjectService instance."""
@@ -59,19 +61,25 @@ def get_chat_service(
     )
 
 
-def get_note_service() -> NoteService:
+def get_note_service(
+    queue_service: QueueService = Depends(get_queue_service),
+) -> NoteService:
     """Get NoteService instance."""
-    return NoteService()
+    return NoteService(queue_service=queue_service)
 
 
-def get_quiz_service() -> QuizService:
+def get_quiz_service(
+    queue_service: QueueService = Depends(get_queue_service),
+) -> QuizService:
     """Get QuizService instance."""
-    return QuizService()
+    return QuizService(queue_service=queue_service)
 
 
-def get_flashcard_group_service() -> FlashcardGroupService:
+def get_flashcard_group_service(
+    queue_service: QueueService = Depends(get_queue_service),
+) -> FlashcardGroupService:
     """Get FlashcardGroupService instance."""
-    return FlashcardGroupService()
+    return FlashcardGroupService(queue_service=queue_service)
 
 
 def get_user_service() -> UserService:
@@ -84,9 +92,11 @@ def get_practice_service() -> PracticeService:
     return PracticeService()
 
 
-def get_mind_map_service() -> MindMapService:
+def get_mind_map_service(
+    queue_service: QueueService = Depends(get_queue_service),
+) -> MindMapService:
     """Get MindMapService instance."""
-    return MindMapService()
+    return MindMapService(queue_service=queue_service)
 
 
 def get_study_session_service() -> StudySessionService:
@@ -151,5 +161,3 @@ def get_queue_service(
         connection_string=settings.azure_storage_connection_string,
         queue_name=settings.azure_storage_queue_name,
     )
-
-

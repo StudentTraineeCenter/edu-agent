@@ -5,12 +5,10 @@ from collections.abc import AsyncGenerator
 from auth import get_current_user
 from dependencies import (
     get_note_service,
-    get_queue_service,
 )
 from edu_shared.schemas.notes import NoteDto
 from edu_shared.schemas.users import UserDto
 from edu_shared.services import NoteService, NotFoundError
-from edu_shared.services.queue import QueueService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -110,6 +108,7 @@ async def delete_note(
 
 class GenerationProgressUpdate(BaseModel):
     """Progress update for generation streaming."""
+
     status: str = Field(..., description="Status: searching, generating, saving, done")
     message: str = Field(..., description="Progress message")
     error: str | None = Field(None, description="Error message if any")
@@ -122,14 +121,12 @@ async def generate_note(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: NoteService = Depends(get_note_service),
-    queue_service: QueueService = Depends(get_queue_service),
 ):
     """Queue note generation request to be processed by a worker."""
     try:
         return service.queue_generation(
             note_id=note_id,
             project_id=project_id,
-            queue_service=queue_service,
             topic=request.topic,
             custom_instructions=request.custom_instructions,
             user_id=current_user.id,
@@ -147,7 +144,6 @@ async def generate_note_stream(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: NoteService = Depends(get_note_service),
-    queue_service: QueueService = Depends(get_queue_service),
 ):
     """Queue note generation request with streaming progress updates."""
 
@@ -156,15 +152,13 @@ async def generate_note_stream(
         try:
             # Queuing request
             progress = GenerationProgressUpdate(
-                status="queuing",
-                message="Queuing note generation request..."
+                status="queuing", message="Queuing note generation request..."
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
             result = service.queue_generation(
                 note_id=note_id,
                 project_id=project_id,
-                queue_service=queue_service,
                 topic=request.topic,
                 custom_instructions=request.custom_instructions,
                 user_id=current_user.id,
@@ -172,23 +166,18 @@ async def generate_note_stream(
 
             # Done (queued)
             progress = GenerationProgressUpdate(
-                status="done",
-                message="Note generation request queued successfully"
+                status="done", message="Note generation request queued successfully"
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
-                status="done",
-                message="Error queuing note generation",
-                error=str(e)
+                status="done", message="Error queuing note generation", error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode()
         except Exception as e:
             error_progress = GenerationProgressUpdate(
-                status="done",
-                message="Error queuing note generation",
-                error=str(e)
+                status="done", message="Error queuing note generation", error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode()
 
@@ -202,4 +191,3 @@ async def generate_note_stream(
             "Access-Control-Allow-Headers": "*",
         },
     )
-

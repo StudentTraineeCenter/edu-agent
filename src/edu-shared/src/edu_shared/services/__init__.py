@@ -2,7 +2,6 @@
 
 from edu_shared.exceptions import NotFoundError
 from edu_shared.services.chats import ChatService
-from edu_shared.services.document_processing import DocumentProcessingService
 from edu_shared.services.document_upload import DocumentUploadService
 from edu_shared.services.documents import DocumentService
 from edu_shared.services.flashcard_groups import FlashcardGroupService
@@ -18,7 +17,6 @@ from edu_shared.services.users import UserService
 
 __all__ = [
     "ChatService",
-    "DocumentProcessingService",
     "DocumentService",
     "DocumentUploadService",
     "FlashcardGroupService",

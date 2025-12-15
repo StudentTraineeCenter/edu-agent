@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from edu_shared.agents.context import CustomAgentContext
+from edu_shared.agents.mind_map_agent import MindMapAgent
 from edu_shared.schemas.mind_maps import MindMapDto
 from edu_shared.services.mind_maps import MindMapService
 from langchain.tools import tool
@@ -43,17 +44,21 @@ async def create_mind_map(
             ensure_ascii=False
         )
 
-    svc = MindMapService()
-    mind_map = await svc.generate_mind_map(
-        user_id=ctx.user_id,
-        project_id=ctx.project_id,
+    # Generate and create using agent
+    mind_map_agent = MindMapAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    mind_map = await mind_map_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=custom_instructions,
         custom_instructions=custom_instructions,
+        user_id=ctx.user_id,
     )
 
-    mind_map_dto = MindMapDto.model_validate(mind_map)
+    svc = MindMapService()
+    mind_map_dto = MindMapDto.model_validate(svc._model_to_dto(mind_map))
     result = mind_map_dto.model_dump()
 
     return json.dumps(result, ensure_ascii=False, default=str)
@@ -88,17 +93,21 @@ async def create_mind_map_scoped(
             ensure_ascii=False
         )
 
-    svc = MindMapService()
-    mind_map = await svc.generate_mind_map(
-        user_id=ctx.user_id,
-        project_id=ctx.project_id,
+    # Generate and create using agent
+    mind_map_agent = MindMapAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    mind_map = await mind_map_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=query,
         custom_instructions=enhanced_prompt,
+        user_id=ctx.user_id,
     )
 
-    mind_map_dto = MindMapDto.model_validate(mind_map)
+    svc = MindMapService()
+    mind_map_dto = MindMapDto.model_validate(svc._model_to_dto(mind_map))
     result = mind_map_dto.model_dump()
 
     return json.dumps(result, ensure_ascii=False, default=str)

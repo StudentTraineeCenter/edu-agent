@@ -4,14 +4,12 @@ from collections.abc import AsyncGenerator
 
 from auth import get_current_user
 from dependencies import (
-    get_queue_service,
     get_quiz_service,
     get_usage_service,
 )
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.schemas.users import UserDto
 from edu_shared.services import NotFoundError, QuizService, UsageService
-from edu_shared.services.queue import QueueService
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -116,6 +114,7 @@ async def delete_quiz(
 
 class GenerationProgressUpdate(BaseModel):
     """Progress update for generation streaming."""
+
     status: str = Field(..., description="Status: searching, generating, saving, done")
     message: str = Field(..., description="Progress message")
     error: str | None = Field(None, description="Error message if any")
@@ -128,7 +127,6 @@ async def generate_quiz(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: QuizService = Depends(get_quiz_service),
-    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
     """Queue quiz generation request to be processed by a worker."""
@@ -138,7 +136,6 @@ async def generate_quiz(
         return service.queue_generation(
             quiz_id=quiz_id,
             project_id=project_id,
-            queue_service=queue_service,
             topic=request.topic,
             custom_instructions=request.custom_instructions,
             user_id=current_user.id,
@@ -156,7 +153,6 @@ async def generate_quiz_stream(
     request: GenerateRequest,
     current_user: UserDto = Depends(get_current_user),
     service: QuizService = Depends(get_quiz_service),
-    queue_service: QueueService = Depends(get_queue_service),
     usage_service: UsageService = Depends(get_usage_service),
 ):
     """Queue quiz generation request with streaming progress updates."""
@@ -168,15 +164,13 @@ async def generate_quiz_stream(
         try:
             # Queuing request
             progress = GenerationProgressUpdate(
-                status="queuing",
-                message="Queuing quiz generation request..."
+                status="queuing", message="Queuing quiz generation request..."
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
             result = service.queue_generation(
                 quiz_id=quiz_id,
                 project_id=project_id,
-                queue_service=queue_service,
                 topic=request.topic,
                 custom_instructions=request.custom_instructions,
                 user_id=current_user.id,
@@ -184,23 +178,18 @@ async def generate_quiz_stream(
 
             # Done (queued)
             progress = GenerationProgressUpdate(
-                status="done",
-                message="Quiz generation request queued successfully"
+                status="done", message="Quiz generation request queued successfully"
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
         except NotFoundError as e:
             error_progress = GenerationProgressUpdate(
-                status="done",
-                message="Error queuing quiz generation",
-                error=str(e)
+                status="done", message="Error queuing quiz generation", error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode()
         except Exception as e:
             error_progress = GenerationProgressUpdate(
-                status="done",
-                message="Error queuing quiz generation",
-                error=str(e)
+                status="done", message="Error queuing quiz generation", error=str(e)
             )
             yield f"data: {error_progress.model_dump_json()}\n\n".encode()
 
@@ -354,4 +343,3 @@ async def reorder_quiz_questions(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

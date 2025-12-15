@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from edu_shared.agents.context import CustomAgentContext
+from edu_shared.agents.quiz_agent import QuizAgent
 from edu_shared.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_shared.services.quizzes import QuizService
 from langchain.tools import tool
@@ -62,21 +63,24 @@ async def create_quiz(
         description="AI-generated quiz",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        quiz_id=quiz.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    quiz_agent = QuizAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    quiz = await quiz_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=custom_instructions,
         custom_instructions=custom_instructions,
+        quiz_id=quiz.id,
         count=count,
     )
 
     # Get questions
     questions = await asyncio.to_thread(svc.list_quiz_questions, quiz.id, ctx.project_id)
 
-    quiz_dto = QuizDto.model_validate(result)
+    quiz_dto = QuizDto.model_validate(svc._model_to_dto(quiz))
     questions_dto = [QuizQuestionDto.model_validate(q) for q in questions]
 
     result_dict = {
@@ -124,21 +128,24 @@ async def create_quiz_scoped(
         description="AI-generated quiz",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        quiz_id=quiz.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    quiz_agent = QuizAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    quiz = await quiz_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=query,
         custom_instructions=enhanced_prompt,
+        quiz_id=quiz.id,
         count=count,
     )
 
     # Get questions
     questions = await asyncio.to_thread(svc.list_quiz_questions, quiz.id, ctx.project_id)
 
-    quiz_dto = QuizDto.model_validate(result)
+    quiz_dto = QuizDto.model_validate(svc._model_to_dto(quiz))
     questions_dto = [QuizQuestionDto.model_validate(q) for q in questions]
 
     result_dict = {

@@ -1,14 +1,17 @@
 import logging
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from edu_shared.agents.prompts_utils import render_prompt
+from edu_shared.db.session import get_session_factory
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
     from edu_shared.services.search import SearchService
 
 logger = logging.getLogger(__name__)
@@ -53,6 +56,27 @@ class BaseContentAgent(ABC, Generic[T]):
         else:
             raise ValueError("Either llm or config must be provided")
 
+    @contextmanager
+    def _get_db_session(self):
+        """Context manager for database sessions with transaction handling.
+        
+        Yields:
+            Database session
+            
+        Raises:
+            Exception: If transaction fails, automatically rolls back
+        """
+        SessionLocal = get_session_factory()
+        db = SessionLocal()
+        try:
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
     @property
     @abstractmethod
     def output_model(self) -> type[T]:
@@ -63,6 +87,34 @@ class BaseContentAgent(ABC, Generic[T]):
     @abstractmethod
     def prompt_template(self) -> str:
         """Filename of the Jinja2 prompt template."""
+        pass
+
+    @abstractmethod
+    async def generate_and_save(
+        self,
+        project_id: str,
+        topic: str | None = None,
+        custom_instructions: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Generate content using AI and save it to the database.
+        
+        Each agent implements this method with their specific logic for
+        parsing the generated result and persisting it to the database.
+        The method handles its own database session using _get_db_session().
+        
+        Args:
+            project_id: The project ID
+            topic: Optional topic for generation
+            custom_instructions: Optional custom instructions
+            **kwargs: Additional agent-specific parameters
+            
+        Returns:
+            The saved database model instance
+            
+        Raises:
+            NotFoundError: If required entities are not found
+        """
         pass
 
     async def generate(

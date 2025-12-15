@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from edu_shared.agents.context import CustomAgentContext
+from edu_shared.agents.flashcard_agent import FlashcardAgent
 from edu_shared.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 from edu_shared.services.flashcard_groups import FlashcardGroupService
 from langchain.tools import tool
@@ -62,21 +63,24 @@ async def create_flashcards(
         description="AI-generated flashcards",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        group_id=group.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    flashcard_agent = FlashcardAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    group = await flashcard_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=custom_instructions,
         custom_instructions=custom_instructions,
+        group_id=group.id,
         count=count,
     )
 
     # Get flashcards
     cards = await asyncio.to_thread(svc.list_flashcards, group.id, ctx.project_id)
 
-    group_dto = FlashcardGroupDto.model_validate(result)
+    group_dto = FlashcardGroupDto.model_validate(svc._model_to_dto(group))
     flashcards_dto = [FlashcardDto.model_validate(card) for card in cards]
 
     result_dict = {
@@ -124,21 +128,24 @@ async def create_flashcards_scoped(
         description="AI-generated flashcards",
     )
 
-    # Then generate and populate it
-    result = await svc.generate_and_populate(
-        group_id=group.id,
-        project_id=ctx.project_id,
+    # Generate and populate using agent
+    flashcard_agent = FlashcardAgent(
         search_service=ctx.search,
         llm=ctx.llm,
+    )
+    
+    group = await flashcard_agent.generate_and_save(
+        project_id=ctx.project_id,
         topic=query,
         custom_instructions=enhanced_prompt,
+        group_id=group.id,
         count=count,
     )
 
     # Get flashcards
     cards = await asyncio.to_thread(svc.list_flashcards, group.id, ctx.project_id)
 
-    group_dto = FlashcardGroupDto.model_validate(result)
+    group_dto = FlashcardGroupDto.model_validate(svc._model_to_dto(group))
     flashcards_dto = [FlashcardDto.model_validate(card) for card in cards]
 
     result_dict = {

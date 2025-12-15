@@ -45,6 +45,7 @@ class ChatService:
         azure_openai_endpoint: str | None = None,
         azure_openai_api_version: str | None = None,
         usage_service=None,
+        queue_service=None,
     ) -> None:
         """Initialize the chat service.
         
@@ -54,9 +55,11 @@ class ChatService:
             azure_openai_endpoint: Azure OpenAI endpoint URL
             azure_openai_api_version: Azure OpenAI API version
             usage_service: Optional usage tracking service
+            queue_service: Optional QueueService for async task processing
         """
         self.search_service = search_service
         self.usage_service = usage_service
+        self._queue_service = queue_service
 
         # Initialize LLM instances
         self.credential = DefaultAzureCredential()
@@ -375,12 +378,38 @@ class ChatService:
                             },
                         ]
 
-                        # Generate title for first message
+                        # Queue title generation for first message
                         if is_first_message:
-                            generated_title = await self._generate_chat_title(
-                                message, chunk_data.response
-                            )
-                            chat.title = generated_title
+                            # Try to get queue_service from the service instance
+                            # If not available, fall back to synchronous generation
+                            queue_service = getattr(self, '_queue_service', None)
+                            if queue_service:
+                                from edu_shared.schemas.queue import (
+                                    ChatTitleGenerationData,
+                                    QueueTaskMessage,
+                                    TaskType,
+                                )
+                                
+                                task_data: ChatTitleGenerationData = {
+                                    "chat_id": chat_id,
+                                    "project_id": chat.project_id,
+                                    "user_id": user_id,
+                                    "user_message": message,
+                                    "ai_response": chunk_data.response,
+                                }
+                                
+                                task_message: QueueTaskMessage = {
+                                    "type": TaskType.CHAT_TITLE_GENERATION,
+                                    "data": task_data,
+                                }
+                                queue_service.send_message(task_message)
+                            else:
+                                print("Queue service not available, falling back to synchronous generation")
+                                # Fallback to synchronous generation if queue not available
+                                generated_title = await self._generate_chat_title(
+                                    message, chunk_data.response
+                                )
+                                chat.title = generated_title
 
                         chat.updated_at = datetime.now()
                         db.commit()

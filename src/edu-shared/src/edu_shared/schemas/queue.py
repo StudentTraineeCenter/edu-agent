@@ -12,6 +12,7 @@ class TaskType(str, Enum):
     NOTE_GENERATION = "note_generation"
     MIND_MAP_GENERATION = "mind_map_generation"
     DOCUMENT_PROCESSING = "document_processing"
+    CHAT_TITLE_GENERATION = "chat_title_generation"
 
 
 class FlashcardGenerationData(TypedDict):
@@ -65,12 +66,23 @@ class DocumentProcessingData(TypedDict):
     user_id: str
 
 
+class ChatTitleGenerationData(TypedDict):
+    """Data schema for chat title generation tasks."""
+
+    chat_id: str
+    project_id: str
+    user_id: str
+    user_message: str
+    ai_response: str
+
+
 TaskData = Union[
     FlashcardGenerationData,
     QuizGenerationData,
     NoteGenerationData,
     MindMapGenerationData,
     DocumentProcessingData,
+    ChatTitleGenerationData,
 ]
 
 

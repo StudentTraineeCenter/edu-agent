@@ -5,25 +5,25 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from langchain_openai import AzureChatOpenAI
-
-from edu_shared.agents.base import ContentAgentConfig
-from edu_shared.agents.note_agent import NoteAgent
-from edu_shared.db.models import Note, Project
+from edu_shared.db.models import Note
 from edu_shared.db.session import get_session_factory
 from edu_shared.exceptions import NotFoundError
 from edu_shared.schemas.notes import NoteDto
-from edu_shared.services.search import SearchService
 
 if TYPE_CHECKING:
     from edu_shared.services.queue import QueueService
 
+
 class NoteService:
     """Service for managing notes."""
 
-    def __init__(self) -> None:
-        """Initialize the note service."""
-        pass
+    def __init__(self, queue_service: "QueueService") -> None:
+        """Initialize the note service.
+
+        Args:
+            queue_service: QueueService instance for async generation tasks
+        """
+        self.queue_service = queue_service
 
     def create_note(
         self,
@@ -204,88 +204,16 @@ class NoteService:
             updated_at=note.updated_at,
         )
 
-    async def generate_and_populate(
-        self,
-        note_id: str,
-        project_id: str,
-        search_service: SearchService,
-        llm: AzureChatOpenAI | None = None,
-        agent_config: ContentAgentConfig | None = None,
-        topic: str | None = None,
-        custom_instructions: str | None = None,
-    ) -> NoteDto:
-        """Generate note content using AI and populate an existing note.
-        
-        Args:
-            note_id: The note ID to populate
-            project_id: The project ID
-            search_service: SearchService instance for RAG
-            agent_config: ContentAgentConfig for AI generation
-            topic: Optional topic for generation
-            custom_instructions: Optional custom instructions
-            
-        Returns:
-            Updated NoteDto
-            
-        Raises:
-            NotFoundError: If note not found
-        """
-        with self._get_db_session() as db:
-            try:
-                # Find existing note
-                note = db.query(Note).filter(
-                    Note.id == note_id,
-                    Note.project_id == project_id,
-                ).first()
-                if not note:
-                    raise NotFoundError(f"Note {note_id} not found")
-
-                # Get project language code
-                project = db.query(Project).filter(Project.id == project_id).first()
-                if not project:
-                    raise NotFoundError(f"Project {project_id} not found")
-                language_code = project.language_code
-
-                # Generate note using AI
-                note_agent = NoteAgent(
-                    search_service=search_service,
-                    llm=llm,
-                    config=agent_config,
-                )
-                result = await note_agent.generate(
-                    project_id=project_id,
-                    topic=topic or "",
-                    language_code=language_code,
-                    custom_instructions=custom_instructions,
-                )
-
-                # Update note with generated content
-                note.title = result.title
-                note.description = result.description
-                note.content = result.content
-                note.updated_at = datetime.now()
-
-                db.commit()
-                db.refresh(note)
-
-                return self._model_to_dto(note)
-            except NotFoundError:
-                raise
-            except Exception:
-                db.rollback()
-                raise
-
     def queue_generation(
         self,
         note_id: str,
         project_id: str,
-        queue_service: "QueueService",
         topic: str | None = None,
         custom_instructions: str | None = None,
         user_id: str | None = None,
     ) -> NoteDto:
         """Queue a note generation request to be processed by a worker.
-        
+
         Args:
             note_id: The note ID to populate
             project_id: The project ID
@@ -293,10 +221,10 @@ class NoteService:
             topic: Optional topic for generation
             custom_instructions: Optional custom instructions
             user_id: Optional user ID for queue message
-            
+
         Returns:
             Existing NoteDto (generation will happen asynchronously)
-            
+
         Raises:
             NotFoundError: If note not found
         """
@@ -326,7 +254,7 @@ class NoteService:
             "type": TaskType.NOTE_GENERATION,
             "data": task_data,
         }
-        queue_service.send_message(task_message)
+        self.queue_service.send_message(task_message)
 
         return note
 
@@ -342,4 +270,3 @@ class NoteService:
             raise
         finally:
             db.close()
-
