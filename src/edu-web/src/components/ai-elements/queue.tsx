@@ -1,5 +1,7 @@
 'use client'
 
+import { ChevronDownIcon, PaperclipIcon } from 'lucide-react'
+import type { ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -8,8 +10,6 @@ import {
 } from '@/components/ui/collapsible'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { ChevronDownIcon, PaperclipIcon } from 'lucide-react'
-import type { ComponentProps } from 'react'
 
 export type QueueMessagePart = {
   type: string
@@ -21,7 +21,7 @@ export type QueueMessagePart = {
 
 export type QueueMessage = {
   id: string
-  parts: QueueMessagePart[]
+  parts: Array<QueueMessagePart>
 }
 
 export type QueueTodo = {

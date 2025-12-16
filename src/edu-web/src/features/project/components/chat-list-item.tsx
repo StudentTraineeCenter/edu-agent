@@ -1,6 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useMemo } from 'react'
+import { MoreVerticalIcon, TrashIcon } from 'lucide-react'
+import { useAtomSet } from '@effect-atom/atom-react'
+import type { ChatDto } from '@/integrations/api/client'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -8,10 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { TrashIcon, MoreVerticalIcon } from 'lucide-react'
-import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteChatAtom } from '@/data-acess/chat'
-import type { ChatDto } from '@/integrations/api/client'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 type Props = {

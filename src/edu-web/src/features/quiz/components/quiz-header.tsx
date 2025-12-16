@@ -1,18 +1,17 @@
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { ArrowLeft } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue } from '@effect-atom/atom-react'
 import { quizAtom } from '@/data-acess/quiz'
-import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 
 const QuizHeaderContent = ({
   quizId,

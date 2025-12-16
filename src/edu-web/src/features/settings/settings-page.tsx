@@ -1,3 +1,6 @@
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Loader2Icon, Trash2Icon } from 'lucide-react'
+import { useState } from 'react'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -27,9 +30,6 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import { usageAtom } from '@/data-acess/usage'
 import { useAuth } from '@/hooks/use-auth'
 import { useTheme } from '@/providers/theme-provider'
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { Loader2Icon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
 
 export function SettingsPage() {
   const { user } = useAuth()

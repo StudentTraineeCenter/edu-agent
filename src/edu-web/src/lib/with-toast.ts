@@ -1,7 +1,7 @@
 import * as Cause from 'effect/Cause'
 import * as Effect from 'effect/Effect'
-import type * as Option from 'effect/Option'
 import { toast } from 'sonner'
+import type * as Option from 'effect/Option'
 
 type ToastOptions<A, E, Args extends ReadonlyArray<unknown>> = {
   onWaiting: string | ((...args: Args) => string)

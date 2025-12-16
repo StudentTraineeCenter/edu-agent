@@ -1,11 +1,11 @@
-import { chatAtom, streamMessageAtom } from '@/data-acess/chat'
 import { Loader2Icon } from 'lucide-react'
-import { type PromptInputMessage } from '@/components/ai-elements/prompt-input'
 import { useMemo, useRef, useState } from 'react'
 import { Result, useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { ChatInput } from './components/chat-input'
 import { ChatHeader } from './components/chat-header'
 import { ChatMessages } from './components/chat-messages'
+import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
+import { chatAtom, streamMessageAtom } from '@/data-acess/chat'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 
 type ChatContentProps = {

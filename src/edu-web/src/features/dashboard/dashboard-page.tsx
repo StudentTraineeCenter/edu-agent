@@ -1,8 +1,7 @@
-import { useAtomValue } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
-import { projectsAtom } from '@/data-acess/project'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Link } from '@tanstack/react-router'
 import { FolderIcon, PlusIcon } from 'lucide-react'
+import { projectsAtom } from '@/data-acess/project'
 import { useCreateProjectDialog } from '@/features/project/components/upsert-project-dialog'
 import { Button } from '@/components/ui/button'
 import {

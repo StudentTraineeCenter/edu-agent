@@ -1,25 +1,25 @@
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import {
-  CheckCircle,
-  XCircle,
-  RotateCcw,
   ArrowLeft,
   CheckCheck,
+  CheckCircle,
+  RotateCcw,
+  XCircle,
 } from 'lucide-react'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import {
   answeredCardsAtom,
   flashcardDetailStateAtom,
 } from '@/features/flashcard/state/flashcard-detail-state'
-import { Option } from 'effect'
 
 type FlashcardCompletionScreenProps = {
   flashcardGroupId: string
   projectId: string
   onSubmit: () => void
   onRetry: () => void
-  onRetryWrong: (wrongIds: string[]) => void
+  onRetryWrong: (wrongIds: Array<string>) => void
   onClose: () => void
 }
 

@@ -1,12 +1,12 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { ApiClientService } from '@/integrations/api/http'
 import { Data, Effect, Layer } from 'effect'
-import { getAccessTokenEffect } from '@/lib/supabase'
-import { usageAtom } from './usage'
-import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { withToast } from '@/lib/with-toast'
+import { usageAtom } from './usage'
 import type { DocumentDto } from '@/integrations/api'
+import { ApiClientService } from '@/integrations/api/http'
+import { getAccessTokenEffect } from '@/lib/supabase'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -139,7 +139,7 @@ export const documentPreviewAtom = Atom.family(
 )
 
 export const uploadDocumentAtom = runtime.fn(
-  Effect.fn(function* (input: { projectId: string; files: Blob[] }) {
+  Effect.fn(function* (input: { projectId: string; files: Array<Blob> }) {
     const registry = yield* Registry.AtomRegistry
     const { apiClient } = yield* ApiClientService
 

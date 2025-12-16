@@ -1,23 +1,26 @@
 import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
 import {
   BrainCircuitIcon,
+  DownloadIcon,
   FileTextIcon,
   ListChecksIcon,
   MoreVerticalIcon,
-  TrashIcon,
   NetworkIcon,
   PencilIcon,
-  type LucideIcon,
+  TrashIcon,
+  UploadIcon,
 } from 'lucide-react'
+import { useAtomSet } from '@effect-atom/atom-react'
+import { useRef, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAtomSet } from '@effect-atom/atom-react'
 import {
   deleteFlashcardGroupAtom,
   exportFlashcardGroupAtom,
@@ -31,8 +34,6 @@ import {
 } from '@/data-acess/quiz'
 import { StudyResource } from '@/data-acess/study-resources'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
-import { DownloadIcon, UploadIcon } from 'lucide-react'
-import { useState, useRef } from 'react'
 
 type Props = {
   studyResource: StudyResource

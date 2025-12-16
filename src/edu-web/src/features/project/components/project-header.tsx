@@ -1,20 +1,19 @@
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { History, PencilIcon, TrashIcon } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { useCreateProjectDialog } from './upsert-project-dialog'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { projectAtom, deleteProjectAtom } from '@/data-acess/project'
-import { Result } from '@effect-atom/atom-react'
+import { deleteProjectAtom, projectAtom } from '@/data-acess/project'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { TrashIcon, PencilIcon, History } from 'lucide-react'
-import { useNavigate } from '@tanstack/react-router'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
-import { useCreateProjectDialog } from './upsert-project-dialog'
 import { useStudySessionsDialog } from '@/features/adaptive-learning/components/study-sessions-dialog'
 
 const ProjectHeaderContent = ({ projectId }: { projectId: string }) => {

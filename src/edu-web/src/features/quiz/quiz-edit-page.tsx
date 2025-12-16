@@ -1,15 +1,21 @@
-import { useAtomValue, useAtomSet, useAtom } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
 import {
-  quizQuestionsAtom,
-  createQuizQuestionAtom,
-  updateQuizQuestionAtom,
-  reorderQuizQuestionsAtom,
-  deleteQuizQuestionAtom,
-} from '@/data-acess/quiz'
-import { quizAtom } from '@/data-acess/quiz'
+  Result,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from '@effect-atom/atom-react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, PlusIcon, SaveIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { QuizQuestionEditor } from './components/quiz-question-editor'
+import {
+  createQuizQuestionAtom,
+  deleteQuizQuestionAtom,
+  quizAtom,
+  quizQuestionsAtom,
+  reorderQuizQuestionsAtom,
+  updateQuizQuestionAtom,
+} from '@/data-acess/quiz'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,14 +24,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { QuizQuestionEditor } from './components/quiz-question-editor'
-import { useState, useCallback, useEffect, useMemo } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -122,7 +126,7 @@ export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
   })
 
   // Local state for all questions
-  const [localQuestions, setLocalQuestions] = useState<LocalQuestion[]>([])
+  const [localQuestions, setLocalQuestions] = useState<Array<LocalQuestion>>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newQuestionText, setNewQuestionText] = useState('')
   const [newOptionA, setNewOptionA] = useState('')

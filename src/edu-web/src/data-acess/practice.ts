@@ -1,13 +1,13 @@
 import { Data, Effect, Layer } from 'effect'
-import { ApiClientService } from '@/integrations/api/http'
-import {
-  PracticeRecordDto,
-  PracticeRecordCreate,
-  PracticeRecordBatchCreate,
-} from '@/integrations/api/client'
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import type {
+  PracticeRecordBatchCreate,
+  PracticeRecordCreate,
+  PracticeRecordDto,
+} from '@/integrations/api/client'
+import { ApiClientService } from '@/integrations/api/http'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(

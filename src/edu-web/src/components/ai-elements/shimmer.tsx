@@ -1,14 +1,9 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { motion } from 'motion/react'
-import {
-  type CSSProperties,
-  type ElementType,
-  type JSX,
-  memo,
-  useMemo,
-} from 'react'
+import { memo, useMemo } from 'react'
+import type { CSSProperties, ElementType, JSX } from 'react'
+import { cn } from '@/lib/utils'
 
 export type TextShimmerProps = {
   children: string

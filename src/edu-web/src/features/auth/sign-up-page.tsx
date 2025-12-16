@@ -1,9 +1,9 @@
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
 
 export const SignUpPage = () => {
   const { signUp, isLoading, signUpError, isAuthenticated } = useAuth()

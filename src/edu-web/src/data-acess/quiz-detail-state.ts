@@ -1,10 +1,10 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Option } from 'effect'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { submitPracticeRecordsBatchAtom } from './practice'
 import { quizQuestionsAtom } from './quiz'
 import type { PracticeRecordCreate } from '@/integrations/api'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -294,7 +294,7 @@ export const submitPendingPracticeRecordsAtom = runtime.fn(
       projectId: input.projectId,
       practice_records: pendingPracticeRecords as unknown as [
         PracticeRecordCreate,
-        ...PracticeRecordCreate[],
+        ...Array<PracticeRecordCreate>,
       ],
     })
 

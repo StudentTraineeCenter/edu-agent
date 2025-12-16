@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from '@tanstack/react-router'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { AppSidebar } from '@/components/navigation/app-sidebar'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { useAtomValue } from '@effect-atom/atom-react'
 import { isAuthenticatedAtom } from '@/data-acess/auth'
 
 export const AppShell = () => {

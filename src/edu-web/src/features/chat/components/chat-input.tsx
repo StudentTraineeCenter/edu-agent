@@ -1,25 +1,25 @@
+import React, { useState } from 'react'
+import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 import {
-  type PromptInputMessage,
   PromptInput,
-  PromptInputBody,
-  PromptInputTextarea,
-  PromptInputSubmit,
-  PromptInputHeader,
-  PromptInputAttachments,
-  PromptInputAttachment,
-  PromptInputFooter,
-  PromptInputTools,
-  PromptInputActionMenu,
-  PromptInputActionMenuTrigger,
-  PromptInputActionMenuContent,
   PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
+  PromptInputAttachment,
+  PromptInputAttachments,
+  PromptInputBody,
+  PromptInputFooter,
+  PromptInputHeader,
   PromptInputSelect,
-  PromptInputSelectTrigger,
   PromptInputSelectContent,
   PromptInputSelectItem,
+  PromptInputSelectTrigger,
   PromptInputSelectValue,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
-import React, { useState } from 'react'
 
 const models = [
   {

@@ -1,20 +1,19 @@
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { ArrowLeft, Shuffle } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { flashcardGroupAtom } from '@/data-acess/flashcard'
 import { initializeQueueAtom } from '@/features/flashcard/state/flashcard-detail-state'
-import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Shuffle } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
 
 type FlashcardHeaderContentProps = {
   flashcardGroupId: string

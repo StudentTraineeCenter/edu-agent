@@ -1,6 +1,8 @@
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { create } from 'zustand'
+import { FileIcon, Loader2Icon, UploadIcon, XIcon } from 'lucide-react'
+import { useAtom } from '@effect-atom/atom-react'
 import {
   Dialog,
   DialogContent,
@@ -9,12 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { UploadIcon, FileIcon, XIcon, Loader2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { uploadDocumentAtom } from '@/data-acess/document'
-import { useAtom } from '@effect-atom/atom-react'
 
 type UploadDocumentDialogStore = {
   isOpen: boolean
@@ -33,14 +33,14 @@ export const useUploadDocumentDialog = create<UploadDocumentDialogStore>(
 
 export function UploadDocumentDialog() {
   const { isOpen, projectId, close } = useUploadDocumentDialog()
-  const [files, setFiles] = useState<File[]>([])
+  const [files, setFiles] = useState<Array<File>>([])
   const [uploadProgress, setUploadProgress] = useState<number>(0)
 
   const [uploadDocumentResult, uploadDocument] = useAtom(uploadDocumentAtom, {
     mode: 'promise',
   })
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: Array<File>) => {
     setFiles((prev) => [...prev, ...acceptedFiles])
   }, [])
 

@@ -7,6 +7,8 @@ import {
   MessageSquare,
 } from 'lucide-react'
 
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { useNavigate } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -24,8 +26,6 @@ import {
 } from '@/components/ui/sidebar'
 import { currentUserAtom, signOutAtom } from '@/data-acess/auth'
 import { usageAtom } from '@/data-acess/usage'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { useNavigate } from '@tanstack/react-router'
 
 const UsageSection = () => {
   const usageResult = useAtomValue(usageAtom)

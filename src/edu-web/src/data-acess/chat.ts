@@ -1,27 +1,26 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { ApiClientService } from '@/integrations/api/http'
 import {
+  Array as Arr,
   Data,
   Effect,
+  Layer,
+  Order,
   Schema,
   Stream,
-  Array as Arr,
-  Order,
-  Layer,
 } from 'effect'
 import { HttpBody } from '@effect/platform'
-import {
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { UsageLimitExceededError, usageAtom } from './usage'
+import type {
+  ChatCompletionRequest,
   ChatCreate,
   ChatDto,
   ChatMessageDto,
   ChatUpdate,
-  SourceDto,
-  ToolCallDto,
-  type ChatCompletionRequest,
 } from '@/integrations/api/client'
-import { usageAtom, UsageLimitExceededError } from './usage'
+import { ApiClientService } from '@/integrations/api/http'
+import { SourceDto, ToolCallDto } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
 import { NetworkMonitor } from '@/lib/network-monitor'
 
@@ -50,12 +49,12 @@ type ChatMessagesAction = Data.TaggedEnum<{
   UpdateSources: {
     readonly chatId: string
     readonly messageId: string
-    readonly sources: SourceDto[]
+    readonly sources: Array<SourceDto>
   }
   UpdateTools: {
     readonly chatId: string
     readonly messageId: string
-    readonly tools: ToolCallDto[]
+    readonly tools: Array<ToolCallDto>
   }
 }>
 const ChatMessagesAction = Data.taggedEnum<ChatMessagesAction>()
@@ -131,7 +130,7 @@ export const chatAtom = Atom.family((input: string) =>
       (ctx, action: ChatMessagesAction | ChatDto) => {
         // Handle direct ChatDto updates (for backward compatibility)
         if ('id' in action && 'project_id' in action) {
-          ctx.setSelf(Result.success(action as ChatDto))
+          ctx.setSelf(Result.success(action))
           return
         }
 
@@ -142,7 +141,7 @@ export const chatAtom = Atom.family((input: string) =>
         const chat = result.value
         const messages = Array.from(chat.messages ?? [])
 
-        const update = ChatMessagesAction.$match(action as ChatMessagesAction, {
+        const update = ChatMessagesAction.$match(action, {
           Append: ({ message }) => {
             return [...messages, message]
           },
@@ -495,7 +494,7 @@ export const updateMessageSourcesAtom = runtime.fn(
     projectId: string
     chatId: string
     messageId: string
-    sources: SourceDto[]
+    sources: Array<SourceDto>
   }) {
     const registry = yield* Registry.AtomRegistry
     const chatKey = `${input.projectId}:${input.chatId}`
@@ -515,7 +514,7 @@ export const updateMessageToolsAtom = runtime.fn(
     projectId: string
     chatId: string
     messageId: string
-    tools: ToolCallDto[]
+    tools: Array<ToolCallDto>
   }) {
     const registry = yield* Registry.AtomRegistry
     const chatKey = `${input.projectId}:${input.chatId}`

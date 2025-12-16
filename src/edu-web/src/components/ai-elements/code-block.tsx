@@ -1,18 +1,12 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { CheckIcon, CopyIcon } from 'lucide-react'
-import {
-  type ComponentProps,
-  createContext,
-  type HTMLAttributes,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
-import { type BundledLanguage, codeToHtml, type ShikiTransformer } from 'shiki'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { codeToHtml } from 'shiki'
+import type { ComponentProps, HTMLAttributes } from 'react'
+import type { BundledLanguage, ShikiTransformer } from 'shiki'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string
@@ -54,7 +48,7 @@ export async function highlightCode(
   language: BundledLanguage,
   showLineNumbers = false,
 ) {
-  const transformers: ShikiTransformer[] = showLineNumbers
+  const transformers: Array<ShikiTransformer> = showLineNumbers
     ? [lineNumberTransformer]
     : []
 

@@ -1,11 +1,10 @@
 import { Atom, Registry } from '@effect-atom/atom-react'
-import { ApiClientService } from '@/integrations/api/http'
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Layer, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { MindMapCreate } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Layer } from 'effect'
+import { ApiClientService } from '@/integrations/api/http'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(

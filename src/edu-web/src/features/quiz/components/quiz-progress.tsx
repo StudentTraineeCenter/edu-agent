@@ -1,9 +1,9 @@
-import { Progress } from '@/components/ui/progress'
-import { useAtomValue, Result } from '@effect-atom/atom-react'
-import { quizDetailStateAtom } from '@/data-acess/quiz-detail-state'
-import { quizQuestionsAtom } from '@/data-acess/quiz'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Option } from 'effect'
 import { useMemo } from 'react'
+import { Progress } from '@/components/ui/progress'
+import { quizDetailStateAtom } from '@/data-acess/quiz-detail-state'
+import { quizQuestionsAtom } from '@/data-acess/quiz'
 
 type QuizProgressProps = {
   quizId: string

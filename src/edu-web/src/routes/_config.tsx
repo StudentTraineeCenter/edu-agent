@@ -1,8 +1,8 @@
 import { createRootRoute, createRoute, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { lazy, Suspense } from 'react'
-import { AppShell } from '@/routes/_app-shell'
+import { Suspense, lazy } from 'react'
 import { z } from 'zod'
+import { AppShell } from '@/routes/_app-shell'
 
 const LoadingPage = () => {
   return (

@@ -1,10 +1,9 @@
 import { CheckCircle, XCircle } from 'lucide-react'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { Option } from 'effect'
 import {
-  quizDetailStateAtom,
   currentQuestionAtom,
+  quizDetailStateAtom,
   setSelectedAnswerAtom,
 } from '@/data-acess/quiz-detail-state'
 

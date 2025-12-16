@@ -1,9 +1,18 @@
 'use client'
 
+import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
+import type { ComponentProps } from 'react'
+import type { CarouselApi } from '@/components/ui/carousel'
 import { Badge } from '@/components/ui/badge'
 import {
   Carousel,
-  type CarouselApi,
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel'
@@ -13,15 +22,6 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
-import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
-import {
-  type ComponentProps,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react'
 
 export type InlineCitationProps = ComponentProps<'span'>
 
@@ -54,7 +54,7 @@ export const InlineCitationCard = (props: InlineCitationCardProps) => (
 )
 
 export type InlineCitationCardTriggerProps = ComponentProps<typeof Badge> & {
-  sources: string[]
+  sources: Array<string>
 }
 
 export const InlineCitationCardTrigger = ({

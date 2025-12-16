@@ -1,7 +1,3 @@
-import {
-  flashcardDetailStateAtom,
-  currentFlashcardAtom,
-} from '@/features/flashcard/state/flashcard-detail-state'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
 import { Option } from 'effect'
@@ -9,13 +5,17 @@ import { FlashcardCompletionScreen } from './flashcard-completion-screen'
 import { FlashcardCard } from './flashcard-card'
 import { FlashcardControls } from './flashcard-controls'
 import { FlashcardProgress } from './flashcard-progress'
+import {
+  currentFlashcardAtom,
+  flashcardDetailStateAtom,
+} from '@/features/flashcard/state/flashcard-detail-state'
 
 type FlashcardContentProps = {
   flashcardGroupId: string
   projectId: string
   onSubmit: () => void
   onRetry: () => void
-  onRetryWrong: (wrongIds: string[]) => void
+  onRetryWrong: (wrongIds: Array<string>) => void
   onClose: () => void
 }
 

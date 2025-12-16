@@ -1,6 +1,5 @@
-import { useEffect, useRef, useMemo } from 'react'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
+import { useEffect, useMemo, useRef } from 'react'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { documentsAtom, refreshDocumentAtom } from '@/data-acess/document'
 
 const POLL_INTERVAL_MS = 3000 // Poll every 3 seconds

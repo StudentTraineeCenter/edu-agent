@@ -1,5 +1,3 @@
-import { quizQuestionsAtom } from '@/data-acess/quiz'
-import { quizDetailStateAtom } from '@/data-acess/quiz-detail-state'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
 import { Option } from 'effect'
@@ -7,6 +5,8 @@ import { QuizResultsView } from './quiz-results-view'
 import { QuizProgress } from './quiz-progress'
 import { QuizQuestionCard } from './quiz-question-card'
 import { QuizControls } from './quiz-controls'
+import { quizDetailStateAtom } from '@/data-acess/quiz-detail-state'
+import { quizQuestionsAtom } from '@/data-acess/quiz'
 
 type QuizContentProps = {
   quizId: string

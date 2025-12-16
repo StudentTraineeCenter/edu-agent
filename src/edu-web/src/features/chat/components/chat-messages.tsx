@@ -1,4 +1,11 @@
 import { useNavigate } from '@tanstack/react-router'
+import { Loader2Icon, MessageSquareIcon } from 'lucide-react'
+import { useAtomValue } from '@effect-atom/atom-react'
+import type {
+  ChatMessageDto,
+  SourceDto,
+  ToolCallDto,
+} from '@/integrations/api/client'
 import { Message, MessageContent } from '@/components/ai-elements/message'
 import {
   Conversation,
@@ -6,28 +13,21 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
-import { MessageSquareIcon, Loader2Icon } from 'lucide-react'
 import { Response } from '@/components/ai-elements/response'
 import {
-  Sources,
-  SourcesTrigger,
-  SourcesContent,
   Source,
+  Sources,
+  SourcesContent,
+  SourcesTrigger,
 } from '@/components/ai-elements/sources'
 import {
   Tool,
-  ToolHeader,
   ToolContent,
+  ToolHeader,
   ToolInput,
   ToolOutput,
 } from '@/components/ai-elements/tool'
-import type {
-  ChatMessageDto,
-  SourceDto,
-  ToolCallDto,
-} from '@/integrations/api/client'
 import { chatStreamStatusAtom } from '@/data-acess/chat'
-import { useAtomValue } from '@effect-atom/atom-react'
 
 type Props = {
   messages: ReadonlyArray<ChatMessageDto>

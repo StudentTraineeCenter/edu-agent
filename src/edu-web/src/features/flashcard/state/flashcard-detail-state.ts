@@ -1,10 +1,11 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
 import { Data, Effect, Layer, Option } from 'effect'
-import { ApiClientService, type PracticeRecordCreate } from '@/integrations/api'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import type { PracticeRecordCreate } from '@/integrations/api'
+import { ApiClientService } from '@/integrations/api'
 import { submitPracticeRecordsBatchAtom } from '@/data-acess/practice'
 import { flashcardsAtom } from '@/data-acess/flashcard'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -24,7 +25,7 @@ type FlashcardGroupKey =
 type CardId = string
 
 export type FlashcardDetailState = {
-  readonly queue: readonly CardId[] // Ordered queue of cards still in play
+  readonly queue: ReadonlyArray<CardId> // Ordered queue of cards still in play
   readonly currentCardId: CardId | null
   readonly showAnswer: boolean
   readonly pendingPracticeRecords: Record<string, PracticeRecordCreate>
@@ -40,7 +41,7 @@ export type FlashcardDetailState = {
 }
 
 type FlashcardDetailAction = Data.TaggedEnum<{
-  SetQueue: { readonly queue: readonly CardId[] }
+  SetQueue: { readonly queue: ReadonlyArray<CardId> }
   SetCurrentCardId: { readonly cardId: CardId | null }
   SetShowAnswer: { readonly show: boolean }
   AddPracticeRecord: {
@@ -247,7 +248,7 @@ export const currentFlashcardAtom = ({
   projectId,
   flashcardGroupId,
 }: FlashcardGroupKeyParams) => {
-  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
+  const key = `${projectId}:${flashcardGroupId}`
   return currentFlashcardAtomFamily(key)
 }
 
@@ -281,7 +282,7 @@ export const answeredCardsAtom = ({
   projectId,
   flashcardGroupId,
 }: FlashcardGroupKeyParams) => {
-  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
+  const key = `${projectId}:${flashcardGroupId}`
   return answeredCardsAtomFamily(key)
 }
 
@@ -378,7 +379,7 @@ export const submitPendingPracticeRecordsAtom = runtime.fn(
       projectId: input.projectId,
       practice_records: pendingPracticeRecords as unknown as [
         PracticeRecordCreate,
-        ...PracticeRecordCreate[],
+        ...Array<PracticeRecordCreate>,
       ],
     })
 
@@ -394,7 +395,7 @@ const extractTopic = (text: string, maxLength = 100): string => {
 }
 
 // Fisher-Yates shuffle
-const shuffleArray = <T>(array: T[]): T[] => {
+const shuffleArray = <T>(array: Array<T>): Array<T> => {
   const shuffled = [...array]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
@@ -475,7 +476,7 @@ export const initializeQueueAtom = runtime.fn(
     // Shuffle the cards
     const cardIds = shuffleArray(
       cardsToInclude.map((card: { id: string }) => card.id),
-    ) as string[]
+    )
 
     console.log('Setting queue', {
       queueLength: cardIds.length,

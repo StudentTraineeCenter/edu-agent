@@ -1,8 +1,8 @@
-import { Progress } from '@/components/ui/progress'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { flashcardDetailStateAtom } from '@/features/flashcard/state/flashcard-detail-state'
 import { Option } from 'effect'
 import { useMemo } from 'react'
+import { flashcardDetailStateAtom } from '@/features/flashcard/state/flashcard-detail-state'
+import { Progress } from '@/components/ui/progress'
 
 type FlashcardProgressProps = {
   flashcardGroupId: string

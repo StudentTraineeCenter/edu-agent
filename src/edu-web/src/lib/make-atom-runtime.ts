@@ -1,5 +1,5 @@
 import { Atom } from '@effect-atom/atom-react'
-import { Layer, Logger, LogLevel } from 'effect'
+import { Layer, LogLevel, Logger } from 'effect'
 import { NetworkMonitor } from './network-monitor'
 import { ApiClientService } from '@/integrations/api'
 

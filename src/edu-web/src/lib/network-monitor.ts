@@ -14,9 +14,9 @@ export class NetworkMonitor extends Effect.Service<NetworkMonitor>()(
       yield* Stream.async<boolean>((emit) => {
         const onlineHandler = () => emit(Effect.succeed(Chunk.of(true)))
         const offlineHandler = () => emit(Effect.succeed(Chunk.of(false)))
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
         window.addEventListener('online', onlineHandler)
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
         window.addEventListener('offline', offlineHandler)
       }).pipe(
         Stream.tap((isOnline) =>

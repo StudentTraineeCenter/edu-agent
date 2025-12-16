@@ -1,18 +1,17 @@
 import { useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, BrainIcon, Clock, Loader2Icon, Target } from 'lucide-react'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, BrainIcon, Clock, Target, Loader2Icon } from 'lucide-react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAtomValue } from '@effect-atom/atom-react'
 import { getStudySessionAtom } from '@/data-acess/adaptive-learning'
-import { Result } from '@effect-atom/atom-react'
 
 type StudySessionDetailPageProps = {
   sessionId: string
@@ -154,7 +153,7 @@ export const StudySessionDetailPage = ({
                         <ul className="space-y-2">
                           {(
                             sessionData.session_data
-                              .learning_objectives as string[]
+                              .learning_objectives as Array<string>
                           ).map((objective: string, idx: number) => (
                             <li key={idx} className="flex items-start gap-2">
                               <span className="text-primary mt-1">•</span>

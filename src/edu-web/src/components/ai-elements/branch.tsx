@@ -1,19 +1,19 @@
 'use client'
 
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { UIMessage } from 'ai'
+import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { UIMessage } from 'ai'
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
-import { createContext, useContext, useEffect, useState } from 'react'
 
 type BranchContextType = {
   currentBranch: number
   totalBranches: number
   goToPrevious: () => void
   goToNext: () => void
-  branches: ReactElement[]
-  setBranches: (branches: ReactElement[]) => void
+  branches: Array<ReactElement>
+  setBranches: (branches: Array<ReactElement>) => void
 }
 
 const BranchContext = createContext<BranchContextType | null>(null)
@@ -40,7 +40,7 @@ export const Branch = ({
   ...props
 }: BranchProps) => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch)
-  const [branches, setBranches] = useState<ReactElement[]>([])
+  const [branches, setBranches] = useState<Array<ReactElement>>([])
 
   const handleBranchChange = (newBranch: number) => {
     setCurrentBranch(newBranch)

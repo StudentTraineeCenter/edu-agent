@@ -1,12 +1,12 @@
-import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useAtomValue, useAtomSet, Result } from '@effect-atom/atom-react'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { Option } from 'effect'
+import { Button } from '@/components/ui/button'
 import {
-  quizDetailStateAtom,
   canSubmitQuizAtom,
   goToNextQuestionAtom,
   goToPreviousQuestionAtom,
+  quizDetailStateAtom,
   submitQuizAtom,
 } from '@/data-acess/quiz-detail-state'
 import { quizQuestionsAtom } from '@/data-acess/quiz'

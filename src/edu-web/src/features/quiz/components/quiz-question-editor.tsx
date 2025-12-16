@@ -1,4 +1,11 @@
 import { useState } from 'react'
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  TrashIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,13 +27,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  ArrowUpIcon,
-  ArrowDownIcon,
-  TrashIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from 'lucide-react'
 import { cn, truncate } from '@/lib/utils'
 
 type QuizQuestionEditorProps = {

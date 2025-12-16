@@ -1,16 +1,15 @@
 import { Atom, Registry } from '@effect-atom/atom-react'
-import { ApiClientService } from '@/integrations/api/http'
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Layer, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { ApiClientService } from '@/integrations/api/http'
 import {
-  GenerateRequest,
   FlashcardCreate,
   FlashcardUpdate,
+  GenerateRequest,
 } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
-import { Layer } from 'effect'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -271,7 +270,7 @@ export const reorderFlashcardsAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
     flashcardGroupId: string
-    flashcardIds: string[]
+    flashcardIds: Array<string>
   }) {
     const registry = yield* Registry.AtomRegistry
     // Note: Flashcard reorder endpoints may not be available in the new API

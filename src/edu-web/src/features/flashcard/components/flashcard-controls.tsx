@@ -1,14 +1,14 @@
-import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react'
+import { CheckCircle, Eye, EyeOff, XCircle } from 'lucide-react'
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
 import { Button } from '@/components/ui/button'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import {
+  currentFlashcardAtom,
   flashcardDetailStateAtom,
-  setShowAnswerAtom,
   gotItRightAtom,
   gotItWrongAtom,
-  currentFlashcardAtom,
+  setShowAnswerAtom,
 } from '@/features/flashcard/state/flashcard-detail-state'
-import { Option } from 'effect'
 
 type FlashcardControlsProps = {
   flashcardGroupId: string

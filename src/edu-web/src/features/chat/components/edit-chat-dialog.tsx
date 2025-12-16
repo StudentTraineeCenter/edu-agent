@@ -2,6 +2,8 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { create } from 'zustand'
+import { useAtom } from '@effect-atom/atom-react'
 import {
   Dialog,
   DialogContent,
@@ -21,8 +23,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { updateChatAtom } from '@/data-acess/chat'
-import { create } from 'zustand'
-import { useAtom } from '@effect-atom/atom-react'
 
 type EditChatDialogStore = {
   isOpen: boolean

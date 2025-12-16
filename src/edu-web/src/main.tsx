@@ -9,10 +9,10 @@ import * as TanStackQueryProvider from './integrations/tanstack-query/root-provi
 
 import './styles.css'
 import reportWebVitals from './reportWebVitals.ts'
+import { Toaster } from './components/ui/sonner.tsx'
 import { TooltipProvider } from '@/components/ui/tooltip.tsx'
 import { ModalProvider } from '@/providers/modal-provider.tsx'
 import { ThemeProvider } from '@/providers/theme-provider.tsx'
-import { Toaster } from './components/ui/sonner.tsx'
 
 const TanStackQueryProviderContext = TanStackQueryProvider.getContext()
 const router = createRouter({

@@ -1,16 +1,16 @@
-import {
-  quizDetailStateAtom,
-  resetQuizAtom,
-  setSelectedAnswerAtom,
-  goToNextQuestionAtom,
-  goToPreviousQuestionAtom,
-  submitQuizAtom,
-} from '@/data-acess/quiz-detail-state'
-import { quizQuestionsAtom } from '@/data-acess/quiz'
 import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import React, { useEffect } from 'react'
 import { Option } from 'effect'
 import { QuizContent } from './quiz-content'
+import { quizQuestionsAtom } from '@/data-acess/quiz'
+import {
+  goToNextQuestionAtom,
+  goToPreviousQuestionAtom,
+  quizDetailStateAtom,
+  resetQuizAtom,
+  setSelectedAnswerAtom,
+  submitQuizAtom,
+} from '@/data-acess/quiz-detail-state'
 
 type Props = React.ComponentProps<'div'> & {
   quizId: string

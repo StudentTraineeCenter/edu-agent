@@ -1,7 +1,8 @@
 'use client'
 
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { Link, useRouterState } from '@tanstack/react-router'
+import type { LucideIcon } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,10 +24,10 @@ type NavItem = {
   url: string
   icon?: LucideIcon
   isActive?: boolean
-  items?: { title: string; url: string }[]
+  items?: Array<{ title: string; url: string }>
 }
 
-export function NavMain({ items }: { items: NavItem[] }) {
+export function NavMain({ items }: { items: Array<NavItem> }) {
   const { location } = useRouterState()
 
   return (

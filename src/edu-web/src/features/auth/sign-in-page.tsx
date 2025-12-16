@@ -1,11 +1,11 @@
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
-import { isAuthenticatedAtom, signInAtom } from '@/data-acess/auth'
 import { Cause } from 'effect'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { isAuthenticatedAtom, signInAtom } from '@/data-acess/auth'
 
 export const SignInPage = () => {
   const [signInResult, signIn] = useAtom(signInAtom)

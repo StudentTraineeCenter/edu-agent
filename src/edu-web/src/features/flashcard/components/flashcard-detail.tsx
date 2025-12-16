@@ -1,20 +1,20 @@
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import React, { useCallback, useEffect } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { Option } from 'effect'
+import { FlashcardContent } from './flashcard-content'
+import { flashcardDetailRoute } from '@/routes/_config'
 import {
+  currentFlashcardAtom,
   flashcardDetailStateAtom,
-  resetAtom,
-  submitPendingPracticeRecordsAtom,
   gotItRightAtom,
   gotItWrongAtom,
   initializeQueueAtom,
-  currentFlashcardAtom,
+  resetAtom,
   resetWrongAtom,
   setShowAnswerAtom,
+  submitPendingPracticeRecordsAtom,
 } from '@/features/flashcard/state/flashcard-detail-state'
-import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import React, { useEffect, useCallback } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { Option } from 'effect'
-import { flashcardDetailRoute } from '@/routes/_config'
-import { FlashcardContent } from './flashcard-content'
 
 type Props = React.ComponentProps<'div'> & {
   flashcardGroupId: string
@@ -60,7 +60,7 @@ export const FlashcardDetail = ({ flashcardGroupId, ...props }: Props) => {
     initializeQueue({ projectId, flashcardGroupId, includeMastered: false })
   }
 
-  const handleRetryWrong = (wrongIds: string[]) => {
+  const handleRetryWrong = (wrongIds: Array<string>) => {
     resetWrong({
       flashcardGroupId,
       wrongCardIds: new Set(wrongIds),

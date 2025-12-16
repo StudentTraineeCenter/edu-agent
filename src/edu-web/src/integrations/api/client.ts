@@ -1,11 +1,11 @@
-import type * as HttpClient from '@effect/platform/HttpClient'
 import * as HttpClientError from '@effect/platform/HttpClientError'
 import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as HttpClientResponse from '@effect/platform/HttpClientResponse'
 import * as Data from 'effect/Data'
 import * as Effect from 'effect/Effect'
-import type { ParseError } from 'effect/ParseResult'
 import * as S from 'effect/Schema'
+import type { ParseError } from 'effect/ParseResult'
+import type * as HttpClient from '@effect/platform/HttpClient'
 
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
 

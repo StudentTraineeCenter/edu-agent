@@ -1,15 +1,21 @@
-import { useAtomValue, useAtomSet, useAtom } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
 import {
-  flashcardsAtom,
-  createFlashcardAtom,
-  updateFlashcardAtom,
-  reorderFlashcardsAtom,
-  deleteFlashcardAtom,
-} from '@/data-acess/flashcard'
-import { flashcardGroupAtom } from '@/data-acess/flashcard'
+  Result,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from '@effect-atom/atom-react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, PlusIcon, SaveIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FlashcardEditor } from './components/flashcard-editor'
+import {
+  createFlashcardAtom,
+  deleteFlashcardAtom,
+  flashcardGroupAtom,
+  flashcardsAtom,
+  reorderFlashcardsAtom,
+  updateFlashcardAtom,
+} from '@/data-acess/flashcard'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -18,14 +24,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { FlashcardEditor } from './components/flashcard-editor'
-import { useState, useCallback, useEffect, useMemo } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -127,7 +131,9 @@ export const FlashcardEditPage = ({
   })
 
   // Local state for all flashcards
-  const [localFlashcards, setLocalFlashcards] = useState<LocalFlashcard[]>([])
+  const [localFlashcards, setLocalFlashcards] = useState<Array<LocalFlashcard>>(
+    [],
+  )
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
   const [newAnswer, setNewAnswer] = useState('')

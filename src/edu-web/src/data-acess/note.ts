@@ -1,12 +1,11 @@
 import { Atom, Registry } from '@effect-atom/atom-react'
-import { ApiClientService } from '@/integrations/api/http'
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Layer, Schema, Stream } from 'effect'
 import { HttpBody } from '@effect/platform'
-import { NoteCreate, GenerateRequest } from '@/integrations/api/client'
-import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { ApiClientService } from '@/integrations/api/http'
+import { GenerateRequest, NoteCreate } from '@/integrations/api/client'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { withToast } from '@/lib/with-toast'
-import { Layer } from 'effect'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(

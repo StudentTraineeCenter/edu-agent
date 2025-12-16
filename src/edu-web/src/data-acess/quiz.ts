@@ -1,18 +1,17 @@
-import { ApiClientService } from '@/integrations/api/http'
-import { Effect, Schema, Stream } from 'effect'
+import { Effect, Layer, Schema, Stream } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom-react'
 import { HttpBody } from '@effect/platform'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 import {
-  QuizCreate,
   GenerateRequest,
+  QuizCreate,
   QuizQuestionCreate,
-  QuizQuestionUpdate,
   QuizQuestionReorder,
+  QuizQuestionUpdate,
 } from '@/integrations/api/client'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
-import { Layer } from 'effect'
+import { ApiClientService } from '@/integrations/api/http'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -318,7 +317,7 @@ export const reorderQuizQuestionsAtom = runtime.fn(
   Effect.fn(function* (input: {
     projectId: string
     quizId: string
-    questionIds: string[]
+    questionIds: Array<string>
   }) {
     const registry = yield* Registry.AtomRegistry
     const { apiClient } = yield* ApiClientService

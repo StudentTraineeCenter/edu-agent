@@ -1,7 +1,7 @@
 import { Data, Effect, Layer } from 'effect'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { ApiClientService } from '@/integrations/api'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(

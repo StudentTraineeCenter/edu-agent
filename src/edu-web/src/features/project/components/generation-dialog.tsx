@@ -1,5 +1,9 @@
 import { create } from 'zustand'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Loader2Icon } from 'lucide-react'
+import { Result, useAtom, useAtomValue } from '@effect-atom/atom-react'
+import type { DocumentDto } from '@/integrations/api/client'
+import type { ProgressStage } from '@/components/generation-progress'
 import {
   Dialog,
   DialogContent,
@@ -19,11 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2Icon } from 'lucide-react'
-import { useAtomValue, useAtom } from '@effect-atom/atom-react'
 import { indexedDocumentsAtom } from '@/data-acess/document'
-import { Result } from '@effect-atom/atom-react'
-import type { DocumentDto } from '@/integrations/api/client'
 import { createNoteStreamAtom, noteProgressAtom } from '@/data-acess/note'
 import { createQuizStreamAtom, quizProgressAtom } from '@/data-acess/quiz'
 import {
@@ -34,10 +34,7 @@ import {
   generateMindMapStreamAtom,
   mindMapProgressAtom,
 } from '@/data-acess/mind-map'
-import {
-  GenerationProgress,
-  type ProgressStage,
-} from '@/components/generation-progress'
+import { GenerationProgress } from '@/components/generation-progress'
 
 type GenerationDialogStore = {
   isOpen: boolean

@@ -1,19 +1,18 @@
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { ArrowLeft } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
-  BreadcrumbList,
   BreadcrumbItem,
+  BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { useAtomValue } from '@effect-atom/atom-react'
 import { chatAtom } from '@/data-acess/chat'
-import { Result } from '@effect-atom/atom-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
 
 const ChatHeaderContent = (props: { projectId: string; chatId: string }) => {
   const { projectId, chatId } = props

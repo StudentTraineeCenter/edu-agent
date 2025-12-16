@@ -1,8 +1,8 @@
-import { useAuth } from '@/hooks/use-auth'
-import { Button } from '@/components/ui/button'
 import { LogIn } from 'lucide-react'
 import { useSearch } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Dialog,
   DialogContent,

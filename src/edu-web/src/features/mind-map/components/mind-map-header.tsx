@@ -1,20 +1,19 @@
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { generateMindMapAtom, mindMapAtom } from '@/data-acess/mind-map'
-import { Result } from '@effect-atom/atom-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { ArrowLeft, Loader2Icon, PlusIcon } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { useState } from 'react'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb'
+import { generateMindMapAtom, mindMapAtom } from '@/data-acess/mind-map'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,

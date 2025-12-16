@@ -1,13 +1,13 @@
 import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Array, Layer } from 'effect'
-import { ApiClientService } from '@/integrations/api/http'
-import {
-  ProjectDto,
+import { Array, Data, Effect, Layer } from 'effect'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import type {
   ProjectCreate,
+  ProjectDto,
   ProjectUpdate,
 } from '@/integrations/api/client'
+import { ApiClientService } from '@/integrations/api/http'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { withToast } from '@/lib/with-toast'
 
 const runtime = makeAtomRuntime(

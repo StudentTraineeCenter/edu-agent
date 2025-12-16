@@ -1,7 +1,7 @@
-import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { ApiClientService } from '@/integrations/api/http'
 import { Layer } from 'effect'
+import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { ApiClientService } from '@/integrations/api/http'
 
 export const runtime = makeAtomRuntime(
   Layer.mergeAll(

@@ -1,4 +1,8 @@
 import { Link } from '@tanstack/react-router'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
+import { Cause } from 'effect'
+import type { ChatDto } from '@/integrations/api/client'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -10,8 +14,6 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import { currentProjectIdAtom, projectsAtom } from '@/data-acess/project'
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
 import { useCreateProjectDialog } from '@/features/project/components/upsert-project-dialog'
 import {
   Collapsible,
@@ -19,8 +21,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { chatsAtom } from '@/data-acess/chat'
-import { ChatDto } from '@/integrations/api/client'
-import { Cause } from 'effect'
 
 const ChatItem = ({ chat }: { chat: ChatDto }) => {
   return (

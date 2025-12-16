@@ -1,4 +1,5 @@
 import { BookOpen, BrainIcon, Settings2 } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { NavMain } from './nav-main'
 import { NavProjects } from './nav-projects'
 import { NavUser } from './nav-user'
@@ -12,7 +13,6 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { Link } from '@tanstack/react-router'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { supabase } from '@/lib/supabase'
 import { authAtom } from '@/data-acess/auth'
-import { useAtomValue } from '@effect-atom/atom-react'
 
 export const useAuth = () => {
   const { session, user } = useAtomValue(authAtom)

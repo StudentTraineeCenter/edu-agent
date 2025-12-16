@@ -1,16 +1,18 @@
 import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
+  CheckCircle2Icon,
   FileIcon,
   Loader2Icon,
-  CheckCircle2Icon,
-  XCircleIcon,
   MoreVerticalIcon,
   TrashIcon,
-  type LucideIcon,
+  XCircleIcon,
 } from 'lucide-react'
+import { useAtomSet } from '@effect-atom/atom-react'
+import type { LucideIcon } from 'lucide-react'
+import type { DocumentDto, DocumentStatus } from '@/integrations/api/client'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +24,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useAtomSet } from '@effect-atom/atom-react'
 import { deleteDocumentAtom } from '@/data-acess/document'
-import { DocumentStatus } from '@/integrations/api/client'
 import { cn, truncate } from '@/lib/utils'
-import type { DocumentDto } from '@/integrations/api/client'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 
 type Props = {

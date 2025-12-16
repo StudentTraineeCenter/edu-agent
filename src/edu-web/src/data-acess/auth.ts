@@ -1,8 +1,8 @@
 import { Atom } from '@effect-atom/atom-react'
 import { Effect } from 'effect'
+import type { Session, User } from '@supabase/supabase-js'
 import { ApiClientService } from '@/integrations/api/http'
 import { supabase } from '@/lib/supabase'
-import type { Session, User } from '@supabase/supabase-js'
 
 export const currentUserAtom = Atom.make(
   Effect.gen(function* () {

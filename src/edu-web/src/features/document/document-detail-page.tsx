@@ -1,7 +1,7 @@
-import { documentPreviewAtom } from '@/data-acess/document'
 import { Loader2Icon } from 'lucide-react'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { DocumentHeader } from './components/document-header'
+import { documentPreviewAtom } from '@/data-acess/document'
 
 type DocumentContentProps = {
   documentId: string

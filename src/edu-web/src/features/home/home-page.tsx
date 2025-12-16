@@ -1,9 +1,9 @@
-import { useAuth } from '@/hooks/use-auth'
-import { UserProfile } from '@/components/auth/user-profile'
-import { Button } from '@/components/ui/button'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { LogIn } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
+import { UserProfile } from '@/components/auth/user-profile'
+import { Button } from '@/components/ui/button'
 
 export const HomePage = () => {
   const { isAuthenticated } = useAuth()

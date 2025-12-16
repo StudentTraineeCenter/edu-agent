@@ -1,7 +1,6 @@
-import { useAtomValue } from '@effect-atom/atom-react'
-import { noteAtom } from '@/data-acess/note'
-import { Result } from '@effect-atom/atom-react'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
+import { noteAtom } from '@/data-acess/note'
 import { Response } from '@/components/ai-elements/response'
 
 type NoteContentProps = {

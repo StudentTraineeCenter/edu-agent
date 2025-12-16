@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { ChevronRight, ChevronDown, Circle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -9,7 +9,7 @@ export interface MindMapNodeData {
   id: string
   label: string
   content?: string
-  children?: MindMapNodeData[]
+  children?: Array<MindMapNodeData>
 }
 
 // Helper function to convert nodes/edges format to hierarchical tree
@@ -32,7 +32,7 @@ function convertToTree(
 
   // Build a map of node ID to node data
   const nodeMap = new Map<string, MindMapNodeData>()
-  const childrenMap = new Map<string, string[]>()
+  const childrenMap = new Map<string, Array<string>>()
 
   // Initialize all nodes
   nodes.forEach((node) => {

@@ -1,5 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { effectTsResolver } from '@hookform/resolvers/effect-ts'
+import { create } from 'zustand'
+import { useAtom } from '@effect-atom/atom-react'
+import * as S from 'effect/Schema'
+import { useEffect } from 'react'
+import type { ProjectDto } from '@/integrations/api/client'
 import {
   Dialog,
   DialogContent,
@@ -18,12 +23,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { create } from 'zustand'
-import { useAtom } from '@effect-atom/atom-react'
 import { upsertProjectAtom } from '@/data-acess/project'
-import * as S from 'effect/Schema'
-import { ProjectDto } from '@/integrations/api/client'
-import { useEffect } from 'react'
 import {
   Select,
   SelectContent,

@@ -1,24 +1,24 @@
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import {
+  CheckCircle,
+  ChevronDown,
+  RotateCcw,
+  Trophy,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
+import type { QuizQuestionDto } from '@/integrations/api/client'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import {
-  CheckCircle,
-  XCircle,
-  Upload,
-  RotateCcw,
-  X,
-  Trophy,
-  ChevronDown,
-} from 'lucide-react'
-import { useState, useMemo } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import type { QuizQuestionDto } from '@/integrations/api/client'
-import { Result, useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { Option } from 'effect'
+import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import {
   quizDetailStateAtom,
   quizStatsAtom,

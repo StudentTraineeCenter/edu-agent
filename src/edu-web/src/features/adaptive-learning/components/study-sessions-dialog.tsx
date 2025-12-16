@@ -1,5 +1,14 @@
 import { create } from 'zustand'
 import { useState } from 'react'
+import { BrainIcon, Clock, Loader2Icon, PlusIcon } from 'lucide-react'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { useNavigate } from '@tanstack/react-router'
+import type { StudySessionDto } from '@/data-acess/adaptive-learning'
+import {
+  generateStudySessionAtom,
+  listStudySessionsAtom,
+} from '@/data-acess/adaptive-learning'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,16 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Loader2Icon, PlusIcon, Clock, BrainIcon } from 'lucide-react'
-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
-import {
-  listStudySessionsAtom,
-  generateStudySessionAtom,
-  StudySessionDto,
-} from '@/data-acess/adaptive-learning'
-import { useNavigate } from '@tanstack/react-router'
 
 type StudySessionsDialogStore = {
   isOpen: boolean

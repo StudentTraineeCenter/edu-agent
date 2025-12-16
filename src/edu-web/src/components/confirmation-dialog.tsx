@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { AlertTriangleIcon } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { AlertTriangleIcon } from 'lucide-react'
 
 type ConfirmationDialogState = {
   isOpen: boolean

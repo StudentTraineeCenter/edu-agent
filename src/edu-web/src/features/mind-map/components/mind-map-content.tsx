@@ -1,8 +1,7 @@
-import { useAtomValue } from '@effect-atom/atom-react'
-import { Result } from '@effect-atom/atom-react'
-import { mindMapAtom } from '@/data-acess/mind-map'
-import { MindMapView } from './mind-map-view'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
+import { MindMapView } from './mind-map-view'
+import { mindMapAtom } from '@/data-acess/mind-map'
 
 type MindMapContentProps = {
   mindMapId: string

@@ -1,7 +1,7 @@
-import { Card } from '@/components/ui/card'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { flashcardDetailStateAtom } from '@/features/flashcard/state/flashcard-detail-state'
 import { Option } from 'effect'
+import { Card } from '@/components/ui/card'
+import { flashcardDetailStateAtom } from '@/features/flashcard/state/flashcard-detail-state'
 
 type FlashcardCardProps = {
   flashcardGroupId: string

@@ -1,15 +1,15 @@
-import type {
-  FlashcardGroupDto,
-  MindMapDto,
-  NoteDto,
-  QuizDto,
-} from '@/integrations/api/client'
 import { Atom } from '@effect-atom/atom-react'
 import { Array as Arr, Data, Effect, Order } from 'effect'
 import { flashcardGroupsAtom } from './flashcard'
 import { mindMapsAtom } from './mind-map'
 import { notesAtom } from './note'
 import { quizzesAtom } from './quiz'
+import type {
+  FlashcardGroupDto,
+  MindMapDto,
+  NoteDto,
+  QuizDto,
+} from '@/integrations/api/client'
 
 export type StudyResource = Data.TaggedEnum<{
   FlashcardGroup: { readonly data: FlashcardGroupDto }

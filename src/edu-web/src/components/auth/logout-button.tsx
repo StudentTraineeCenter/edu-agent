@@ -1,6 +1,6 @@
+import { LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
 
 export const LogoutButton = () => {
   const { logout, isLoading } = useAuth()

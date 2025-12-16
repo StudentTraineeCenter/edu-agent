@@ -1,9 +1,9 @@
+import { Link } from '@tanstack/react-router'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { LogoutButton } from '@/components/auth/logout-button'
-import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { currentUserAtom } from '@/data-acess/auth'
 
 export const UserProfile = () => {
