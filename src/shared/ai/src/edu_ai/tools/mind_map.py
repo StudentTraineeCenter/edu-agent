@@ -4,8 +4,8 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.context import CustomAgentContext
 from edu_ai.agents.mind_map_agent import MindMapAgent
+from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.mind_maps import MindMapDto
 from edu_core.services.mind_maps import MindMapService
 from langchain.tools import tool
@@ -40,7 +40,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
 )
 async def create_mind_map(
     topic: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
     custom_instructions: str | None = None,
 ) -> str:
     """Create a mind map from project documents."""
@@ -78,7 +78,7 @@ async def create_mind_map_scoped(
     custom_instructions: str,
     document_ids: list[str],
     query: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Create a mind map from specific documents."""
     ctx = runtime.context
@@ -115,7 +115,7 @@ async def create_mind_map_scoped(
 
 
 @tool("mindmap_list", description="List mind maps for a project")
-async def list_mind_maps(runtime: ToolRuntime[CustomAgentContext]) -> str:
+async def list_mind_maps(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List mind maps for a project."""
     ctx = runtime.context
     svc = MindMapService()
@@ -132,7 +132,7 @@ async def list_mind_maps(runtime: ToolRuntime[CustomAgentContext]) -> str:
 @tool("mindmap_get", description="Get a specific mind map by ID")
 async def get_mind_map(
     mind_map_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Get a specific mind map by ID."""
     ctx = runtime.context

@@ -4,8 +4,8 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.context import CustomAgentContext
 from edu_ai.agents.flashcard_agent import FlashcardAgent
+from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 from edu_core.services.flashcard_groups import FlashcardGroupService
 from langchain.tools import tool
@@ -41,7 +41,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
 async def create_flashcards(
     count: int,
     topic: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
     custom_instructions: str | None = None,
 ) -> str:
     """Create flashcards from project documents."""
@@ -96,7 +96,7 @@ async def create_flashcards_scoped(
     custom_instructions: str,
     document_ids: list[str],
     query: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Create flashcards from specific documents."""
     ctx = runtime.context
@@ -149,7 +149,7 @@ async def create_flashcards_scoped(
 
 
 @tool("flashcards_list_groups", description="List flashcard groups for a project")
-async def list_groups(runtime: ToolRuntime[CustomAgentContext]) -> str:
+async def list_groups(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List flashcard groups for a project."""
     ctx = runtime.context
     svc = FlashcardGroupService()
@@ -166,7 +166,7 @@ async def list_groups(runtime: ToolRuntime[CustomAgentContext]) -> str:
 @tool("flashcards_get", description="Get flashcards in a group")
 async def get_flashcards(
     group_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Get flashcards in a group."""
     ctx = runtime.context
@@ -184,7 +184,7 @@ async def get_flashcards(
 @tool("flashcards_delete_group", description="Delete a flashcard group")
 async def delete_group(
     group_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Delete a flashcard group."""
     ctx = runtime.context
@@ -206,7 +206,7 @@ async def update_group(
     group_id: str,
     name: str,
     description: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Update a flashcard group's name/description."""
     ctx = runtime.context

@@ -4,8 +4,8 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.context import CustomAgentContext
 from edu_ai.agents.note_agent import NoteAgent
+from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.notes import NoteDto
 from edu_core.services.notes import NoteService
 from langchain.tools import tool
@@ -40,7 +40,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
 )
 async def create_note(
     topic: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
     custom_instructions: str | None = None,
 ) -> str:
     """Create a study note from project documents."""
@@ -85,7 +85,7 @@ async def create_note_scoped(
     custom_instructions: str,
     document_ids: list[str],
     query: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Create a study note from specific documents."""
     ctx = runtime.context
@@ -129,7 +129,7 @@ async def create_note_scoped(
 
 
 @tool("note_list", description="List notes for a project")
-async def list_notes(runtime: ToolRuntime[CustomAgentContext]) -> str:
+async def list_notes(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List notes for a project."""
     ctx = runtime.context
     svc = NoteService()
@@ -146,7 +146,7 @@ async def list_notes(runtime: ToolRuntime[CustomAgentContext]) -> str:
 @tool("note_get", description="Get a specific note by ID")
 async def get_note(
     note_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Get a specific note by ID."""
     ctx = runtime.context
@@ -164,7 +164,7 @@ async def get_note(
 @tool("note_delete", description="Delete a note")
 async def delete_note(
     note_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Delete a note."""
     ctx = runtime.context

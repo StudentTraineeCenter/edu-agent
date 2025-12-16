@@ -1,14 +1,15 @@
 """Processor for document processing tasks."""
 
 import asyncio
+from contextlib import suppress
 from datetime import datetime
 from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient
 from content_understanding import AzureContentUnderstandingClient
-from edu_db.models import Document, DocumentSegment
 from edu_core.schemas.documents import DocumentStatus
+from edu_db.models import Document, DocumentSegment
 from edu_queue.schemas import DocumentProcessingData
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_text_splitters import (
@@ -209,10 +210,8 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
         contents_blob_client.upload_blob(content.encode("utf-8"), overwrite=True)
 
         # Delete the original blob from input container
-        try:
+        with suppress(Exception):
             input_blob_client.delete_blob()
-        except Exception:
-            pass  # May already be deleted
 
         db.commit()
 
@@ -265,7 +264,9 @@ class DocumentProcessor(BaseProcessor[DocumentProcessingData]):
             batch_segments = segments[start_index:end_index]
             batch_embeddings = embeddings_list[start_index:end_index]
 
-            for segment, embedding in zip(batch_segments, batch_embeddings):
+            for segment, embedding in zip(
+                batch_segments, batch_embeddings, strict=False
+            ):
                 segment.embedding_vector = embedding
 
             db.commit()

@@ -1,6 +1,14 @@
 import json
+from contextlib import suppress
 from typing import Any
 
+from edu_ai.chatbot.context import ChatbotContext, ChatbotState
+from edu_ai.prompts.prompts_utils import render_prompt
+from edu_ai.tools.flashcard import tools as flashcard_tools
+from edu_ai.tools.mind_map import tools as mind_map_tools
+from edu_ai.tools.note import tools as note_tools
+from edu_ai.tools.quiz import tools as quiz_tools
+from edu_ai.tools.rag import tools as rag_tools
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
     ModelRequest,
@@ -11,14 +19,6 @@ from langchain.agents.middleware import (
 from langchain_core.messages import ToolMessage
 from langchain_openai import AzureChatOpenAI
 from langgraph.runtime import Runtime
-
-from edu_ai.agents.context import CustomAgentContext, CustomAgentState
-from edu_ai.agents.prompts_utils import render_prompt
-from edu_ai.agents.tools.flashcard import tools as flashcard_tools
-from edu_ai.agents.tools.mind_map import tools as mind_map_tools
-from edu_ai.agents.tools.note import tools as note_tools
-from edu_ai.agents.tools.quiz import tools as quiz_tools
-from edu_ai.agents.tools.rag import tools as rag_tools
 
 
 @wrap_tool_call
@@ -31,7 +31,7 @@ async def capture_sources_from_rag(request, handler):
     if request.tool.name == "search_project_documents" and isinstance(
         result, ToolMessage
     ):
-        try:
+        with suppress(Exception):
             # Parse the content to extract sources
             content = (
                 json.loads(result.content)
@@ -46,8 +46,6 @@ async def capture_sources_from_rag(request, handler):
 
             # Return just the content string to the agent
             result.content = content.get("content", result.content)
-        except:
-            pass
 
     return result
 
@@ -77,16 +75,16 @@ async def dynamic_system_prompt(request: ModelRequest) -> str:
     return prompt
 
 
-@after_model(state_schema=CustomAgentState)
+@after_model(state_schema=ChatbotState)
 def ensure_sources_in_stream(
-    state: CustomAgentState, runtime: Runtime[CustomAgentContext]
+    state: ChatbotState, runtime: Runtime[ChatbotContext]
 ) -> dict[str, Any] | None:
     """Ensure sources are included in the model node update for streaming."""
     sources = state.get("sources", [])
     return {"sources": sources} if sources else None
 
 
-def make_agent(llm: AzureChatOpenAI):
+def make_chatbot(llm: AzureChatOpenAI):
     tools = [
         *rag_tools,
         *flashcard_tools,
@@ -103,6 +101,6 @@ def make_agent(llm: AzureChatOpenAI):
             dynamic_system_prompt,
             ensure_sources_in_stream,
         ],
-        state_schema=CustomAgentState,
-        context_schema=CustomAgentContext,
+        state_schema=ChatbotState,
+        context_schema=ChatbotContext,
     )

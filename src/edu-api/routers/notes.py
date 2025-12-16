@@ -157,7 +157,7 @@ async def generate_note_stream(
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
-            result = service.queue_generation(
+            service.queue_generation(
                 note_id=note_id,
                 project_id=project_id,
                 topic=request.topic,

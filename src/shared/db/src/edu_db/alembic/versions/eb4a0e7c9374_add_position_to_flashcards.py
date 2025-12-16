@@ -29,7 +29,7 @@ def upgrade() -> None:
     connection.execute(
         sa.text("""
         WITH ranked_flashcards AS (
-            SELECT 
+            SELECT
                 id,
                 ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY created_at ASC) - 1 AS pos
             FROM flashcards

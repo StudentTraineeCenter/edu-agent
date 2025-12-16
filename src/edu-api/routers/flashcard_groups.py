@@ -177,7 +177,7 @@ async def generate_flashcards_stream(
             )
             yield f"data: {progress.model_dump_json()}\n\n".encode()
 
-            result = service.queue_generation(
+            service.queue_generation(
                 group_id=group_id,
                 project_id=project_id,
                 topic=request.topic,

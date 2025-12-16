@@ -1,6 +1,6 @@
 """RAG search tools for agent."""
 
-from edu_ai.agents.context import CustomAgentContext
+from edu_ai.chatbot.context import ChatbotContext
 from edu_db.models import ChatMessageSource
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
@@ -12,7 +12,7 @@ from langgraph.prebuilt import ToolRuntime
 )
 async def search_project_documents(
     query: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> dict:
     """Search project documents and return relevant content."""
     ctx = runtime.context
@@ -54,4 +54,3 @@ async def search_project_documents(
 
 # Export tools
 tools = [search_project_documents]
-

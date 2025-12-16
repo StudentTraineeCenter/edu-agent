@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 from edu_db.models import User
 from edu_db.session import get_session_factory
+
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.users import UserDto
 

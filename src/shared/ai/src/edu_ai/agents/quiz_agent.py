@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from edu_db.models import Project, Quiz, QuizQuestion
 from edu_core.exceptions import NotFoundError
+from edu_db.models import Project, Quiz, QuizQuestion
 from pydantic import BaseModel, Field
 
 from edu_ai.agents.base import BaseContentAgent

@@ -29,7 +29,7 @@ def upgrade() -> None:
     connection.execute(
         sa.text("""
         WITH ranked_questions AS (
-            SELECT 
+            SELECT
                 id,
                 ROW_NUMBER() OVER (PARTITION BY quiz_id ORDER BY created_at ASC) - 1 AS pos
             FROM quiz_questions

@@ -2,14 +2,14 @@
 
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from edu_db.session import get_session_factory
 
 T = TypeVar("T")
 
 
-class BaseProcessor(ABC, Generic[T]):
+class BaseProcessor[T](ABC):
     """Abstract base class for processing queue tasks.
 
     Each processor handles a specific task type with a typed payload.

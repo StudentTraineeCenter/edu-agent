@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from edu_db.session import get_session_factory
@@ -9,7 +9,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel
 
-from edu_ai.agents.prompts_utils import render_prompt
+from edu_ai.prompts.prompts_utils import render_prompt
 
 if TYPE_CHECKING:
     from edu_core.services import SearchService
@@ -26,7 +26,7 @@ class ContentAgentConfig(BaseModel):
     azure_openai_api_version: str
 
 
-class BaseContentAgent(ABC, Generic[T]):
+class BaseContentAgent[T: BaseModel](ABC):
     """
     Base Agent for AI generation.
     Directly uses DocumentService for RAG and AzureChatOpenAI for generation.

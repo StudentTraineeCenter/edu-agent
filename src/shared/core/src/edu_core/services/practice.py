@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from edu_db.models import Flashcard, PracticeRecord, QuizQuestion
 from edu_db.session import get_session_factory
+
 from edu_core.schemas.practice import PracticeRecordDto
 
 

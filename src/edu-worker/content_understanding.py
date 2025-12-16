@@ -17,7 +17,7 @@ class AzureContentUnderstandingClient:
         self,
         endpoint: str,
         api_version: str = DEFAULT_API_VERSION,
-        subscription_key: str = None,
+        subscription_key: str | None = None,
         token_provider: callable = lambda: None,
         x_ms_useragent: str = "data-extraction-code",
         timeout: int = DEFAULT_TIMEOUT_SECONDS,

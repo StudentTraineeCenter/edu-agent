@@ -32,6 +32,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 [lint.per-file-ignores]
 # Ignore "unused imports" in __init__.py files, as they are often intentional exports.
 "__init__.py" = ["F401"]
+# Disable B904 and B008 in edu-api directory
+"src/edu-api/**/*.py" = ["B904", "B008"]
 
 [format]
 # Like Black, use double quotes for strings.

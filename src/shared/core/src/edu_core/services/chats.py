@@ -6,12 +6,8 @@ from datetime import datetime
 from uuid import uuid4
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from edu_ai.agents.context import CustomAgentContext
-from edu_ai.agents.factory import make_agent
-from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
-from langchain_openai import AzureChatOpenAI
-from pydantic import BaseModel, Field
-
+from edu_ai.chatbot.context import ChatbotContext
+from edu_ai.chatbot.factory import make_chatbot
 from edu_db.models import (
     Chat,
     ChatMessage,
@@ -19,6 +15,10 @@ from edu_db.models import (
     ChatMessageToolCall,
 )
 from edu_db.session import get_session_factory
+from langchain_core.messages import AIMessage, BaseMessage, ToolCall, ToolMessage
+from langchain_openai import AzureChatOpenAI
+from pydantic import BaseModel, Field
+
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.chats import ChatDto, ChatMessageDto, SourceDto, ToolCallDto
 
@@ -97,7 +97,7 @@ class ChatService:
             **llm_kwargs,
         )
 
-        self.agent = make_agent(llm=llm_streaming)
+        self.chatbot = make_chatbot(llm=llm_streaming)
 
     def create_chat(
         self,
@@ -331,7 +331,7 @@ class ChatService:
         Yields:
             MessageChunk instances containing message chunks and metadata
         """
-        if not self.agent:
+        if not self.chatbot:
             raise ValueError(
                 "Agent not initialized. SearchService and Azure OpenAI config required."
             )
@@ -378,7 +378,8 @@ class ChatService:
                             tool.model_dump() for tool in chunk_data.tools or []
                         ]
 
-                        chat.messages = chat.messages + [
+                        chat.messages = [
+                            *chat.messages,
                             {
                                 "role": "user",
                                 "content": message,
@@ -452,7 +453,7 @@ class ChatService:
         messages: list[ChatMessage],
         project_id: str,
         language_code: str,
-        user_id: str = None,
+        user_id: str | None = None,
     ):
         """Get response stream from agent.
 
@@ -481,7 +482,7 @@ class ChatService:
 
         chat_history.append({"role": "user", "content": query})
 
-        ctx = CustomAgentContext(
+        ctx = ChatbotContext(
             project_id=project_id,
             user_id=user_id or "",
             usage=self.usage_service,

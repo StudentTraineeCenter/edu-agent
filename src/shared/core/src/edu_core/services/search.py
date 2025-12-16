@@ -4,12 +4,12 @@ from contextlib import contextmanager
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from edu_db.models import Document, Project
+from edu_db.session import get_session_factory
 from langchain_core.documents import Document as LangchainDocument
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_postgres import PGEngine, PGVectorStore
 
-from edu_db.models import Document, Project
-from edu_db.session import get_session_factory
 from edu_core.exceptions import NotFoundError
 from edu_core.schemas.search import SearchResultItem
 
@@ -170,7 +170,7 @@ class SearchService:
         doc_map = {str(d.id): d for d in documents}
 
         results = []
-        for i, (doc_id, chunks) in enumerate(grouped.items(), start=1):
+        for _i, (doc_id, chunks) in enumerate(grouped.items(), start=1):
             # Combine top segments
             top_chunks = sorted(chunks, key=lambda x: x[1])[:3]
             combined_text = "\n".join(

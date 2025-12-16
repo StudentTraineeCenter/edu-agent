@@ -4,8 +4,8 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.context import CustomAgentContext
 from edu_ai.agents.quiz_agent import QuizAgent
+from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_core.services.quizzes import QuizService
 from langchain.tools import tool
@@ -41,7 +41,7 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
 async def create_quiz(
     count: int,
     topic: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
     custom_instructions: str | None = None,
 ) -> str:
     """Create quiz from project documents."""
@@ -98,7 +98,7 @@ async def create_quiz_scoped(
     custom_instructions: str,
     document_ids: list[str],
     query: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Create quiz from specific documents."""
     ctx = runtime.context
@@ -153,7 +153,7 @@ async def create_quiz_scoped(
 
 
 @tool("quiz_list", description="List quizzes for a project")
-async def list_quizzes(runtime: ToolRuntime[CustomAgentContext]) -> str:
+async def list_quizzes(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List quizzes for a project."""
     ctx = runtime.context
     svc = QuizService()
@@ -170,7 +170,7 @@ async def list_quizzes(runtime: ToolRuntime[CustomAgentContext]) -> str:
 @tool("quiz_get_questions", description="Get all questions in a quiz")
 async def get_questions(
     quiz_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Get all questions in a quiz."""
     ctx = runtime.context
@@ -188,7 +188,7 @@ async def get_questions(
 @tool("quiz_delete", description="Delete a quiz")
 async def delete_quiz(
     quiz_id: str,
-    runtime: ToolRuntime[CustomAgentContext],
+    runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Delete a quiz."""
     ctx = runtime.context

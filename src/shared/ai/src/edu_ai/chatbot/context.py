@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
-from edu_db.models import ChatMessageSource
 from edu_core.services.search import SearchService
+from edu_db.models import ChatMessageSource
 from langchain.agents import AgentState
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, ConfigDict
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     pass
 
 
-class CustomAgentContext(BaseModel):
+class ChatbotContext(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     user_id: str
@@ -25,5 +25,5 @@ class CustomAgentContext(BaseModel):
     )
 
 
-class CustomAgentState(AgentState):
+class ChatbotState(AgentState):
     sources: list[ChatMessageSource]
