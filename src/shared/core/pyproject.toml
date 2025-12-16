@@ -9,15 +9,11 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "edu-db",
-    "alembic>=1.17.2",
     "azure-identity>=1.25.1",
     "azure-keyvault-secrets>=4.10.0",
     "azure-storage-blob>=12.27.1",
-    "pgvector>=0.2.5,<0.4",
-    "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.5",
     "rich>=14.2.0",
-    "sqlalchemy>=2.0.45",
 ]
 
 [build-system]

@@ -298,7 +298,6 @@ version = "0.1.0"
 source = { editable = "src/shared/ai" }
 dependencies = [
     { name = "azure-identity" },
-    { name = "azure-keyvault-secrets" },
     { name = "edu-core" },
     { name = "edu-db" },
     { name = "jinja2" },
@@ -310,13 +309,11 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "rich" },
-    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "azure-identity", specifier = ">=1.25.1" },
-    { name = "azure-keyvault-secrets", specifier = ">=4.10.0" },
     { name = "edu-core", editable = "src/shared/core" },
     { name = "edu-db", editable = "src/shared/db" },
     { name = "jinja2", specifier = ">=3.1.6" },
@@ -328,7 +325,6 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "rich", specifier = ">=14.2.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.45" },
 ]
 
 [[package]]
@@ -367,30 +363,22 @@ name = "edu-core"
 version = "0.1.0"
 source = { editable = "src/shared/core" }
 dependencies = [
-    { name = "alembic" },
     { name = "azure-identity" },
     { name = "azure-keyvault-secrets" },
     { name = "azure-storage-blob" },
     { name = "edu-db" },
-    { name = "pgvector" },
-    { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "rich" },
-    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.17.2" },
     { name = "azure-identity", specifier = ">=1.25.1" },
     { name = "azure-keyvault-secrets", specifier = ">=4.10.0" },
     { name = "azure-storage-blob", specifier = ">=12.27.1" },
     { name = "edu-db", editable = "src/shared/db" },
-    { name = "pgvector", specifier = ">=0.2.5,<0.4" },
-    { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "rich", specifier = ">=14.2.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.45" },
 ]
 
 [[package]]

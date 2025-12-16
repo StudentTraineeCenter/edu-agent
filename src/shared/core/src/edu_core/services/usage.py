@@ -6,7 +6,6 @@ from typing import Literal
 
 from edu_db.models import UserUsage
 from edu_db.session import get_session_factory
-from sqlalchemy.orm import Session
 
 from edu_core.exceptions import UsageLimitExceededError
 from edu_core.schemas.usage import UsageDto, UsageLimitDto
@@ -60,8 +59,22 @@ class UsageService:
         """
         with self._get_db_session() as db:
             try:
-                usage = self._get_or_create_usage(db, user_id)
-                usage = self._reset_daily_counters_if_needed(db, usage)
+                usage = db.query(UserUsage).filter(UserUsage.user_id == user_id).first()
+                if not usage:
+                    usage = UserUsage(
+                        user_id=user_id,
+                        chat_messages_today=0,
+                        flashcard_generations_today=0,
+                        quiz_generations_today=0,
+                        mindmap_generations_today=0,
+                        document_uploads_today=0,
+                        last_reset_date=datetime.now(UTC),
+                    )
+                    db.add(usage)
+                    db.commit()
+                    db.refresh(usage)
+
+                usage = self._reset_daily_counters_if_needed(usage)
 
                 # Get current count and limit
                 count_map = {
@@ -122,8 +135,22 @@ class UsageService:
         """
         with self._get_db_session() as db:
             try:
-                usage = self._get_or_create_usage(db, user_id)
-                usage = self._reset_daily_counters_if_needed(db, usage)
+                usage = db.query(UserUsage).filter(UserUsage.user_id == user_id).first()
+                if not usage:
+                    usage = UserUsage(
+                        user_id=user_id,
+                        chat_messages_today=0,
+                        flashcard_generations_today=0,
+                        quiz_generations_today=0,
+                        mindmap_generations_today=0,
+                        document_uploads_today=0,
+                        last_reset_date=datetime.now(UTC),
+                    )
+                    db.add(usage)
+                    db.commit()
+                    db.refresh(usage)
+
+                usage = self._reset_daily_counters_if_needed(usage)
 
                 return UsageDto(
                     chat_messages=UsageLimitDto(
@@ -150,39 +177,7 @@ class UsageService:
             except Exception:
                 raise
 
-    def _get_or_create_usage(self, db: Session, user_id: str) -> UserUsage:
-        """Get or create usage record for a user.
-
-        Args:
-            db: Database session
-            user_id: The user's unique identifier
-
-        Returns:
-            UserUsage model instance
-        """
-        try:
-            usage = db.query(UserUsage).filter(UserUsage.user_id == user_id).first()
-            if not usage:
-                usage = UserUsage(
-                    user_id=user_id,
-                    chat_messages_today=0,
-                    flashcard_generations_today=0,
-                    quiz_generations_today=0,
-                    mindmap_generations_today=0,
-                    document_uploads_today=0,
-                    last_reset_date=datetime.now(UTC),
-                )
-                db.add(usage)
-                db.commit()
-                db.refresh(usage)
-            return usage
-        except Exception:
-            db.rollback()
-            raise
-
-    def _reset_daily_counters_if_needed(
-        self, db: Session, usage: UserUsage
-    ) -> UserUsage:
+    def _reset_daily_counters_if_needed(self, usage: UserUsage) -> UserUsage:
         """Reset daily counters if it's a new day.
 
         Args:
@@ -197,18 +192,12 @@ class UsageService:
 
         # Check if it's a new day (compare dates, not times)
         if now.date() > last_reset.date():
-            try:
-                usage.chat_messages_today = 0
-                usage.flashcard_generations_today = 0
-                usage.quiz_generations_today = 0
-                usage.mindmap_generations_today = 0
-                usage.document_uploads_today = 0
-                usage.last_reset_date = now
-                db.commit()
-                db.refresh(usage)
-            except Exception:
-                db.rollback()
-                raise
+            usage.chat_messages_today = 0
+            usage.flashcard_generations_today = 0
+            usage.quiz_generations_today = 0
+            usage.mindmap_generations_today = 0
+            usage.document_uploads_today = 0
+            usage.last_reset_date = now
 
         return usage
 
