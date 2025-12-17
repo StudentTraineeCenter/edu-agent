@@ -53,7 +53,9 @@ class MindMapGenerationData(TypedDict):
 
     project_id: str
     user_id: str
-    mind_map_id: NotRequired[str]  # Optional: existing mind map to populate (if not provided, creates new)
+    mind_map_id: NotRequired[
+        str
+    ]  # Optional: existing mind map to populate (if not provided, creates new)
     topic: NotRequired[str]
     custom_instructions: NotRequired[str]
 
@@ -91,4 +93,3 @@ class QueueTaskMessage(TypedDict):
 
     type: TaskType
     data: TaskData
-

@@ -3,9 +3,11 @@ from typing import Any
 
 from edu_core.exceptions import NotFoundError
 from edu_db.models import Note, Project
+from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 
-from edu_ai.agents.base import BaseContentAgent
+from edu_ai.agents.topic_graph_agent import TopicGraphAgent
+from edu_ai.agents.utils import generate, get_db_session
 
 
 class NoteGenerationResult(BaseModel):
@@ -16,14 +18,19 @@ class NoteGenerationResult(BaseModel):
     content: str = Field(..., description="The content of the note")
 
 
-class NoteAgent(BaseContentAgent[NoteGenerationResult]):
-    @property
-    def output_model(self):
-        return NoteGenerationResult
+class NoteAgent:
+    output_model = NoteGenerationResult
+    prompt_template = "note_prompt"
 
-    @property
-    def prompt_template(self):
-        return "note_prompt"
+    def __init__(
+        self,
+        search_service: Any,
+        llm: AzureChatOpenAI,
+        topic_graph_agent: TopicGraphAgent | None = None,
+    ):
+        self.search_service = search_service
+        self.llm = llm
+        self.topic_graph_agent = topic_graph_agent
 
     async def generate_and_save(
         self,
@@ -51,7 +58,7 @@ class NoteAgent(BaseContentAgent[NoteGenerationResult]):
         if not note_id:
             raise ValueError("note_id is required for note generation")
 
-        with self._get_db_session() as db:
+        with get_db_session() as db:
             # Find existing note
             note = (
                 db.query(Note)
@@ -70,10 +77,29 @@ class NoteAgent(BaseContentAgent[NoteGenerationResult]):
                 raise NotFoundError(f"Project {project_id} not found")
             language_code = project.language_code
 
+            generation_topic = topic
+            if self.topic_graph_agent:
+                topic_graph = await self.topic_graph_agent.generate_topic_graph(
+                    project_id=project_id,
+                    topic=topic,
+                    custom_instructions=custom_instructions,
+                )
+                if topic_graph.root_topics:
+                    topics = []
+                    for root_topic in topic_graph.root_topics:
+                        topics.append(root_topic.topic)
+                        for subtopic in root_topic.subtopics:
+                            topics.append(subtopic.topic)
+                    generation_topic = ", ".join(topics)
+
             # Generate note using AI
-            result = await self.generate(
+            result = await generate(
+                llm=self.llm,
+                search_service=self.search_service,
+                output_model=self.output_model,
+                prompt_template=self.prompt_template,
                 project_id=project_id,
-                topic=topic or "",
+                topic=generation_topic or "",
                 language_code=language_code,
                 custom_instructions=custom_instructions,
             )

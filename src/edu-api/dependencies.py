@@ -1,7 +1,6 @@
 """FastAPI dependencies for service construction."""
 
 from config import Settings, get_settings
-from edu_ai.agents.base import ContentAgentConfig
 from edu_core.services import (
     ChatService,
     DocumentService,
@@ -36,6 +35,18 @@ def get_queue_service(
     )
 
 
+def get_search_service(
+    settings: Settings = Depends(get_settings_dep),
+) -> SearchService:
+    """Get SearchService instance with configuration from settings."""
+    return SearchService(
+        database_url=settings.database_url,
+        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
+        azure_openai_endpoint=settings.azure_openai_endpoint,
+        azure_openai_api_version=settings.azure_openai_api_version,
+    )
+
+
 def get_usage_service(
     settings: Settings = Depends(get_settings_dep),
 ) -> UsageService:
@@ -61,13 +72,17 @@ def get_document_service() -> DocumentService:
 def get_chat_service(
     settings: Settings = Depends(get_settings_dep),
     usage_service: UsageService = Depends(get_usage_service),
+    queue_service: QueueService = Depends(get_queue_service),
+    search_service: SearchService = Depends(get_search_service),
 ) -> ChatService:
     """Get ChatService instance."""
     return ChatService(
+        search_service=search_service,
         azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
         usage_service=usage_service,
+        queue_service=queue_service,
     )
 
 
@@ -114,33 +129,11 @@ def get_study_session_service() -> StudySessionService:
     return StudySessionService()
 
 
-def get_search_service(
-    settings: Settings = Depends(get_settings_dep),
-) -> SearchService:
-    """Get SearchService instance with configuration from settings."""
-    return SearchService(
-        database_url=settings.database_url,
-        azure_openai_embedding_deployment=settings.azure_openai_embedding_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-
-
-def get_content_agent_config(
-    settings: Settings = Depends(get_settings_dep),
-) -> ContentAgentConfig:
-    """Get ContentAgentConfig instance with configuration from settings."""
-    return ContentAgentConfig(
-        azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
-        azure_openai_endpoint=settings.azure_openai_endpoint,
-        azure_openai_api_version=settings.azure_openai_api_version,
-    )
-
-
 def get_chat_service_with_streaming(
     search_service: SearchService = Depends(get_search_service),
     settings: Settings = Depends(get_settings_dep),
     usage_service: UsageService = Depends(get_usage_service),
+    queue_service: QueueService = Depends(get_queue_service),
 ) -> ChatService:
     """Get ChatService instance configured for streaming with SearchService."""
     return ChatService(
@@ -149,6 +142,7 @@ def get_chat_service_with_streaming(
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
         usage_service=usage_service,
+        queue_service=queue_service,
     )
 
 

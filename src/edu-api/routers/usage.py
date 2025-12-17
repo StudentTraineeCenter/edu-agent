@@ -25,4 +25,3 @@ async def get_usage(
     usage = usage_service.get_usage(current_user.id)
 
     return usage
-

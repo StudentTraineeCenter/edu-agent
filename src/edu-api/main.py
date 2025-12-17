@@ -79,7 +79,9 @@ class Api:
     def setup_exception_handlers(self):
         """Register exception handlers."""
         self.app.add_exception_handler(NotFoundError, not_found_error_handler)
-        self.app.add_exception_handler(UsageLimitExceededError, usage_limit_exceeded_error_handler)
+        self.app.add_exception_handler(
+            UsageLimitExceededError, usage_limit_exceeded_error_handler
+        )
         self.app.add_exception_handler(HTTPException, http_exception_handler)
         self.app.add_exception_handler(ValidationError, validation_error_handler)
         self.app.add_exception_handler(Exception, general_exception_handler)
@@ -106,6 +108,7 @@ class Api:
 
     def setup_openapi(self):
         """Setup Scalar OpenAPI documentation UI."""
+
         @self.app.get("/", include_in_schema=False)
         async def scalar_docs_ui():
             """Scalar API documentation UI."""

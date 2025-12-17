@@ -487,6 +487,7 @@ class ChatService:
             user_id=user_id or "",
             usage=self.usage_service,
             search=self.search_service,
+            queue=self._queue_service,
             language=language_code,
             llm=self.llm_non_streaming,  # Use non-streaming LLM for tools
         )

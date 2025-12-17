@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 
 
 class ProjectDto(BaseModel):
-
     model_config = {"from_attributes": True}
 
     id: str = Field(..., description="Unique ID of the project")
@@ -12,4 +11,6 @@ class ProjectDto(BaseModel):
     name: str = Field(..., description="Name of the project")
     description: str | None = Field(None, description="Description of the project")
     language_code: str = Field(..., description="Language code for the project")
-    created_at: datetime = Field(..., description="Date and time the project was created")
+    created_at: datetime = Field(
+        ..., description="Date and time the project was created"
+    )

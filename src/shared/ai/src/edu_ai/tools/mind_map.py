@@ -4,10 +4,10 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.mind_map_agent import MindMapAgent
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.mind_maps import MindMapDto
 from edu_core.services.mind_maps import MindMapService
+from edu_queue.schemas import MindMapGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -47,27 +47,26 @@ async def create_mind_map(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
-
-    # Generate and create using agent
-    mind_map_agent = MindMapAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.MIND_MAP_GENERATION,
+        data=MindMapGenerationData(
+            project_id=ctx.project_id,
+            topic=topic,
+            custom_instructions=custom_instructions,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    mind_map = await mind_map_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=topic,
-        custom_instructions=custom_instructions,
-        user_id=ctx.user_id,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate a mind map has been queued.",
+        },
+        ensure_ascii=False,
     )
-
-    svc = MindMapService()
-    mind_map_dto = MindMapDto.model_validate(svc._model_to_dto(mind_map))
-    result = mind_map_dto.model_dump()
-
-    return json.dumps(result, ensure_ascii=False, default=str)
 
 
 @tool(
@@ -84,34 +83,28 @@ async def create_mind_map_scoped(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
-    if not ctx.agent_config:
-        return json.dumps(
-            {"error": "Agent config not available in context"}, ensure_ascii=False
-        )
-
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
-
-    # Generate and create using agent
-    mind_map_agent = MindMapAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.MIND_MAP_GENERATION,
+        data=MindMapGenerationData(
+            project_id=ctx.project_id,
+            topic=query,
+            custom_instructions=enhanced_prompt,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    mind_map = await mind_map_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=query,
-        custom_instructions=enhanced_prompt,
-        user_id=ctx.user_id,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate a mind map from specific documents has been queued.",
+        },
+        ensure_ascii=False,
     )
-
-    svc = MindMapService()
-    mind_map_dto = MindMapDto.model_validate(svc._model_to_dto(mind_map))
-    result = mind_map_dto.model_dump()
-
-    return json.dumps(result, ensure_ascii=False, default=str)
 
 
 @tool("mindmap_list", description="List mind maps for a project")

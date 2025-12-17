@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 
 
 class QuizDto(BaseModel):
-
     model_config = {"from_attributes": True}
 
     id: str = Field(..., description="Unique ID of the quiz")
@@ -29,7 +28,13 @@ class QuizQuestionDto(BaseModel):
     option_c: str = Field(..., description="Option C")
     option_d: str = Field(..., description="Option D")
     correct_option: str = Field(..., description="Correct option: a, b, c, or d")
-    explanation: str | None = Field(None, description="Explanation for the correct answer")
-    difficulty_level: str = Field(..., description="Difficulty level: easy, medium, or hard")
+    explanation: str | None = Field(
+        None, description="Explanation for the correct answer"
+    )
+    difficulty_level: str = Field(
+        ..., description="Difficulty level: easy, medium, or hard"
+    )
     position: int = Field(..., description="Position for ordering within quiz")
-    created_at: datetime = Field(..., description="Date and time the question was created")
+    created_at: datetime = Field(
+        ..., description="Date and time the question was created"
+    )

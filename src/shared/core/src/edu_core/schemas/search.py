@@ -18,4 +18,3 @@ class SearchResultItem(BaseModel):
         if not v or not v.strip():
             raise ValueError("Content cannot be empty")
         return v
-

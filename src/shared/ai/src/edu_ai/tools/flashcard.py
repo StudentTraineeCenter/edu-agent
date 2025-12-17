@@ -4,10 +4,10 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.flashcard_agent import FlashcardAgent
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 from edu_core.services.flashcard_groups import FlashcardGroupService
+from edu_queue.schemas import FlashcardGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -48,9 +48,6 @@ async def create_flashcards(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "flashcard_generation")
 
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
-
     svc = FlashcardGroupService()
     # Create a new flashcard group first
     group = svc.create_flashcard_group(
@@ -59,32 +56,29 @@ async def create_flashcards(
         description="AI-generated flashcards",
     )
 
-    # Generate and populate using agent
-    flashcard_agent = FlashcardAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.FLASHCARD_GENERATION,
+        data=FlashcardGenerationData(
+            project_id=ctx.project_id,
+            group_id=group.id,
+            topic=topic,
+            custom_instructions=custom_instructions,
+            count=count,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    group = await flashcard_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=topic,
-        custom_instructions=custom_instructions,
-        group_id=group.id,
-        count=count,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate flashcards has been queued.",
+            "group_id": group.id,
+        },
+        ensure_ascii=False,
     )
-
-    # Get flashcards
-    cards = await asyncio.to_thread(svc.list_flashcards, group.id, ctx.project_id)
-
-    group_dto = FlashcardGroupDto.model_validate(svc._model_to_dto(group))
-    flashcards_dto = [FlashcardDto.model_validate(card) for card in cards]
-
-    result_dict = {
-        **group_dto.model_dump(),
-        "flashcards": [card.model_dump() for card in flashcards_dto],
-    }
-
-    return json.dumps(result_dict, ensure_ascii=False, default=str)
 
 
 @tool(
@@ -102,15 +96,7 @@ async def create_flashcards_scoped(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "flashcard_generation")
 
-    if not ctx.agent_config:
-        return json.dumps(
-            {"error": "Agent config not available in context"}, ensure_ascii=False
-        )
-
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
-
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
 
     svc = FlashcardGroupService()
     # Create a new flashcard group first
@@ -120,32 +106,29 @@ async def create_flashcards_scoped(
         description="AI-generated flashcards",
     )
 
-    # Generate and populate using agent
-    flashcard_agent = FlashcardAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.FLASHCARD_GENERATION,
+        data=FlashcardGenerationData(
+            project_id=ctx.project_id,
+            group_id=group.id,
+            topic=query,
+            custom_instructions=enhanced_prompt,
+            count=count,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    group = await flashcard_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=query,
-        custom_instructions=enhanced_prompt,
-        group_id=group.id,
-        count=count,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate flashcards from specific documents has been queued.",
+            "group_id": group.id,
+        },
+        ensure_ascii=False,
     )
-
-    # Get flashcards
-    cards = await asyncio.to_thread(svc.list_flashcards, group.id, ctx.project_id)
-
-    group_dto = FlashcardGroupDto.model_validate(svc._model_to_dto(group))
-    flashcards_dto = [FlashcardDto.model_validate(card) for card in cards]
-
-    result_dict = {
-        **group_dto.model_dump(),
-        "flashcards": [card.model_dump() for card in flashcards_dto],
-    }
-
-    return json.dumps(result_dict, ensure_ascii=False, default=str)
 
 
 @tool("flashcards_list_groups", description="List flashcard groups for a project")

@@ -298,6 +298,7 @@ version = "0.1.0"
 source = { editable = "src/shared/ai" }
 dependencies = [
     { name = "azure-identity" },
+    { name = "azure-storage-blob" },
     { name = "edu-core" },
     { name = "edu-db" },
     { name = "jinja2" },
@@ -314,6 +315,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "azure-identity", specifier = ">=1.25.1" },
+    { name = "azure-storage-blob", specifier = ">=12.19.1" },
     { name = "edu-core", editable = "src/shared/core" },
     { name = "edu-db", editable = "src/shared/db" },
     { name = "jinja2", specifier = ">=3.1.6" },

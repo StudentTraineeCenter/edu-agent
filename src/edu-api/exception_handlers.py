@@ -29,7 +29,9 @@ async def not_found_error_handler(request: Request, exc: NotFoundError) -> JSONR
     )
 
 
-async def usage_limit_exceeded_error_handler(request: Request, exc: UsageLimitExceededError) -> JSONResponse:
+async def usage_limit_exceeded_error_handler(
+    request: Request, exc: UsageLimitExceededError
+) -> JSONResponse:
     """Handle UsageLimitExceededError exceptions."""
     logger.warning(
         f"Usage limit exceeded: {exc.message}",
@@ -92,7 +94,9 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     )
 
 
-async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
+async def validation_error_handler(
+    request: Request, exc: ValidationError
+) -> JSONResponse:
     """Handle Pydantic validation errors."""
     # Convert errors to JSON-serializable format
     errors = exc.errors()
@@ -108,7 +112,9 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
             ctx = error["ctx"]
             if isinstance(ctx, dict):
                 serializable_error["ctx"] = {
-                    k: str(v) if not isinstance(v, (str, int, float, bool, type(None))) else v
+                    k: str(v)
+                    if not isinstance(v, (str, int, float, bool, type(None)))
+                    else v
                     for k, v in ctx.items()
                 }
             else:
@@ -156,4 +162,3 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             }
         },
     )
-

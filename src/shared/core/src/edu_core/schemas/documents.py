@@ -15,16 +15,26 @@ class DocumentStatus(str, Enum):
 
 
 class DocumentDto(BaseModel):
-
     model_config = {"from_attributes": True}
 
     id: str = Field(..., description="Unique ID of the document")
     owner_id: str = Field(..., description="ID of the document owner")
-    project_id: str | None = Field(None, description="ID of the project the document belongs to")
+    project_id: str | None = Field(
+        None, description="ID of the project the document belongs to"
+    )
     file_name: str = Field(..., description="Name of the document file")
     file_type: str = Field(..., description="File extension (pdf, docx, txt, etc.)")
     file_size: int = Field(..., gt=0, description="File size in bytes")
-    status: DocumentStatus = Field(..., description="Document processing status: uploaded, processing, processed, failed, indexed")
-    summary: str | None = Field(None, description="Auto-generated summary of the document")
-    uploaded_at: datetime = Field(..., description="Date and time the document was uploaded")
-    processed_at: datetime | None = Field(None, description="Date and time the document was processed")
+    status: DocumentStatus = Field(
+        ...,
+        description="Document processing status: uploaded, processing, processed, failed, indexed",
+    )
+    summary: str | None = Field(
+        None, description="Auto-generated summary of the document"
+    )
+    uploaded_at: datetime = Field(
+        ..., description="Date and time the document was uploaded"
+    )
+    processed_at: datetime | None = Field(
+        None, description="Date and time the document was processed"
+    )

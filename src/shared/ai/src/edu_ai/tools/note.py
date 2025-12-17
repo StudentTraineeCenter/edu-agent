@@ -4,10 +4,10 @@ import asyncio
 import json
 from contextlib import suppress
 
-from edu_ai.agents.note_agent import NoteAgent
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.notes import NoteDto
 from edu_core.services.notes import NoteService
+from edu_queue.schemas import NoteGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -47,9 +47,6 @@ async def create_note(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "note_generation")
 
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
-
     svc = NoteService()
     # Create a new note first
     note = svc.create_note(
@@ -58,23 +55,28 @@ async def create_note(
         description="AI-generated study note",
     )
 
-    # Generate and populate using agent
-    note_agent = NoteAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.NOTE_GENERATION,
+        data=NoteGenerationData(
+            project_id=ctx.project_id,
+            note_id=note.id,
+            topic=topic,
+            custom_instructions=custom_instructions,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    note = await note_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=topic,
-        custom_instructions=custom_instructions,
-        note_id=note.id,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate a note has been queued.",
+            "note_id": note.id,
+        },
+        ensure_ascii=False,
     )
-
-    note_dto = NoteDto.model_validate(svc._model_to_dto(note))
-    result_dict = note_dto.model_dump()
-
-    return json.dumps(result_dict, ensure_ascii=False, default=str)
 
 
 @tool(
@@ -91,15 +93,7 @@ async def create_note_scoped(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "note_generation")
 
-    if not ctx.agent_config:
-        return json.dumps(
-            {"error": "Agent config not available in context"}, ensure_ascii=False
-        )
-
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
-
-    if not ctx.llm:
-        return json.dumps({"error": "LLM not available in context"}, ensure_ascii=False)
 
     svc = NoteService()
     # Create a new note first
@@ -109,23 +103,28 @@ async def create_note_scoped(
         description="AI-generated study note",
     )
 
-    # Generate and populate using agent
-    note_agent = NoteAgent(
-        search_service=ctx.search,
-        llm=ctx.llm,
+    # Send message to queue
+    queue_service = runtime.context.queue
+    message = QueueTaskMessage(
+        type=TaskType.NOTE_GENERATION,
+        data=NoteGenerationData(
+            project_id=ctx.project_id,
+            note_id=note.id,
+            topic=query,
+            custom_instructions=enhanced_prompt,
+            user_id=ctx.user_id,
+        ),
     )
+    queue_service.send_message(message)
 
-    note = await note_agent.generate_and_save(
-        project_id=ctx.project_id,
-        topic=query,
-        custom_instructions=enhanced_prompt,
-        note_id=note.id,
+    return json.dumps(
+        {
+            "status": "queued",
+            "message": "Your request to generate a note from specific documents has been queued.",
+            "note_id": note.id,
+        },
+        ensure_ascii=False,
     )
-
-    note_dto = NoteDto.model_validate(svc._model_to_dto(note))
-    result_dict = note_dto.model_dump()
-
-    return json.dumps(result_dict, ensure_ascii=False, default=str)
 
 
 @tool("note_list", description="List notes for a project")

@@ -13,4 +13,3 @@ async def get_current_user_info(
 ) -> UserDto:
     """Get authenticated user information (requires auth)"""
     return current_user
-

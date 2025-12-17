@@ -1,0 +1,18 @@
+You are an expert in creating structured educational content.
+Your task is to generate a topic graph from the provided document content.
+The topic graph should consist of a list of root topics, and each topic can have a list of subtopics.
+
+Here is the document content:
+{{ document_content }}
+
+{% if topic %}
+The main topic is "{{ topic }}".
+{% endif %}
+
+{% if custom_instructions %}
+Custom Instructions:
+{{ custom_instructions }}
+{% endif %}
+
+Please generate a topic graph with the following structure:
+{{ format_instructions }}

@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 
 
 class NoteDto(BaseModel):
-
     model_config = {"from_attributes": True}
 
     id: str = Field(..., description="Unique ID of the note")

@@ -76,7 +76,6 @@ def get_terraform_output(terraform_dir: Path, output_name: str) -> str | None:
 
 def resolve_build_args(build_args: dict, terraform_dir: Path) -> dict:
     """Resolve build args from terraform outputs if empty.
-    
     Maps build arg names to terraform output names:
     - VITE_SERVER_URL -> container_app_api_url (with https:// prefix)
     - VITE_SUPABASE_URL -> supabase_api_url
@@ -111,15 +110,15 @@ def resolve_build_args(build_args: dict, terraform_dir: Path) -> dict:
     return resolved
 
 
-def build_container(acr_name: str, container: dict, base_path: Path, terraform_dir: Path | None = None) -> bool:
+def build_container(
+    acr_name: str, container: dict, base_path: Path, terraform_dir: Path | None = None
+) -> bool:
     """Build and push a container using ACR Tasks.
-    
     Args:
         acr_name: Azure Container Registry name
         container: Container configuration dict
         base_path: Base path for resolving relative paths
         terraform_dir: Optional terraform directory for resolving build args
-        
     Returns:
         True if build succeeded, False otherwise
     """
@@ -137,7 +136,7 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
         return False
 
     # Check for Dockerfile - if dockerfile path contains '/', it's relative to project root, not context
-    if '/' in dockerfile_rel:
+    if "/" in dockerfile_rel:
         dockerfile = (base_path / dockerfile_rel).resolve()
     else:
         dockerfile = context_path / dockerfile_rel
@@ -155,7 +154,7 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
     context_for_cmd = str(context_path.relative_to(base_path))
 
     full_image = f"{image}:{tag}"
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Building: {name}")
     print(f"  Image: {acr_name}.azurecr.io/{full_image}")
     print(f"  Context: {context_path}")
@@ -169,9 +168,14 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
 
     # Validate required build args are present (non-empty)
     if build_args:
-        missing = [key for key, value in build_args.items() if not value or not value.strip()]
+        missing = [
+            key for key, value in build_args.items() if not value or not value.strip()
+        ]
         if missing:
-            print(f"Error: Required build args are missing or empty: {', '.join(missing)}", file=sys.stderr)
+            print(
+                f"Error: Required build args are missing or empty: {', '.join(missing)}",
+                file=sys.stderr,
+            )
             print("Please set them in build-config.yaml.", file=sys.stderr)
             # Check which ones can be auto-resolved from terraform
             terraform_mapping = {
@@ -181,21 +185,32 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
             auto_resolvable = [key for key in missing if key in terraform_mapping]
             manual_required = [key for key in missing if key not in terraform_mapping]
             if auto_resolvable and terraform_dir and terraform_dir.exists():
-                print(f"Note: {', '.join(auto_resolvable)} can be auto-resolved from terraform outputs.", file=sys.stderr)
+                print(
+                    f"Note: {', '.join(auto_resolvable)} can be auto-resolved from terraform outputs.",
+                    file=sys.stderr,
+                )
             if manual_required:
-                print(f"Note: {', '.join(manual_required)} must be set manually (not available as terraform outputs).", file=sys.stderr)
+                print(
+                    f"Note: {', '.join(manual_required)} must be set manually (not available as terraform outputs).",
+                    file=sys.stderr,
+                )
             return False
 
         print(f"  Build args: {', '.join(build_args.keys())}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     cmd = [
-        "az", "acr", "build",
-        "--registry", acr_name,
-        "--image", full_image,
-        "--file", dockerfile_for_cmd,
+        "az",
+        "acr",
+        "build",
+        "--registry",
+        acr_name,
+        "--image",
+        full_image,
+        "--file",
+        dockerfile_for_cmd,
         context_for_cmd,
-        "--debug"
+        "--debug",
     ]
 
     # Add build args to command (only non-empty values)
@@ -210,9 +225,23 @@ def build_container(acr_name: str, container: dict, base_path: Path, terraform_d
         if is_windows:
             # Convert list to string for Windows shell
             cmd_str = " ".join(f'"{arg}"' if " " in arg else arg for arg in cmd)
-            result = subprocess.run(cmd_str, check=True, shell=True, cwd=base_path, capture_output=True, text=True)
+            subprocess.run(
+                cmd_str,
+                check=True,
+                shell=True,
+                cwd=base_path,
+                capture_output=True,
+                text=True,
+            )
         else:
-            result = subprocess.run(cmd, check=True, shell=False, cwd=base_path, capture_output=True, text=True)
+            subprocess.run(
+                cmd,
+                check=True,
+                shell=False,
+                cwd=base_path,
+                capture_output=True,
+                text=True,
+            )
         print(f"\n✓ Successfully built {name}")
         return True
     except subprocess.CalledProcessError as e:
@@ -268,13 +297,15 @@ Examples:
         help="Azure Container Registry name (auto-detected from Terraform if not specified)",
     )
     parser.add_argument(
-        "--container", "-c",
+        "--container",
+        "-c",
         dest="containers",
         action="append",
         help="Specific container to build (can be specified multiple times)",
     )
     parser.add_argument(
-        "--list", "-l",
+        "--list",
+        "-l",
         action="store_true",
         help="List available containers and exit",
     )
@@ -321,7 +352,9 @@ Examples:
     if args.containers:
         # Build specific containers
         container_names = set(args.containers)
-        containers_to_build = [c for c in all_containers if c["name"] in container_names]
+        containers_to_build = [
+            c for c in all_containers if c["name"] in container_names
+        ]
 
         # Check for unknown containers
         known_names = {c["name"] for c in all_containers}
@@ -346,9 +379,9 @@ Examples:
         results.append((container["name"], success))
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Build Summary")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     success_count = sum(1 for _, success in results if success)
     fail_count = len(results) - success_count

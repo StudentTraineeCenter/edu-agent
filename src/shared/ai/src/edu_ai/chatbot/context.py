@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from edu_core.services.search import SearchService
 from edu_db.models import ChatMessageSource
+from edu_queue.service import QueueService
 from langchain.agents import AgentState
 from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, ConfigDict
@@ -17,6 +18,7 @@ class ChatbotContext(BaseModel):
     language: str
     project_id: str
     search: "SearchService"
+    queue: "QueueService"
     usage: object = (
         None  # Optional usage service (can be None or any usage service type)
     )

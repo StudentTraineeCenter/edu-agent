@@ -1,4 +1,3 @@
-
 import jwt as pyjwt
 from config import get_settings
 from edu_core.schemas.users import UserDto

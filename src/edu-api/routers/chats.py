@@ -6,8 +6,6 @@ from uuid import uuid4
 from auth import get_current_user
 from dependencies import (
     get_chat_service,
-    get_chat_service_with_streaming,
-    get_queue_service,
     get_usage_service,
 )
 from edu_core.exceptions import NotFoundError
@@ -123,18 +121,14 @@ async def send_streaming_message(
     chat_id: str,
     body: ChatCompletionRequest,
     current_user: UserDto = Depends(get_current_user),
-    chat_service: ChatService = Depends(get_chat_service_with_streaming),
+    chat_service: ChatService = Depends(get_chat_service),
     usage_service: UsageService = Depends(get_usage_service),
-    queue_service=Depends(get_queue_service),
 ):
     """Send a streaming message to a chat."""
     user_id = current_user.id
 
     # Check usage limit before processing
     usage_service.check_and_increment(user_id, "chat_message")
-
-    # Set queue service on chat service instance
-    chat_service._queue_service = queue_service
 
     async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming response chunks"""

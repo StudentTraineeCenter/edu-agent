@@ -4,9 +4,11 @@ from uuid import uuid4
 
 from edu_core.exceptions import NotFoundError
 from edu_db.models import Flashcard, FlashcardGroup, Project
+from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 
-from edu_ai.agents.base import BaseContentAgent
+from edu_ai.agents.topic_graph_agent import TopicGraphAgent
+from edu_ai.agents.utils import generate, get_db_session
 
 
 class FlashcardGenerationResult(BaseModel):
@@ -29,14 +31,19 @@ class FlashcardGroupGenerationResult(BaseModel):
     )
 
 
-class FlashcardAgent(BaseContentAgent[FlashcardGroupGenerationResult]):
-    @property
-    def output_model(self):
-        return FlashcardGroupGenerationResult
+class FlashcardAgent:
+    output_model = FlashcardGroupGenerationResult
+    prompt_template = "flashcard_prompt"
 
-    @property
-    def prompt_template(self):
-        return "flashcard_prompt"
+    def __init__(
+        self,
+        search_service: Any,
+        llm: AzureChatOpenAI,
+        topic_graph_agent: TopicGraphAgent | None = None,
+    ):
+        self.search_service = search_service
+        self.llm = llm
+        self.topic_graph_agent = topic_graph_agent
 
     async def generate_and_save(
         self,
@@ -68,7 +75,7 @@ class FlashcardAgent(BaseContentAgent[FlashcardGroupGenerationResult]):
         if not group_id:
             raise ValueError("group_id is required for flashcard generation")
 
-        with self._get_db_session() as db:
+        with get_db_session() as db:
             # Find existing flashcard group
             project = db.query(Project).filter(Project.id == project_id).first()
             if not project:
@@ -87,6 +94,21 @@ class FlashcardAgent(BaseContentAgent[FlashcardGroupGenerationResult]):
             if not group:
                 raise NotFoundError(f"Flashcard group {group_id} not found")
 
+            generation_topic = topic
+            if self.topic_graph_agent:
+                topic_graph = await self.topic_graph_agent.generate_topic_graph(
+                    project_id=project_id,
+                    topic=topic,
+                    custom_instructions=custom_instructions,
+                )
+                if topic_graph.root_topics:
+                    topics = []
+                    for root_topic in topic_graph.root_topics:
+                        topics.append(root_topic.topic)
+                        for subtopic in root_topic.subtopics:
+                            topics.append(subtopic.topic)
+                    generation_topic = ", ".join(topics)
+
             # Generate flashcards using AI
             kwargs = {}
             if count is not None:
@@ -94,9 +116,13 @@ class FlashcardAgent(BaseContentAgent[FlashcardGroupGenerationResult]):
             if difficulty is not None:
                 kwargs["difficulty"] = difficulty
 
-            result = await self.generate(
+            result = await generate(
+                llm=self.llm,
+                search_service=self.search_service,
+                output_model=self.output_model,
+                prompt_template=self.prompt_template,
                 project_id=project_id,
-                topic=topic or "",
+                topic=generation_topic or "",
                 language_code=language_code,
                 custom_instructions=custom_instructions,
                 **kwargs,

@@ -1,11 +1,11 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Layer, Option } from 'effect'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { flashcardsAtom } from '@/data-acess/flashcard'
+import { submitPracticeRecordsBatchAtom } from '@/data-acess/practice'
 import type { PracticeRecordCreate } from '@/integrations/api'
 import { ApiClientService } from '@/integrations/api'
-import { submitPracticeRecordsBatchAtom } from '@/data-acess/practice'
-import { flashcardsAtom } from '@/data-acess/flashcard'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Data, Effect, Layer, Option } from 'effect'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -248,7 +248,7 @@ export const currentFlashcardAtom = ({
   projectId,
   flashcardGroupId,
 }: FlashcardGroupKeyParams) => {
-  const key = `${projectId}:${flashcardGroupId}`
+  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
   return currentFlashcardAtomFamily(key)
 }
 
@@ -282,7 +282,7 @@ export const answeredCardsAtom = ({
   projectId,
   flashcardGroupId,
 }: FlashcardGroupKeyParams) => {
-  const key = `${projectId}:${flashcardGroupId}`
+  const key = `${projectId}:${flashcardGroupId}` as FlashcardGroupKey
   return answeredCardsAtomFamily(key)
 }
 
