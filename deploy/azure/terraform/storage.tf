@@ -9,6 +9,16 @@ resource "azurerm_storage_account" "main" {
   account_replication_type = "LRS"
   account_kind             = "StorageV2"
 
+  # Network rules: Allow all networks by default
+  # Azure services (like Azure OpenAI) can bypass network rules
+  # This allows Azure Storage Explorer to work and Azure OpenAI to download files
+  network_rules {
+    default_action             = "Allow"
+    bypass                     = ["AzureServices"] # Allow Azure services to bypass
+    ip_rules                   = []
+    virtual_network_subnet_ids = []
+  }
+
   identity {
     type = "SystemAssigned"
   }

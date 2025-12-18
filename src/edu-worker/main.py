@@ -8,7 +8,7 @@ from azure.storage.queue import QueueClient, QueueMessage
 from config import get_settings
 from edu_core.services.search import SearchService
 from edu_db.session import init_db
-from edu_queue.schemas import QueueTaskMessage
+from edu_queue.schemas import QueueTaskMessage, TaskType
 from processors.registry import ProcessorRegistry
 from rich.console import Console
 
@@ -32,8 +32,14 @@ async def process_message(
         # Parse using schema (TypedDict for type checking)
         task_message: QueueTaskMessage = content
 
-        task_type = task_message["type"]
+        task_type_str = task_message["type"]
         task_data = task_message["data"]
+
+        # Convert string to TaskType enum
+        try:
+            task_type = TaskType(task_type_str)
+        except (ValueError, KeyError) as e:
+            raise ValueError(f"Unknown task type: {task_type_str}") from e
 
         console.log(
             f"Received task: {task_type} for project: {task_data.get('project_id', 'N/A')}"
@@ -96,10 +102,14 @@ def main():
             # Get messages (visibility_timeout hides it from other workers for 5 mins)
             messages = queue.receive_messages(visibility_timeout=300, max_messages=5)
 
-            if messages:
+            # Convert ItemPaged to list
+            messages_list = list(messages) if messages else []
+
+            if messages_list:
                 # Submit all messages to thread pool
                 futures = {
-                    executor.submit(process_in_thread, msg): msg for msg in messages
+                    executor.submit(process_in_thread, msg): msg
+                    for msg in messages_list
                 }
 
                 # Wait for completion (non-blocking check)

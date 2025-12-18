@@ -1,9 +1,7 @@
 from datetime import datetime
-from typing import Literal
 from uuid import uuid4
 
 from pgvector.sqlalchemy import Vector
-from pydantic import BaseModel
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -135,37 +133,6 @@ class DocumentSegment(Base):
     document = relationship("Document", back_populates="segments")
 
 
-class ChatMessageSource(BaseModel):
-    id: str
-    citation_index: int
-    content: str
-    title: str
-    document_id: str
-    preview_url: str | None = None
-    score: float | None = None
-
-
-class ChatMessageToolCall(BaseModel):
-    id: str
-    type: str
-    name: str
-    state: Literal[
-        "input-streaming", "input-available", "output-available", "output-error"
-    ]
-    input: dict | None = None
-    output: dict | str | None = None
-    error_text: str | None = None
-
-
-class ChatMessage(BaseModel):
-    id: str
-    role: Literal["user", "assistant", "internal"]
-    content: str
-    sources: list[ChatMessageSource] | None = None
-    tools: list[ChatMessageToolCall] | None = None
-    created_at: datetime
-
-
 class Chat(Base):
     __tablename__ = "chats"
     id: Mapped[str] = mapped_column(
@@ -177,16 +144,7 @@ class Chat(Base):
     user_id: Mapped[str] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE")
     )
-
-    # Chat metadata
-    title: Mapped[str] = mapped_column(
-        String, nullable=True
-    )  # Auto-generated or user-set title
-
-    # Messages stored as JSON array
-    messages: Mapped[list[ChatMessage]] = mapped_column(JSON, default=list)
-
-    # Timestamps
+    title: Mapped[str] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -197,6 +155,76 @@ class Chat(Base):
     # Relationships
     project = relationship("Project", back_populates="chats")
     user = relationship("User", back_populates="chats")
+    messages = relationship(
+        "ChatMessage", back_populates="chat", cascade="all, delete-orphan"
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    chat_id: Mapped[str] = mapped_column(
+        String, ForeignKey("chats.id", ondelete="CASCADE")
+    )
+    role: Mapped[str] = mapped_column(String)  # user, assistant
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    chat = relationship("Chat", back_populates="messages")
+    parts = relationship(
+        "ChatMessagePart",
+        back_populates="message",
+        cascade="all, delete-orphan",
+        order_by="ChatMessagePart.order",
+    )
+
+
+class ChatMessagePart(Base):
+    __tablename__ = "chat_message_parts"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    message_id: Mapped[str] = mapped_column(
+        String, ForeignKey("chat_messages.id", ondelete="CASCADE")
+    )
+    part_type: Mapped[str] = mapped_column(
+        String
+    )  # text, file, tool_call, source-document
+    order: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Text part
+    text_content: Mapped[str] = mapped_column(Text, nullable=True)
+
+    # File part
+    file_name: Mapped[str] = mapped_column(String, nullable=True)
+    file_type: Mapped[str] = mapped_column(String, nullable=True)
+    file_url: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Tool Call part
+    tool_call_id: Mapped[str] = mapped_column(String, nullable=True)
+    tool_name: Mapped[str] = mapped_column(String, nullable=True)
+    tool_input: Mapped[dict] = mapped_column(JSON, nullable=True)
+    tool_output: Mapped[dict] = mapped_column(JSON, nullable=True)
+    tool_state: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Source Document part
+    source_id: Mapped[str] = mapped_column(String, nullable=True)
+    media_type: Mapped[str] = mapped_column(String, nullable=True)
+    source_title: Mapped[str] = mapped_column(String, nullable=True)
+    source_filename: Mapped[str] = mapped_column(String, nullable=True)
+    provider_metadata: Mapped[dict] = mapped_column(JSON, nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    message = relationship("ChatMessage", back_populates="parts")
 
 
 class FlashcardGroup(Base):

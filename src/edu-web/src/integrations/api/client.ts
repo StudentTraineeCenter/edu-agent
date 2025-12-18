@@ -1,11 +1,11 @@
+import type * as HttpClient from '@effect/platform/HttpClient'
 import * as HttpClientError from '@effect/platform/HttpClientError'
 import * as HttpClientRequest from '@effect/platform/HttpClientRequest'
 import * as HttpClientResponse from '@effect/platform/HttpClientResponse'
 import * as Data from 'effect/Data'
 import * as Effect from 'effect/Effect'
-import * as S from 'effect/Schema'
 import type { ParseError } from 'effect/ParseResult'
-import type * as HttpClient from '@effect/platform/HttpClient'
+import * as S from 'effect/Schema'
 
 export class HealthCheckHealthGet200 extends S.Struct({}) {}
 
@@ -183,98 +183,6 @@ export class DocumentUpdate extends S.Class<DocumentUpdate>('DocumentUpdate')({
   summary: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
-export class SourceDto extends S.Class<SourceDto>('SourceDto')({
-  /**
-   * Unique ID of the source segment
-   */
-  id: S.String,
-  /**
-   * Content of the source segment
-   */
-  content: S.String,
-  /**
-   * Title/name of the source document
-   */
-  title: S.String,
-  /**
-   * ID of the source document
-   */
-  document_id: S.String,
-}) {}
-
-/**
- * Current state of the tool call
- */
-export class ToolCallDtoState extends S.Literal(
-  'input-streaming',
-  'input-available',
-  'output-available',
-  'output-error',
-) {}
-
-export class ToolCallDto extends S.Class<ToolCallDto>('ToolCallDto')({
-  /**
-   * Unique ID of the tool call
-   */
-  id: S.String,
-  /**
-   * Tool type identifier
-   */
-  type: S.String,
-  /**
-   * Name of the tool being called
-   */
-  name: S.String,
-  /**
-   * Current state of the tool call
-   */
-  state: ToolCallDtoState,
-  /**
-   * Input parameters for the tool
-   */
-  input: S.optionalWith(S.Record({ key: S.String, value: S.Unknown }), {
-    nullable: true,
-  }),
-  /**
-   * Output result from the tool
-   */
-  output: S.optionalWith(
-    S.Union(S.Record({ key: S.String, value: S.Unknown }), S.String),
-    { nullable: true },
-  ),
-  /**
-   * Error message if failed
-   */
-  error_text: S.optionalWith(S.String, { nullable: true }),
-}) {}
-
-export class ChatMessageDto extends S.Class<ChatMessageDto>('ChatMessageDto')({
-  /**
-   * Unique ID of the message
-   */
-  id: S.String,
-  /**
-   * Role of the message sender
-   */
-  role: S.String,
-  /**
-   * Content of the message
-   */
-  content: S.String,
-  /**
-   * Source documents for assistant messages
-   */
-  sources: S.optionalWith(S.Array(SourceDto), { nullable: true }),
-  /**
-   * Tool calls made during message generation
-   */
-  tools: S.optionalWith(S.Array(ToolCallDto), { nullable: true }),
-  /**
-   * Date and time the message was created
-   */
-  created_at: S.String,
-}) {}
-
 export class ChatDto extends S.Class<ChatDto>('ChatDto')({
   /**
    * Unique ID of the chat
@@ -292,10 +200,6 @@ export class ChatDto extends S.Class<ChatDto>('ChatDto')({
    * Title of the chat
    */
   title: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * List of messages in the chat
-   */
-  messages: S.optionalWith(S.Array(ChatMessageDto), { nullable: true }),
   /**
    * Date and time the chat was created
    */
@@ -317,6 +221,206 @@ export class ChatCreate extends S.Class<ChatCreate>('ChatCreate')({
   title: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
+export class TextPartDto extends S.Class<TextPartDto>('TextPartDto')({
+  /**
+   * Unique ID of the part (for streaming tracking)
+   */
+  id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Order of the part within the message
+   */
+  order: S.optionalWith(S.Int, { nullable: true, default: () => 0 as const }),
+  type: S.optionalWith(S.Literal('text'), {
+    nullable: true,
+    default: () => 'text' as const,
+  }),
+  /**
+   * Text content of the message part
+   */
+  text_content: S.String,
+}) {}
+
+export class FilePartDto extends S.Class<FilePartDto>('FilePartDto')({
+  /**
+   * Unique ID of the part (for streaming tracking)
+   */
+  id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Order of the part within the message
+   */
+  order: S.optionalWith(S.Int, { nullable: true, default: () => 0 as const }),
+  type: S.optionalWith(S.Literal('file'), {
+    nullable: true,
+    default: () => 'file' as const,
+  }),
+  /**
+   * Original name of the uploaded file
+   */
+  file_name: S.String,
+  /**
+   * MIME type of the uploaded file
+   */
+  file_type: S.String,
+  /**
+   * URL to access the uploaded file
+   */
+  file_url: S.String,
+}) {}
+
+/**
+ * Current state of the tool call
+ */
+export class ToolCallPartDtoToolState extends S.Literal(
+  'input-streaming',
+  'input-available',
+  'output-available',
+  'output-error',
+) {}
+
+export class ToolCallPartDto extends S.Class<ToolCallPartDto>(
+  'ToolCallPartDto',
+)({
+  /**
+   * Unique ID of the part (for streaming tracking)
+   */
+  id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Order of the part within the message
+   */
+  order: S.optionalWith(S.Int, { nullable: true, default: () => 0 as const }),
+  type: S.optionalWith(S.Literal('tool_call'), {
+    nullable: true,
+    default: () => 'tool_call' as const,
+  }),
+  /**
+   * Unique ID of the tool call
+   */
+  tool_call_id: S.String,
+  /**
+   * Name of the tool being called
+   */
+  tool_name: S.String,
+  /**
+   * Input parameters for the tool
+   */
+  tool_input: S.optionalWith(S.Record({ key: S.String, value: S.Unknown }), {
+    nullable: true,
+  }),
+  /**
+   * Output result from the tool
+   */
+  tool_output: S.optionalWith(
+    S.Union(S.Record({ key: S.String, value: S.Unknown }), S.String),
+    { nullable: true },
+  ),
+  /**
+   * Current state of the tool call
+   */
+  tool_state: ToolCallPartDtoToolState,
+}) {}
+
+export class SourceDocumentPartDto extends S.Class<SourceDocumentPartDto>(
+  'SourceDocumentPartDto',
+)({
+  /**
+   * Unique ID of the part (for streaming tracking)
+   */
+  id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Order of the part within the message
+   */
+  order: S.optionalWith(S.Int, { nullable: true, default: () => 0 as const }),
+  type: S.optionalWith(S.Literal('source-document'), {
+    nullable: true,
+    default: () => 'source-document' as const,
+  }),
+  /**
+   * Unique identifier for the source document
+   */
+  source_id: S.String,
+  /**
+   * MIME type of the source document
+   */
+  media_type: S.String,
+  /**
+   * Title of the source document
+   */
+  title: S.String,
+  /**
+   * Filename of the source document
+   */
+  filename: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Additional metadata from the provider
+   */
+  provider_metadata: S.optionalWith(
+    S.Record({ key: S.String, value: S.Unknown }),
+    { nullable: true },
+  ),
+}) {}
+
+export class ChatMessageDto extends S.Class<ChatMessageDto>('ChatMessageDto')({
+  /**
+   * Unique ID of the message
+   */
+  id: S.String,
+  /**
+   * ID of the chat this message belongs to
+   */
+  chat_id: S.String,
+  /**
+   * Role of the message sender
+   */
+  role: S.String,
+  /**
+   * Date and time the message was created
+   */
+  created_at: S.String,
+  /**
+   * List of parts composing the message
+   */
+  parts: S.optionalWith(
+    S.Array(
+      S.Union(TextPartDto, FilePartDto, ToolCallPartDto, SourceDocumentPartDto),
+    ),
+    { nullable: true },
+  ),
+}) {}
+
+/**
+ * Chat DTO with messages and parts included.
+ */
+export class ChatDetailDto extends S.Class<ChatDetailDto>('ChatDetailDto')({
+  /**
+   * Unique ID of the chat
+   */
+  id: S.String,
+  /**
+   * ID of the project this chat belongs to
+   */
+  project_id: S.String,
+  /**
+   * ID of the user who created the chat
+   */
+  user_id: S.String,
+  /**
+   * Title of the chat
+   */
+  title: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time the chat was created
+   */
+  created_at: S.String,
+  /**
+   * Date and time the chat was updated
+   */
+  updated_at: S.String,
+  /**
+   * List of messages in the chat
+   */
+  messages: S.optionalWith(S.Array(ChatMessageDto), { nullable: true }),
+}) {}
+
 export class ChatUpdate extends S.Class<ChatUpdate>('ChatUpdate')({
   /**
    * Title of the chat
@@ -324,13 +428,22 @@ export class ChatUpdate extends S.Class<ChatUpdate>('ChatUpdate')({
   title: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
+export class TextPart extends S.Class<TextPart>('TextPart')({
+  type: S.Literal('text'),
+  text: S.String,
+}) {}
+
+export class FilePart extends S.Class<FilePart>('FilePart')({
+  type: S.Literal('file'),
+  mediaType: S.String,
+  filename: S.optionalWith(S.String, { nullable: true }),
+  url: S.String,
+}) {}
+
 export class ChatCompletionRequest extends S.Class<ChatCompletionRequest>(
   'ChatCompletionRequest',
 )({
-  /**
-   * User message to process
-   */
-  message: S.String,
+  parts: S.Array(S.Union(TextPart, FilePart)),
 }) {}
 
 export class SendStreamingMessageApiV1ProjectsProjectIdChatsChatIdMessagesStreamPost200 extends S.Struct(
@@ -1113,6 +1226,8 @@ export class UserDto extends S.Class<UserDto>('UserDto')({
 
 export class ListUsersApiV1UsersGet200 extends S.Array(UserDto) {}
 
+export class GetBlobApiV1BlobsBlobPathGet200 extends S.Struct({}) {}
+
 export const make = (
   httpClient: HttpClient.HttpClient,
   options: {
@@ -1340,7 +1455,7 @@ export const make = (
       ).pipe(
         withResponse(
           HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(ChatDto),
+            '2xx': decodeSuccess(ChatDetailDto),
             '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
@@ -2067,6 +2182,16 @@ export const make = (
           }),
         ),
       ),
+    getBlobApiV1BlobsBlobPathGet: (blobPath) =>
+      HttpClientRequest.get(`/api/v1/blobs/${blobPath}`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(GetBlobApiV1BlobsBlobPathGet200),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
   }
 }
 
@@ -2227,13 +2352,13 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Get a chat by ID.
+   * Get a chat by ID with messages and parts.
    */
   readonly getChatApiV1ProjectsProjectIdChatsChatIdGet: (
     projectId: string,
     chatId: string,
   ) => Effect.Effect<
-    typeof ChatDto.Type,
+    typeof ChatDetailDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
@@ -2337,7 +2462,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate note content using AI and populate an existing note.
+   * Queue note generation request to be processed by a worker.
    */
   readonly generateNoteApiV1ProjectsProjectIdNotesNoteIdGeneratePost: (
     projectId: string,
@@ -2350,7 +2475,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate note content using AI with streaming progress updates.
+   * Queue note generation request with streaming progress updates.
    */
   readonly generateNoteStreamApiV1ProjectsProjectIdNotesNoteIdGenerateStreamPost: (
     projectId: string,
@@ -2423,7 +2548,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate quiz questions using AI and populate an existing quiz.
+   * Queue quiz generation request to be processed by a worker.
    */
   readonly generateQuizApiV1ProjectsProjectIdQuizzesQuizIdGeneratePost: (
     projectId: string,
@@ -2436,7 +2561,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate quiz questions using AI with streaming progress updates.
+   * Queue quiz generation request with streaming progress updates.
    */
   readonly generateQuizStreamApiV1ProjectsProjectIdQuizzesQuizIdGenerateStreamPost: (
     projectId: string,
@@ -2590,7 +2715,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate flashcards using AI and populate an existing flashcard group.
+   * Queue flashcard generation request to be processed by a worker.
    */
   readonly generateFlashcardsApiV1ProjectsProjectIdFlashcardGroupsGroupIdGeneratePost: (
     projectId: string,
@@ -2603,7 +2728,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate flashcards using AI with streaming progress updates.
+   * Queue flashcard generation request with streaming progress updates.
    */
   readonly generateFlashcardsStreamApiV1ProjectsProjectIdFlashcardGroupsGroupIdGenerateStreamPost: (
     projectId: string,
@@ -2754,10 +2879,7 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
-   * Generate mind map with streaming progress updates.
-   *
-   * Note: AI generation is not yet implemented in edu-shared service.
-   * This endpoint provides a streaming interface but returns a basic structure.
+   * Queue mind map generation request with streaming progress updates.
    */
   readonly createMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost: (
     projectId: string,
@@ -2850,6 +2972,29 @@ export interface Client {
   readonly getCurrentUserInfoApiV1AuthMeGet: () => Effect.Effect<
     typeof UserDto.Type,
     HttpClientError.HttpClientError | ParseError
+  >
+  /**
+   * Proxy a blob file from Azure Storage with authentication.
+   *
+   * Args:
+   *     blob_path: The blob path (e.g., "{project_id}/{chat_id}/{filename}")
+   *     current_user: Current authenticated user
+   *     blob_service_client: Azure Blob Service Client
+   *     settings: Application settings
+   *
+   * Returns:
+   *     Blob file content with appropriate headers
+   *
+   * Raises:
+   *     HTTPException: If blob not found or access denied
+   */
+  readonly getBlobApiV1BlobsBlobPathGet: (
+    blobPath: string,
+  ) => Effect.Effect<
+    typeof GetBlobApiV1BlobsBlobPathGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
 }
 

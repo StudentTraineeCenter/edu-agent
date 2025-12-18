@@ -7,7 +7,6 @@ from contextlib import suppress
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.flashcards import FlashcardDto, FlashcardGroupDto
 from edu_core.services.flashcard_groups import FlashcardGroupService
-from edu_queue.schemas import FlashcardGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -36,11 +35,12 @@ def increment_usage(usage, user_id: str, feature: str) -> None:
 
 @tool(
     "flashcards_create",
-    description="Create flashcards from project documents. Use count 15-30. Provide a short topic plus optional custom instructions (format, difficulty, focus, etc.).",
+    description="Create flashcards from project documents. Use count 15-30. Provide a short topic plus optional custom instructions (format, difficulty, focus, etc.). Difficulty is easy, medium, hard.",
 )
 async def create_flashcards(
     count: int,
     topic: str,
+    difficulty: str,
     runtime: ToolRuntime[ChatbotContext],
     custom_instructions: str | None = None,
 ) -> str:
@@ -48,7 +48,7 @@ async def create_flashcards(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "flashcard_generation")
 
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     # Create a new flashcard group first
     group = svc.create_flashcard_group(
         project_id=ctx.project_id,
@@ -56,20 +56,15 @@ async def create_flashcards(
         description="AI-generated flashcards",
     )
 
-    # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.FLASHCARD_GENERATION,
-        data=FlashcardGenerationData(
-            project_id=ctx.project_id,
-            group_id=group.id,
-            topic=topic,
-            custom_instructions=custom_instructions,
-            count=count,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        group_id=group.id,
+        project_id=ctx.project_id,
+        topic=topic,
+        custom_instructions=custom_instructions,
+        count=count,
+        user_id=ctx.user_id,
+        difficulty=difficulty,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -83,13 +78,14 @@ async def create_flashcards(
 
 @tool(
     "flashcards_create_scoped",
-    description="Create flashcards from specific documents. Use when user references specific docs or IDs.",
+    description="Create flashcards from specific documents. Use when user references specific docs or IDs. Difficulty is easy, medium, hard.",
 )
 async def create_flashcards_scoped(
     count: int,
     custom_instructions: str,
     document_ids: list[str],
     query: str,
+    difficulty: str,
     runtime: ToolRuntime[ChatbotContext],
 ) -> str:
     """Create flashcards from specific documents."""
@@ -98,7 +94,7 @@ async def create_flashcards_scoped(
 
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     # Create a new flashcard group first
     group = svc.create_flashcard_group(
         project_id=ctx.project_id,
@@ -107,19 +103,15 @@ async def create_flashcards_scoped(
     )
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.FLASHCARD_GENERATION,
-        data=FlashcardGenerationData(
-            project_id=ctx.project_id,
-            group_id=group.id,
-            topic=query,
-            custom_instructions=enhanced_prompt,
-            count=count,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        group_id=group.id,
+        project_id=ctx.project_id,
+        topic=query,
+        custom_instructions=enhanced_prompt,
+        count=count,
+        user_id=ctx.user_id,
+        difficulty=difficulty,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -135,7 +127,7 @@ async def create_flashcards_scoped(
 async def list_groups(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List flashcard groups for a project."""
     ctx = runtime.context
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     groups = await asyncio.to_thread(svc.list_flashcard_groups, ctx.project_id)
 
     groups_dto = [FlashcardGroupDto.model_validate(g) for g in groups]
@@ -153,7 +145,7 @@ async def get_flashcards(
 ) -> str:
     """Get flashcards in a group."""
     ctx = runtime.context
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     cards = await asyncio.to_thread(svc.list_flashcards, group_id, ctx.project_id)
 
     cards_dto = [FlashcardDto.model_validate(card) for card in cards]
@@ -171,7 +163,7 @@ async def delete_group(
 ) -> str:
     """Delete a flashcard group."""
     ctx = runtime.context
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     await asyncio.to_thread(svc.delete_flashcard_group, group_id, ctx.project_id)
 
     result = {
@@ -193,7 +185,7 @@ async def update_group(
 ) -> str:
     """Update a flashcard group's name/description."""
     ctx = runtime.context
-    svc = FlashcardGroupService()
+    svc = FlashcardGroupService(queue_service=ctx.queue)
     grp = await asyncio.to_thread(
         svc.update_flashcard_group,
         group_id,

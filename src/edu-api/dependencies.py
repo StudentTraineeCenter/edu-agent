@@ -1,5 +1,6 @@
 """FastAPI dependencies for service construction."""
 
+from azure.storage.blob import BlobServiceClient
 from config import Settings, get_settings
 from edu_core.services import (
     ChatService,
@@ -23,6 +24,15 @@ from fastapi import Depends
 def get_settings_dep() -> Settings:
     """Get application settings."""
     return get_settings()
+
+
+def get_blob_service_client(
+    settings: Settings = Depends(get_settings_dep),
+) -> BlobServiceClient:
+    """Get BlobServiceClient instance."""
+    return BlobServiceClient.from_connection_string(
+        settings.azure_storage_connection_string
+    )
 
 
 def get_queue_service(
@@ -81,6 +91,7 @@ def get_chat_service(
         azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
+        azure_storage_connection_string=settings.azure_storage_connection_string,
         usage_service=usage_service,
         queue_service=queue_service,
     )
@@ -141,6 +152,7 @@ def get_chat_service_with_streaming(
         azure_openai_chat_deployment=settings.azure_openai_chat_deployment,
         azure_openai_endpoint=settings.azure_openai_endpoint,
         azure_openai_api_version=settings.azure_openai_api_version,
+        azure_storage_connection_string=settings.azure_storage_connection_string,
         usage_service=usage_service,
         queue_service=queue_service,
     )

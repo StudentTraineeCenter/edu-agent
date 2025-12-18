@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     azure_storage_queue_name: str = "ai-generation-tasks"
     azure_storage_input_container_name: str = "input"
     azure_storage_output_container_name: str = "output"
+    azure_storage_chat_files_container_name: str = "chat-files"
 
     # Database
     database_url: str = ""

@@ -1,5 +1,6 @@
 """Request schemas for CRUD operations."""
 
+from typing import List, Union, Literal
 from pydantic import BaseModel, Field
 
 
@@ -80,8 +81,23 @@ class FlashcardGroupUpdate(BaseModel):
     )
 
 
+from typing import List, Union, Literal
+
+
+class TextPart(BaseModel):
+    type: Literal["text"]
+    text: str
+
+
+class FilePart(BaseModel):
+    type: Literal["file"]
+    media_type: str = Field(..., alias="mediaType")
+    filename: str | None = None
+    url: str  # This will be base64
+
+
 class ChatCompletionRequest(BaseModel):
-    message: str = Field(..., description="User message to process")
+    parts: List[Union[TextPart, FilePart]]
 
 
 class FlashcardCreate(BaseModel):

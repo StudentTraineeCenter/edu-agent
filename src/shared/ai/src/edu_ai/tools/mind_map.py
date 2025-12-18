@@ -7,7 +7,6 @@ from contextlib import suppress
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.mind_maps import MindMapDto
 from edu_core.services.mind_maps import MindMapService
-from edu_queue.schemas import MindMapGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -47,18 +46,23 @@ async def create_mind_map(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "mindmap_generation")
 
-    # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.MIND_MAP_GENERATION,
-        data=MindMapGenerationData(
-            project_id=ctx.project_id,
-            topic=topic,
-            custom_instructions=custom_instructions,
-            user_id=ctx.user_id,
-        ),
+    svc = MindMapService(queue_service=ctx.queue)
+    # Create a new mind map first
+    mind_map = svc.create_mind_map(
+        project_id=ctx.project_id,
+        user_id=ctx.user_id,
+        title="Generated Mind Map",
+        description="AI-generated mind map",
+        map_data={"nodes": [], "edges": []},
     )
-    queue_service.send_message(message)
+
+    svc.queue_generation(
+        mind_map_id=mind_map.id,
+        project_id=ctx.project_id,
+        user_id=ctx.user_id,
+        topic=topic,
+        custom_instructions=custom_instructions,
+    )
 
     return json.dumps(
         {
@@ -86,17 +90,23 @@ async def create_mind_map_scoped(
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.MIND_MAP_GENERATION,
-        data=MindMapGenerationData(
-            project_id=ctx.project_id,
-            topic=query,
-            custom_instructions=enhanced_prompt,
-            user_id=ctx.user_id,
-        ),
+    svc = MindMapService(queue_service=ctx.queue)
+
+    mind_map = svc.create_mind_map(
+        project_id=ctx.project_id,
+        user_id=ctx.user_id,
+        title="Generated Mind Map",
+        description="AI-generated mind map",
+        map_data={"nodes": [], "edges": []},
     )
-    queue_service.send_message(message)
+
+    svc.queue_generation(
+        project_id=ctx.project_id,
+        user_id=ctx.user_id,
+        mind_map_id=mind_map.id,
+        topic=query,
+        custom_instructions=enhanced_prompt,
+    )
 
     return json.dumps(
         {
@@ -111,7 +121,7 @@ async def create_mind_map_scoped(
 async def list_mind_maps(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List mind maps for a project."""
     ctx = runtime.context
-    svc = MindMapService()
+    svc = MindMapService(queue_service=ctx.queue)
     mind_maps = await asyncio.to_thread(svc.list_mind_maps, ctx.project_id, ctx.user_id)
 
     mind_maps_dto = [MindMapDto.model_validate(m) for m in mind_maps]
@@ -129,7 +139,7 @@ async def get_mind_map(
 ) -> str:
     """Get a specific mind map by ID."""
     ctx = runtime.context
-    svc = MindMapService()
+    svc = MindMapService(queue_service=ctx.queue)
     mind_map = await asyncio.to_thread(
         svc.get_mind_map, mind_map_id, ctx.project_id, ctx.user_id
     )

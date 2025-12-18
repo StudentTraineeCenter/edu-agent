@@ -7,7 +7,6 @@ from contextlib import suppress
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.notes import NoteDto
 from edu_core.services.notes import NoteService
-from edu_queue.schemas import NoteGenerationData, QueueTaskMessage, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -47,27 +46,24 @@ async def create_note(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "note_generation")
 
-    svc = NoteService()
+    svc = NoteService(queue_service=ctx.queue)
     # Create a new note first
     note = svc.create_note(
         project_id=ctx.project_id,
+        user_id=ctx.user_id,
         title="Generated Note",
         description="AI-generated study note",
+        content="",
     )
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.NOTE_GENERATION,
-        data=NoteGenerationData(
-            project_id=ctx.project_id,
-            note_id=note.id,
-            topic=topic,
-            custom_instructions=custom_instructions,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        note_id=note.id,
+        project_id=ctx.project_id,
+        topic=topic,
+        custom_instructions=custom_instructions,
+        user_id=ctx.user_id,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -95,27 +91,23 @@ async def create_note_scoped(
 
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
-    svc = NoteService()
+    svc = NoteService(queue_service=ctx.queue)
     # Create a new note first
     note = svc.create_note(
         project_id=ctx.project_id,
+        user_id=ctx.user_id,
         title="Generated Note",
         description="AI-generated study note",
     )
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.NOTE_GENERATION,
-        data=NoteGenerationData(
-            project_id=ctx.project_id,
-            note_id=note.id,
-            topic=query,
-            custom_instructions=enhanced_prompt,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        note_id=note.id,
+        project_id=ctx.project_id,
+        topic=query,
+        custom_instructions=enhanced_prompt,
+        user_id=ctx.user_id,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -131,7 +123,7 @@ async def create_note_scoped(
 async def list_notes(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List notes for a project."""
     ctx = runtime.context
-    svc = NoteService()
+    svc = NoteService(queue_service=ctx.queue)
     notes = await asyncio.to_thread(svc.list_notes, ctx.project_id)
 
     notes_dto = [NoteDto.model_validate(n) for n in notes]
@@ -149,7 +141,7 @@ async def get_note(
 ) -> str:
     """Get a specific note by ID."""
     ctx = runtime.context
-    svc = NoteService()
+    svc = NoteService(queue_service=ctx.queue)
     note = await asyncio.to_thread(svc.get_note, note_id, ctx.project_id)
 
     if not note:
@@ -167,7 +159,7 @@ async def delete_note(
 ) -> str:
     """Delete a note."""
     ctx = runtime.context
-    svc = NoteService()
+    svc = NoteService(queue_service=ctx.queue)
     await asyncio.to_thread(svc.delete_note, note_id, ctx.project_id)
 
     result = {

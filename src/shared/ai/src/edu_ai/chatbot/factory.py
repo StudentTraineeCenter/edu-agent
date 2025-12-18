@@ -43,6 +43,13 @@ async def capture_sources_from_rag(request, handler):
             # Store sources in state
             if sources:
                 request.state["sources"] = sources
+                # Also store in additional_kwargs so we can access it in the stream
+                if (
+                    not hasattr(result, "additional_kwargs")
+                    or result.additional_kwargs is None
+                ):
+                    result.additional_kwargs = {}
+                result.additional_kwargs["sources"] = sources
 
             # Return just the content string to the agent
             result.content = content.get("content", result.content)

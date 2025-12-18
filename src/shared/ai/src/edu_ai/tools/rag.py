@@ -1,7 +1,6 @@
 """RAG search tools for agent."""
 
 from edu_ai.chatbot.context import ChatbotContext
-from edu_db.models import ChatMessageSource
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -27,21 +26,20 @@ async def search_project_documents(
 
     # Build sources from SearchResultItem
     sources = [
-        ChatMessageSource(
-            id=result.id,
-            citation_index=i,
-            content=result.content or "",
-            title=result.title or f"Document {i}",
-            document_id=result.document_id,
-            score=getattr(result, "score", None) or 1.0,
-        )
+        {
+            "id": result.id,
+            "content": result.content or "",
+            "title": result.title or f"Document {i}",
+            "document_id": result.document_id,
+            "score": getattr(result, "score", None) or 1.0,
+        }
         for i, result in enumerate(search_results, 1)
     ]
 
     # Format content for agent - give clean context without citation markers
     # The agent should use this information naturally, not copy-paste it
     context_blocks = [
-        f"From {source.title}:\n{source.content[:1500]}" for source in sources
+        f"From {source['title']}:\n{source['content'][:1500]}" for source in sources
     ]
 
     formatted_content = "\n\n---\n\n".join(context_blocks)

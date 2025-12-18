@@ -7,7 +7,6 @@ from contextlib import suppress
 from edu_ai.chatbot.context import ChatbotContext
 from edu_core.schemas.quizzes import QuizDto, QuizQuestionDto
 from edu_core.services.quizzes import QuizService
-from edu_queue.schemas import QueueTaskMessage, QuizGenerationData, TaskType
 from langchain.tools import tool
 from langgraph.prebuilt import ToolRuntime
 
@@ -48,7 +47,7 @@ async def create_quiz(
     ctx = runtime.context
     increment_usage(ctx.usage, ctx.user_id, "quiz_generation")
 
-    svc = QuizService()
+    svc = QuizService(queue_service=ctx.queue)
     # Create a new quiz first
     quiz = svc.create_quiz(
         project_id=ctx.project_id,
@@ -57,19 +56,14 @@ async def create_quiz(
     )
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.QUIZ_GENERATION,
-        data=QuizGenerationData(
-            project_id=ctx.project_id,
-            quiz_id=quiz.id,
-            topic=topic,
-            custom_instructions=custom_instructions,
-            count=count,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        quiz_id=quiz.id,
+        project_id=ctx.project_id,
+        topic=topic,
+        custom_instructions=custom_instructions,
+        count=count,
+        user_id=ctx.user_id,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -98,7 +92,7 @@ async def create_quiz_scoped(
 
     enhanced_prompt = build_enhanced_prompt(custom_instructions, query, document_ids)
 
-    svc = QuizService()
+    svc = QuizService(queue_service=ctx.queue)
     # Create a new quiz first
     quiz = svc.create_quiz(
         project_id=ctx.project_id,
@@ -107,19 +101,14 @@ async def create_quiz_scoped(
     )
 
     # Send message to queue
-    queue_service = runtime.context.queue
-    message = QueueTaskMessage(
-        type=TaskType.QUIZ_GENERATION,
-        data=QuizGenerationData(
-            project_id=ctx.project_id,
-            quiz_id=quiz.id,
-            topic=query,
-            custom_instructions=enhanced_prompt,
-            count=count,
-            user_id=ctx.user_id,
-        ),
+    svc.queue_generation(
+        quiz_id=quiz.id,
+        project_id=ctx.project_id,
+        topic=query,
+        custom_instructions=enhanced_prompt,
+        count=count,
+        user_id=ctx.user_id,
     )
-    queue_service.send_message(message)
 
     return json.dumps(
         {
@@ -135,7 +124,7 @@ async def create_quiz_scoped(
 async def list_quizzes(runtime: ToolRuntime[ChatbotContext]) -> str:
     """List quizzes for a project."""
     ctx = runtime.context
-    svc = QuizService()
+    svc = QuizService(queue_service=ctx.queue)
     quizzes = await asyncio.to_thread(svc.list_quizzes, ctx.project_id)
 
     quizzes_dto = [QuizDto.model_validate(q) for q in quizzes]
@@ -153,7 +142,7 @@ async def get_questions(
 ) -> str:
     """Get all questions in a quiz."""
     ctx = runtime.context
-    svc = QuizService()
+    svc = QuizService(queue_service=ctx.queue)
     qs = await asyncio.to_thread(svc.list_quiz_questions, quiz_id, ctx.project_id)
 
     questions_dto = [QuizQuestionDto.model_validate(q) for q in qs]
@@ -171,7 +160,7 @@ async def delete_quiz(
 ) -> str:
     """Delete a quiz."""
     ctx = runtime.context
-    svc = QuizService()
+    svc = QuizService(queue_service=ctx.queue)
     await asyncio.to_thread(svc.delete_quiz, quiz_id, ctx.project_id)
 
     result = {

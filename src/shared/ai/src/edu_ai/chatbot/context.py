@@ -1,7 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from edu_core.services.search import SearchService
-from edu_db.models import ChatMessageSource
 from edu_queue.service import QueueService
 from langchain.agents import AgentState
 from langchain_openai import AzureChatOpenAI
@@ -28,4 +27,4 @@ class ChatbotContext(BaseModel):
 
 
 class ChatbotState(AgentState):
-    sources: list[ChatMessageSource]
+    sources: list[dict[str, Any]]

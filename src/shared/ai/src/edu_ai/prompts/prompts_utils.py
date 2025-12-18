@@ -9,7 +9,7 @@ from jinja2 import Template
 @lru_cache
 def get_prompts_dir() -> Path:
     """Get the prompts directory path."""
-    return Path(__file__).parent / "prompts"
+    return Path(__file__).parent
 
 
 def get_prompt(prompt_name: str) -> str:
