@@ -1,9 +1,4 @@
-import { Link } from '@tanstack/react-router'
-import { format } from 'date-fns'
-import { useMemo } from 'react'
-import { MoreVerticalIcon, TrashIcon } from 'lucide-react'
-import { useAtomSet } from '@effect-atom/atom-react'
-import type { ChatDto } from '@/integrations/api/client'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,18 +7,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { deleteChatAtom } from '@/data-acess/chat'
-import { useConfirmationDialog } from '@/components/confirmation-dialog'
+import type { ChatDto } from '@/integrations/api/client'
+import { useAtomSet } from '@effect-atom/atom-react'
+import { Link } from '@tanstack/react-router'
+import { format } from 'date-fns'
+import { MoreVerticalIcon, TrashIcon } from 'lucide-react'
 
 type Props = {
   chat: ChatDto
 }
 
 export const ChatListItem = ({ chat }: Props) => {
-  const lastMessageContent = useMemo(() => {
-    const value = chat.messages?.at(-1)?.content ?? 'No messages yet'
-    return value.length > 100 ? value.slice(0, 100) + '...' : value
-  }, [chat.messages])
-
   const deleteChat = useAtomSet(deleteChatAtom, { mode: 'promise' })
   const confirmationDialog = useConfirmationDialog()
 
@@ -61,9 +55,6 @@ export const ChatListItem = ({ chat }: Props) => {
           <div className="grid grid-cols-6 items-center">
             <div className="flex flex-col w-full col-span-5">
               <span>{chat.title ?? 'Untitled chat'}</span>
-              <span className="text-sm text-muted-foreground">
-                {lastMessageContent}
-              </span>
             </div>
             <div className="flex flex-col col-span-1 text-right">
               <span className="text-xs text-muted-foreground">

@@ -73,15 +73,10 @@ const models = [
 
 interface ChatbotProps {
   chatId: string
-  initialMessages: ChatMessageDto[]
   projectId: string
 }
 
-export const Chatbot: React.FC<ChatbotProps> = ({
-  chatId,
-  initialMessages,
-  projectId,
-}) => {
+export const Chatbot: React.FC<ChatbotProps> = ({ chatId, projectId }) => {
   const [input, setInput] = useState('')
   const [model, setModel] = useState<string>(models[0].value)
   const [webSearch, setWebSearch] = useState(false)

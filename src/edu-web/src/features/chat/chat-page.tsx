@@ -1,5 +1,4 @@
 import { chatAtom } from '@/data-acess/chat'
-import type { ChatMessageDto } from '@/integrations/api'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
 import { Chatbot } from './chatbot'
@@ -34,20 +33,12 @@ export const ChatPage = ({ projectId, chatId }: ChatPageProps) => {
     )
   }
 
-  const initialMessages = Result.isSuccess(chatResult)
-    ? (chatResult.value.messages ?? [])
-    : []
-
   return (
     <div className="flex h-full flex-col max-h-screen">
       <ChatHeader chatId={chatId} projectId={projectId} />
 
       <div className="flex flex-1 flex-col min-h-0 max-h-[calc(100vh-3.5rem)] overflow-hidden w-full">
-        <Chatbot
-          chatId={chatId}
-          initialMessages={initialMessages as ChatMessageDto[]}
-          projectId={projectId}
-        />
+        <Chatbot chatId={chatId} projectId={projectId} />
       </div>
     </div>
   )
