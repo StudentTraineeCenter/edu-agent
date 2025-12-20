@@ -67,7 +67,8 @@ export const chatsRemoteAtom = Atom.family((projectId: string) =>
     .atom(
       Effect.fn(function* () {
         const { apiClient } = yield* ApiClientService
-        const resp = yield* apiClient.listChatsApiV1ProjectsProjectIdChatsGet(projectId)
+        const resp =
+          yield* apiClient.listChatsApiV1ProjectsProjectIdChatsGet(projectId)
         return Arr.sort(byLastMessageCreatedAt)(resp)
       }),
     )
@@ -197,28 +198,19 @@ const StreamEventSchema = Schema.Struct({
   chat_id: Schema.String,
   role: Schema.String,
   created_at: Schema.String,
-  delta: Schema.optional(Schema.Union(Schema.String, Schema.Any)),
-  part_id: Schema.optional(Schema.String),
+  delta: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  part_id: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
   part: Schema.optional(
     Schema.Union(
       TextPartDto,
       FilePartDto,
       ToolCallPartDto,
       SourceDocumentPartDto,
+      Schema.Null,
     ),
   ),
-  parts: Schema.optional(
-    Schema.Array(
-      Schema.Union(
-        TextPartDto,
-        FilePartDto,
-        ToolCallPartDto,
-        SourceDocumentPartDto,
-      ),
-    ),
-  ),
-  status: Schema.optional(Schema.String),
-  done: Schema.optional(Schema.Boolean),
+  status: Schema.optional(Schema.Union(Schema.String, Schema.Null)),
+  done: Schema.Boolean,
 })
 
 type StreamEvent = Schema.Schema.Type<typeof StreamEventSchema>
@@ -239,12 +231,8 @@ const handleStreamPart = (
       get.set(chatStreamStatusAtom(input.chatId), null)
     }
 
-    // Skip if done and no parts/delta to process
-    if (
-      partEvent.done &&
-      (!partEvent.parts || partEvent.parts.length === 0) &&
-      !partEvent.delta
-    ) {
+    // Skip if done and no part/delta to process
+    if (partEvent.done && !partEvent.part && !partEvent.delta) {
       return
     }
 
@@ -264,9 +252,7 @@ const handleStreamPart = (
         TextPartDto | FilePartDto | ToolCallPartDto | SourceDocumentPartDto
       > = []
 
-      if (partEvent.parts) {
-        initialParts = partEvent.parts
-      } else if (partEvent.part) {
+      if (partEvent.part) {
         initialParts = [partEvent.part]
       } else if (partEvent.delta && typeof partEvent.delta === 'string') {
         // Create initial text part from delta
@@ -275,7 +261,7 @@ const handleStreamPart = (
             type: 'text',
             text_content: partEvent.delta,
             order: 0,
-            id: partEvent.part_id, // Use part_id if available
+            id: partEvent.part_id ?? undefined, // Use part_id if available
           } as TextPartDto,
         ]
       }
@@ -298,14 +284,10 @@ const handleStreamPart = (
       // Update existing message
       const existingMessage = currentMessages[msgIdx]
       const existingParts = existingMessage.parts || []
-      let newParts = [...existingParts]
+      const newParts = [...existingParts]
 
-      if (partEvent.parts) {
-        // Handle full parts list update (usually final chunk or tool updates)
-        // The server sends the complete authoritative list of parts, so we can just replace safely
-        newParts = [...partEvent.parts]
-      } else if (partEvent.part) {
-        // Handle single part update (e.g. source-document)
+      if (partEvent.part) {
+        // Handle single part update (e.g. source-document or complete tool call)
         const part = partEvent.part
         const partId = part.id
         let existingPartIdx = -1
@@ -345,7 +327,7 @@ const handleStreamPart = (
             type: 'text',
             text_content: partEvent.delta,
             order: 0, // Default order
-            id: partId,
+            id: partId ?? undefined,
           } as TextPartDto)
         }
       }
@@ -356,10 +338,7 @@ const handleStreamPart = (
           chatId: input.chatId,
           messageId,
           parts: newParts as ReadonlyArray<
-            | TextPartDto
-            | FilePartDto
-            | ToolCallPartDto
-            | SourceDocumentPartDto
+            TextPartDto | FilePartDto | ToolCallPartDto | SourceDocumentPartDto
           >,
         }),
       )

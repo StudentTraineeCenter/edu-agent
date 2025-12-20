@@ -1,12 +1,16 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Layer } from 'effect'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { usageAtom } from './usage'
+import {
+  DocumentIdSchema,
+  ProjectIdSchema,
+  type DocumentId,
+} from '@/data-acess/shared'
+import { usageAtom } from '@/data-acess/usage'
 import type { DocumentDto } from '@/integrations/api'
 import { ApiClientService } from '@/integrations/api/http'
-import { getAccessTokenEffect } from '@/lib/supabase'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { withToast } from '@/lib/with-toast'
+import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Data, Effect, Layer, Schema } from 'effect'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -16,7 +20,7 @@ const runtime = makeAtomRuntime(
 )
 
 type DocumentsAction = Data.TaggedEnum<{
-  Del: { readonly documentId: string }
+  Del: { readonly documentId: DocumentId }
   Update: {
     readonly document: Result.Result<DocumentDto>
   }
@@ -27,11 +31,12 @@ export const documentsRemoteAtom = Atom.family((projectId: string) =>
   runtime.atom(
     Effect.fn(function* () {
       const { apiClient } = yield* ApiClientService
-      const resp =
-        yield* apiClient.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
-          projectId,
-        )
-      return resp
+
+      const parsedProjectId = yield* Schema.decode(ProjectIdSchema)(projectId)
+
+      return yield* apiClient.listDocumentsApiV1ProjectsProjectIdDocumentsGet(
+        parsedProjectId,
+      )
     }),
   ),
 )
@@ -73,78 +78,39 @@ export const indexedDocumentsAtom = Atom.family((projectId: string) =>
   ),
 )
 
-export const documentAtom = Atom.family(
-  (input: { projectId: string; documentId: string }) =>
-    Atom.make(
-      Effect.fn(function* () {
-        const { apiClient } = yield* ApiClientService
-        return yield* apiClient.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
-          input.projectId,
-          input.documentId,
-        )
-      })().pipe(Effect.provide(ApiClientService.Default)),
-    ),
-)
+export const documentAtom = Atom.family((input: string) => {
+  const [projectId, documentId] = input.split(':')
 
-export const documentPreviewAtom = Atom.family(
-  (_input: { projectId: string; documentId: string }) =>
-    Atom.make(
-      Effect.fn(function* () {
-        // Note: Document preview endpoints may not be available in the new API
-        // const client = yield* makeApiClient
-        // const preview = yield* client.getDocumentPreview(...)
-        const preview = {
-          preview_url: 'http://localhost:8000/v1/documents/1/stream',
-          content_type: 'application/pdf',
-        }
+  return Atom.make(
+    Effect.fn(function* () {
+      const { apiClient } = yield* ApiClientService
 
-        // Construct full URL for streaming endpoint
-        const serverUrl =
-          import.meta.env.VITE_SERVER_URL ?? 'http://localhost:8000'
-        const streamUrl = preview.preview_url.startsWith('http')
-          ? preview.preview_url
-          : `${serverUrl}${preview.preview_url}`
+      const parsed = yield* Schema.decode(
+        Schema.Struct({
+          projectId: ProjectIdSchema,
+          documentId: DocumentIdSchema,
+        }),
+      )({ projectId, documentId })
 
-        // Fetch the stream with auth and create blob URL
-        const token = yield* getAccessTokenEffect
-        if (!token) {
-          throw new Error('No access token available')
-        }
-
-        const response = yield* Effect.promise(() =>
-          fetch(streamUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-        )
-
-        if (!response.ok) {
-          return yield* Effect.fail(
-            new Error(
-              `Failed to fetch document stream: ${response.statusText}`,
-            ),
-          )
-        }
-
-        const blob = yield* Effect.promise(() => response.blob())
-        const blobUrl = URL.createObjectURL(blob)
-
-        return {
-          preview_url: blobUrl,
-          content_type: preview.content_type,
-        }
-      }),
-    ).pipe(Atom.keepAlive),
-)
+      return yield* apiClient.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
+        parsed.projectId,
+        parsed.documentId,
+      )
+    })().pipe(Effect.provide(ApiClientService.Default)),
+  )
+})
 
 export const uploadDocumentAtom = runtime.fn(
   Effect.fn(function* (input: { projectId: string; files: Array<Blob> }) {
     const registry = yield* Registry.AtomRegistry
     const { apiClient } = yield* ApiClientService
 
-    yield* apiClient.uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost(
+    const parsedProjectId = yield* Schema.decode(ProjectIdSchema)(
       input.projectId,
+    )
+
+    yield* apiClient.uploadDocumentApiV1ProjectsProjectIdDocumentsUploadPost(
+      parsedProjectId,
       {
         files: input.files,
       },
@@ -160,14 +126,22 @@ export const deleteDocumentAtom = runtime.fn(
     function* (input: { documentId: string; projectId: string }) {
       const registry = yield* Registry.AtomRegistry
       const { apiClient } = yield* ApiClientService
+
+      const parsed = yield* Schema.decode(
+        Schema.Struct({
+          projectId: ProjectIdSchema,
+          documentId: DocumentIdSchema,
+        }),
+      )(input)
+
       yield* apiClient.deleteDocumentApiV1ProjectsProjectIdDocumentsDocumentIdDelete(
-        input.projectId,
-        input.documentId,
+        parsed.projectId,
+        parsed.documentId,
       )
 
       registry.set(
-        documentsAtom(input.projectId),
-        DocumentsAction.Del({ documentId: input.documentId }),
+        documentsAtom(parsed.projectId),
+        DocumentsAction.Del({ documentId: parsed.documentId }),
       )
     },
     withToast({
@@ -190,16 +164,23 @@ export const refreshDocumentAtom = runtime.fn(
     const registry = yield* Registry.AtomRegistry
     const { apiClient } = yield* ApiClientService
 
+    const parsed = yield* Schema.decode(
+      Schema.Struct({
+        projectId: ProjectIdSchema,
+        documentId: DocumentIdSchema,
+      }),
+    )(input)
+
     // Fetch the latest document data
     const document =
       yield* apiClient.getDocumentApiV1ProjectsProjectIdDocumentsDocumentIdGet(
-        input.projectId,
-        input.documentId,
+        parsed.projectId,
+        parsed.documentId,
       )
 
     // Update the document in the documents list atom
     registry.set(
-      documentsAtom(input.projectId),
+      documentsAtom(parsed.projectId),
       DocumentsAction.Update({
         document: Result.success(document),
       }),

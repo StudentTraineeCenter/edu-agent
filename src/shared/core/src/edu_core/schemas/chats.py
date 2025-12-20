@@ -89,7 +89,26 @@ class ChatDetailDto(ChatDto):
     )
 
 
+
 class StreamingChatMessage(ChatMessageDto):
     """Response model for streaming chat message chunks"""
 
     done: bool = Field(default=False, description="Whether this is the final chunk")
+
+
+class StreamEventDto(BaseModel):
+    """DTO for a single SSE event in the chat stream."""
+
+    message_id: str = Field(..., description="ID of the message")
+    chat_id: str = Field(..., description="ID of the chat")
+    role: str = Field(..., description="Role of the sender")
+    created_at: datetime | str = Field(..., description="Creation timestamp")
+    done: bool = Field(..., description="Whether the stream is done")
+    part_id: str | None = Field(
+        None, description="ID of the part (streaming text chunks)"
+    )
+    delta: str | None = Field(None, description="Text delta content")
+    part: Union[
+        TextPartDto, FilePartDto, ToolCallPartDto, SourceDocumentPartDto, dict[str, Any]
+    ] | None = Field(None, description="Complete part object")
+    status: str | None = Field(None, description="Status of the generation")

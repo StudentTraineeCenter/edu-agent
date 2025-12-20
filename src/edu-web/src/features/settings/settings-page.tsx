@@ -1,6 +1,3 @@
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { Loader2Icon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
 import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -27,12 +24,68 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { currentUserAtom } from '@/data-acess/auth'
 import { usageAtom } from '@/data-acess/usage'
-import { useAuth } from '@/hooks/use-auth'
 import { useTheme } from '@/providers/theme-provider'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Loader2Icon, Trash2Icon } from 'lucide-react'
+import { useState } from 'react'
+
+const UserSection = () => {
+  const currentUserResult = useAtomValue(currentUserAtom)
+
+  return Result.builder(currentUserResult)
+  .onSuccess(user => {
+    return (<Card>
+            <CardHeader>
+              <CardTitle>Account</CardTitle>
+              <CardDescription>Your account information</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="size-16">
+                  <AvatarFallback>
+                    {user.initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-semibold">
+                    {user.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>)
+  })
+  .onInitialOrWaiting(() => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Account</CardTitle>
+          <CardDescription>Your account information</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="size-16">
+              <AvatarFallback>
+                <Loader2Icon className="size-4 animate-spin" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <p className="font-semibold">Loading...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  })
+  .render()
+}
 
 export function SettingsPage() {
-  const { user } = useAuth()
   const { theme, setTheme } = useTheme()
   const confirmationDialog = useConfirmationDialog()
   const usageResult = useAtomValue(usageAtom)
@@ -107,31 +160,7 @@ export function SettingsPage() {
 
       <div className="flex flex-1 flex-col min-h-0 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full p-4 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="size-16">
-                  <AvatarFallback>
-                    {user?.user_metadata?.name
-                      ? getInitials(user.user_metadata.name)
-                      : 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">
-                    {user?.user_metadata?.name || 'Unknown'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {user?.email || 'Unknown'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <UserSection/>
 
           <Card>
             <CardHeader>

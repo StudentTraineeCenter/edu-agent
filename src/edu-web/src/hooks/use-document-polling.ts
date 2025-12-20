@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import { documentsAtom, refreshDocumentAtom } from '@/data-acess/document'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { useEffect, useMemo, useRef } from 'react'
 
 const POLL_INTERVAL_MS = 3000 // Poll every 3 seconds
 
@@ -9,6 +9,8 @@ const POLL_INTERVAL_MS = 3000 // Poll every 3 seconds
  * documents that are not yet ready (status !== 'indexed' && status !== 'failed')
  */
 export const useDocumentPolling = (projectId: string) => {
+  if (projectId.length === 0) return
+  
   const documentsResult = useAtomValue(documentsAtom(projectId))
   const refreshDocument = useAtomSet(refreshDocumentAtom, {
     mode: 'promise',

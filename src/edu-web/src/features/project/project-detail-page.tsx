@@ -1,23 +1,23 @@
-import { useNavigate } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import { chatsAtom, createChatAtom } from '@/data-acess/chat'
+import { documentsAtom, refreshDocumentsAtom } from '@/data-acess/document'
+import { currentProjectIdAtom } from '@/data-acess/project'
+import { studyResourcesAtom } from '@/data-acess/study-resources'
+import { useUploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
+import { useDocumentPolling } from '@/hooks/use-document-polling'
+import { cn } from '@/lib/utils'
 import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { useEffect } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Loader2Icon, PlusIcon, RotateCw } from 'lucide-react'
-import { ProjectHeader } from './components/project-header'
+import { useEffect } from 'react'
 import { ChatListItem } from './components/chat-list-item'
 import { DocumentListItem } from './components/document-list-item'
-import { StudyResourceListItem } from './components/study-resource-list-item'
 import {
   GenerationDialog,
   useGenerationDialog,
 } from './components/generation-dialog'
-import { useUploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
-import { studyResourcesAtom } from '@/data-acess/study-resources'
-import { documentsAtom, refreshDocumentsAtom } from '@/data-acess/document'
-import { Button } from '@/components/ui/button'
-import { chatsAtom, createChatAtom } from '@/data-acess/chat'
-import { currentProjectIdAtom } from '@/data-acess/project'
-import { useDocumentPolling } from '@/hooks/use-document-polling'
-import { cn } from '@/lib/utils'
+import { ProjectHeader } from './components/project-header'
+import { StudyResourceListItem } from './components/study-resource-list-item'
 
 const ChatsSection = ({ projectId }: { projectId: string }) => {
   const chatsResult = useAtomValue(chatsAtom(projectId))
@@ -149,6 +149,8 @@ const ProjectContent = ({ projectId }: ProjectContentProps) => {
   const handleRefreshDocuments = async () => {
     await refreshDocuments(projectId)
   }
+
+  if (projectId.length === 0) return null
 
   return (
     <div className="flex flex-1 p-4 gap-4 overflow-hidden min-h-0">

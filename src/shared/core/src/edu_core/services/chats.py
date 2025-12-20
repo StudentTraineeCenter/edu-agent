@@ -36,6 +36,7 @@ from edu_core.schemas.chats import (
     StreamingChatMessage,
     TextPartDto,
     ToolCallPartDto,
+    StreamEventDto,
 )
 
 
@@ -659,7 +660,7 @@ class ChatService:
                     result.append(self._model_to_dto(chat, last_message))
 
                 # Sort by last_message_at
-                result.sort(key=lambda x: x.last_message_at, reverse=True)                
+                result.sort(key=lambda x: x.last_message_at or x.updated_at, reverse=True)                
 
                 return result
             except Exception:
@@ -1348,3 +1349,115 @@ Only respond with the title, nothing else. Do not use quotes."""
             raise
         finally:
             db.close()
+
+    async def stream_chat_events(
+        self, chat_id: str, user_id: str, parts: list[dict[str, Any]]
+    ) -> AsyncGenerator[StreamEventDto]:
+        """Stream chat events for SSE.
+
+        Args:
+            chat_id: The chat ID
+            user_id: The user ID
+            parts: List of message parts
+
+        Yields:
+            StreamEventDto events ready for SSE serialization
+        """
+        # Track tool call states to avoid sending duplicate tool_output
+        tool_call_states: dict[str, dict[str, Any]] = {}
+        # Track sent immutable parts to avoid duplicates (files, source docs)
+        sent_immutable_part_ids: set[str] = set()
+
+        try:
+            async for streaming_msg in self.send_streaming_message(
+                chat_id, user_id, parts
+            ):
+                # Stream each part as a separate SSE event with message ID
+                for part in streaming_msg.parts:
+                    # Common fields
+                    created_at = (
+                        streaming_msg.created_at.isoformat()
+                        if isinstance(streaming_msg.created_at, datetime)
+                        else streaming_msg.created_at
+                    )
+                    
+                    event_data = {
+                        "message_id": streaming_msg.id,
+                        "chat_id": streaming_msg.chat_id,
+                        "role": streaming_msg.role,
+                        "created_at": created_at,
+                        "done": streaming_msg.done,
+                        "status": streaming_msg.status if hasattr(streaming_msg, "status") else None,
+                    }
+
+                    # For streaming chunks (done=False), send delta only for text parts
+                    # For tool_call and source-document parts, always send as complete part
+                    if streaming_msg.done:
+                        # Final chunk: send full aggregated part with all metadata
+                        part_dict = (
+                            part.model_dump()
+                            if hasattr(part, "model_dump")
+                            else dict(part)
+                        )
+                        yield StreamEventDto(**event_data, part=part_dict)
+                    else:
+                        # Streaming chunk
+                        if hasattr(part, "type") and part.type == "text":
+                            # For text parts, send only the text content as a string (delta)
+                            # Include part_id for tracking (similar to Vercel AI SDK)
+                            part_id = part.id if hasattr(part, "id") and part.id else None
+                            delta = str(part.text_content)
+                            yield StreamEventDto(**event_data, part_id=part_id, delta=delta)
+                        else:
+                            # For tool_call and source-document parts, send as complete part
+                            # Track tool_call states to avoid duplicates
+                            part_dict = (
+                                part.model_dump()
+                                if hasattr(part, "model_dump")
+                                else dict(part)
+                            )
+
+                            should_yield = False
+                            if hasattr(part, "type") and part.type == "tool_call":
+                                tool_call_id = part_dict.get("tool_call_id")
+
+                                # Check if this tool_call has changed
+                                if tool_call_id:
+                                    previous_state = tool_call_states.get(
+                                        tool_call_id, {}
+                                    )
+                                    current_state = {
+                                        "tool_state": part_dict.get("tool_state"),
+                                        "tool_output": part_dict.get("tool_output"),
+                                    }
+
+                                    # Only send if something changed
+                                    if current_state["tool_state"] != previous_state.get("tool_state") or \
+                                       current_state["tool_output"] != previous_state.get("tool_output"):
+                                        should_yield = True
+                                        tool_call_states[tool_call_id] = current_state
+                                else:
+                                    # Send complete part if no tool_call_id
+                                    should_yield = True
+                            else:
+                                # For source-document and other non-text parts (files), send as complete part
+                                # But ONLY if not already sent (immutable parts)
+                                part_id = part_dict.get("id")
+                                if not (part_id and part_id in sent_immutable_part_ids):
+                                    should_yield = True
+                                    if part_id:
+                                        sent_immutable_part_ids.add(part_id)
+
+                            if should_yield:
+                                yield StreamEventDto(**event_data, part=part_dict)
+
+        except Exception as e:
+            error_part = TextPartDto(type="text", text_content=f"Error: {e!s}")
+            yield StreamEventDto(
+                message_id=str(uuid4()),
+                chat_id=chat_id,
+                role="assistant",
+                created_at=datetime.now().isoformat(),
+                part=error_part,
+                done=True,
+            )

@@ -1,6 +1,6 @@
 """Router for chat CRUD operations."""
 
-import json
+
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
@@ -143,116 +143,11 @@ async def send_streaming_message(
 
     async def generate_stream() -> AsyncGenerator[bytes]:
         """Generate streaming response chunks - each part as a separate SSE event"""
-        # Track tool call states to avoid sending duplicate tool_output
-        tool_call_states: dict[str, dict[str, Any]] = {}
-        # Track sent immutable parts to avoid duplicates (files, source docs)
-        sent_immutable_part_ids: set[str] = set()
-
-        try:
-            async for streaming_msg in chat_service.send_streaming_message(
-                chat_id, user_id, processed_parts
-            ):
-                # Stream each part as a separate SSE event with message ID
-                # Similar to Vercel AI SDK's data stream protocol
-                for part in streaming_msg.parts:
-                    part_event = {
-                        "message_id": streaming_msg.id,
-                        "chat_id": streaming_msg.chat_id,
-                        "role": streaming_msg.role,
-                        "created_at": streaming_msg.created_at.isoformat()
-                        if isinstance(streaming_msg.created_at, datetime)
-                        else streaming_msg.created_at,
-                        "done": streaming_msg.done,
-                    }
-
-                    # For streaming chunks (done=False), send delta only for text parts
-                    # For tool_call and source-document parts, always send as complete part
-                    if streaming_msg.done:
-                        # Final chunk: send full aggregated part with all metadata
-                        part_dict = (
-                            part.model_dump()
-                            if hasattr(part, "model_dump")
-                            else dict(part)
-                        )
-                        part_event["part"] = part_dict
-                    else:
-                        # Streaming chunk
-                        if hasattr(part, "type") and part.type == "text":
-                            # For text parts, send only the text content as a string (delta)
-                            # Include part_id for tracking (similar to Vercel AI SDK)
-                            if hasattr(part, "id") and part.id:
-                                part_event["part_id"] = part.id
-                            part_event["delta"] = str(part.text_content)
-                        else:
-                            # For tool_call and source-document parts, send as complete part
-                            # Track tool_call states to avoid duplicates
-                            part_dict = (
-                                part.model_dump()
-                                if hasattr(part, "model_dump")
-                                else dict(part)
-                            )
-
-                            if hasattr(part, "type") and part.type == "tool_call":
-                                tool_call_id = part_dict.get("tool_call_id")
-
-                                # Check if this tool_call has changed
-                                if tool_call_id:
-                                    previous_state = tool_call_states.get(
-                                        tool_call_id, {}
-                                    )
-                                    current_state = {
-                                        "tool_state": part_dict.get("tool_state"),
-                                        "tool_output": part_dict.get("tool_output"),
-                                    }
-
-                                    # Only send if something changed
-                                    if current_state[
-                                        "tool_state"
-                                    ] != previous_state.get(
-                                        "tool_state"
-                                    ) or current_state[
-                                        "tool_output"
-                                    ] != previous_state.get("tool_output"):
-                                        # Send complete part (not delta)
-                                        part_event["part"] = part_dict
-                                        # Update tracked state
-                                        tool_call_states[tool_call_id] = current_state
-                                    else:
-                                        # Skip this part if nothing changed
-                                        continue
-                                else:
-                                    # Send complete part if no tool_call_id
-                                    part_event["part"] = part_dict
-                            else:
-                                # For source-document and other non-text parts (files), send as complete part
-                                # But ONLY if not already sent (immutable parts)
-                                part_id = part_dict.get("id")
-                                if part_id and part_id in sent_immutable_part_ids:
-                                    continue
-
-                                part_event["part"] = part_dict
-                                
-                                if part_id:
-                                    sent_immutable_part_ids.add(part_id)
-
-                    if hasattr(streaming_msg, "status") and streaming_msg.status:
-                        part_event["status"] = streaming_msg.status
-
-                    part_json = json.dumps(part_event)
-                    sse_data = f"data: {part_json}\n\n"
-                    yield sse_data.encode("utf-8")
-
-        except Exception as e:
-            error_part = {
-                "message_id": str(uuid4()),
-                "chat_id": chat_id,
-                "role": "assistant",
-                "created_at": datetime.now().isoformat(),
-                "part": {"type": "text", "text_content": f"Error: {e!s}"},
-                "done": True,
-            }
-            error_json = json.dumps(error_part)
-            yield f"data: {error_json}\n\n".encode()
+        async for part_event in chat_service.stream_chat_events(
+            chat_id, user_id, processed_parts
+        ):
+            part_json = part_event.model_dump_json()
+            yield f"data: {part_json}\n\n".encode("utf-8")
 
     return StreamingResponse(
         generate_stream(),
