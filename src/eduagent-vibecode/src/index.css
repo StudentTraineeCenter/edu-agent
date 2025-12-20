@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NotebookLM Design System - Dark theme with modern gradients and Google-inspired colors */
+
+@layer base {
+  :root {
+    /* Core dark theme */
+    --background: 220 26% 14%;
+    --foreground: 210 20% 98%;
+
+    /* Surface colors */
+    --card: 220 26% 16%;
+    --card-foreground: 210 20% 98%;
+    --surface-elevated: 220 26% 18%;
+    --surface-glass: 220 26% 12%;
+
+    --popover: 220 26% 16%;
+    --popover-foreground: 210 20% 98%;
+
+    /* Brand colors - Google-inspired */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 217 91% 75%;
+
+    --secondary: 220 13% 23%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 220 13% 20%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 43 96% 56%;
+    --accent-foreground: 220 26% 14%;
+
+    /* State colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+
+    /* UI elements */
+    --border: 220 13% 23%;
+    --input: 220 13% 23%;
+    --ring: 217 91% 60%;
+    --focus: 217 91% 60%;
+
+    /* Interactive states */
+    --hover: 220 26% 20%;
+    --active: 220 26% 22%;
+
+    /* Glass morphism */
+    --glass-bg: 220 26% 16% / 0.8;
+    --glass-border: 220 26% 30% / 0.2;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-surface: linear-gradient(145deg, hsl(var(--card)), hsl(var(--surface-elevated)));
+    --gradient-glass: linear-gradient(145deg, hsl(var(--glass-bg)), hsl(var(--surface-glass) / 0.4));
+
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(220 26% 8% / 0.4);
+    --shadow-elevated: 0 8px 25px -8px hsl(220 26% 8% / 0.6);
+    --shadow-glow: 0 0 24px hsl(var(--primary) / 0.3);
+
+    /* Spacing and layout */
+    --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-quick: all 0.15s ease-out;
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Typography */
+    --font-heading: "Inter", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+    /* NotebookLM specific */
+    --sidebar-width: 320px;
+    --chat-max-width: 100%;
+    --header-height: 64px;
+  }
+
+  /* Light theme (optional fallback) */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 220 26% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 26% 14%;
+    --surface-elevated: 0 0% 98%;
+    --surface-glass: 0 0% 96%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --muted: 220 13% 96%;
+    --muted-foreground: 220 13% 45%;
+    --hover: 220 13% 96%;
+    --active: 220 13% 92%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-body);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+
+  /* Focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-background;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  /* Gradient utilities */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-surface {
+    background: var(--gradient-surface);
+  }
+
+  .gradient-glass {
+    background: var(--gradient-glass);
+  }
+}
