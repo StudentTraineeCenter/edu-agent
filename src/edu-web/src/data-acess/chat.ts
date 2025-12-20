@@ -199,6 +199,14 @@ const StreamEventSchema = Schema.Struct({
   created_at: Schema.String,
   delta: Schema.optional(Schema.Union(Schema.String, Schema.Any)),
   part_id: Schema.optional(Schema.String),
+  part: Schema.optional(
+    Schema.Union(
+      TextPartDto,
+      FilePartDto,
+      ToolCallPartDto,
+      SourceDocumentPartDto,
+    ),
+  ),
   parts: Schema.optional(
     Schema.Array(
       Schema.Union(
@@ -258,6 +266,8 @@ const handleStreamPart = (
 
       if (partEvent.parts) {
         initialParts = partEvent.parts
+      } else if (partEvent.part) {
+        initialParts = [partEvent.part]
       } else if (partEvent.delta && typeof partEvent.delta === 'string') {
         // Create initial text part from delta
         initialParts = [
@@ -292,35 +302,22 @@ const handleStreamPart = (
 
       if (partEvent.parts) {
         // Handle full parts list update (usually final chunk or tool updates)
-        for (const part of partEvent.parts) {
-          const partId = part.id
-          let existingPartIdx = -1
+        // The server sends the complete authoritative list of parts, so we can just replace safely
+        newParts = [...partEvent.parts]
+      } else if (partEvent.part) {
+        // Handle single part update (e.g. source-document)
+        const part = partEvent.part
+        const partId = part.id
+        let existingPartIdx = -1
 
-          if (partId) {
-            existingPartIdx = newParts.findIndex((p: any) => p.id === partId)
-          }
+        if (partId) {
+          existingPartIdx = newParts.findIndex((p: any) => p.id === partId)
+        }
 
-          // Fallback: search by order for TextParts
-          if (existingPartIdx === -1 && part.type === 'text') {
-            existingPartIdx = newParts.findIndex(
-              (p) => p.type === 'text' && p.order === part.order,
-            )
-          }
-
-          if (existingPartIdx !== -1) {
-            const existingPart = newParts[existingPartIdx]
-            if (part.type === 'text' && existingPart.type === 'text') {
-              // For parts list, we usually replace, but if it's text streaming reuse, check logic
-              // However, if server sends 'parts', it contains the FULL state or DELTA?
-              // Spec says: "And then comes all the parts" implies final state.
-              // So replacing is safer than appending if we get the full parts list.
-              newParts[existingPartIdx] = part
-            } else {
-              newParts[existingPartIdx] = part
-            }
-          } else {
-            newParts.push(part)
-          }
+        if (existingPartIdx !== -1) {
+          newParts[existingPartIdx] = part
+        } else {
+          newParts.push(part)
         }
       } else if (partEvent.delta && typeof partEvent.delta === 'string') {
         // Handle text delta streaming

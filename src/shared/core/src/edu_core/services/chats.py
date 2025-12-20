@@ -233,6 +233,7 @@ class ChatService:
         media_type = media_type_map.get(file_type.lower(), "application/pdf")
 
         return SourceDocumentPartDto(
+            id=str(uuid4()),
             source_id=source_id,
             media_type=media_type,
             title=source.get("title", document.file_name if document else "Document"),
