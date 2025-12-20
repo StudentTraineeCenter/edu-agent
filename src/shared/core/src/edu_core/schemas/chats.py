@@ -73,6 +73,12 @@ class ChatDto(BaseModel):
     title: str | None = Field(None, description="Title of the chat")
     created_at: datetime = Field(..., description="Date and time the chat was created")
     updated_at: datetime = Field(..., description="Date and time the chat was updated")
+    last_message_content: str | None = Field(
+        None, description="Content preview of the last message"
+    )
+    last_message_at: datetime | None = Field(
+        None, description="Date and time of the last message"
+    )
 
 
 class ChatDetailDto(ChatDto):

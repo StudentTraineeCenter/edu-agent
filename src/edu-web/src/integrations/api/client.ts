@@ -208,6 +208,14 @@ export class ChatDto extends S.Class<ChatDto>('ChatDto')({
    * Date and time the chat was updated
    */
   updated_at: S.String,
+  /**
+   * Content preview of the last message
+   */
+  last_message_content: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time of the last message
+   */
+  last_message_at: S.optionalWith(S.String, { nullable: true }),
 }) {}
 
 export class ListChatsApiV1ProjectsProjectIdChatsGet200 extends S.Array(

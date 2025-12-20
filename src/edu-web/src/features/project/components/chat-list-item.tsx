@@ -53,12 +53,20 @@ export const ChatListItem = ({ chat }: Props) => {
           className="flex-1"
         >
           <div className="grid grid-cols-6 items-center">
-            <div className="flex flex-col w-full col-span-5">
-              <span>{chat.title ?? 'Untitled chat'}</span>
+            <div className="flex flex-col w-full col-span-5 overflow-hidden">
+              <span className="truncate">{chat.title ?? 'Untitled chat'}</span>
+              {chat.last_message_content && (
+                <span className="text-xs text-muted-foreground truncate">
+                  {chat.last_message_content}
+                </span>
+              )}
             </div>
-            <div className="flex flex-col col-span-1 text-right">
-              <span className="text-xs text-muted-foreground">
-                {format(new Date(chat.created_at), 'MM/dd HH:mm')}
+            <div className="flex flex-col col-span-1 text-right pl-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                {format(
+                  new Date(chat.last_message_at ?? chat.updated_at),
+                  'MM/dd',
+                )}
               </span>
             </div>
           </div>

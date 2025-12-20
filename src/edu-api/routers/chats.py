@@ -145,6 +145,8 @@ async def send_streaming_message(
         """Generate streaming response chunks - each part as a separate SSE event"""
         # Track tool call states to avoid sending duplicate tool_output
         tool_call_states: dict[str, dict[str, Any]] = {}
+        # Track sent immutable parts to avoid duplicates (files, source docs)
+        sent_immutable_part_ids: set[str] = set()
 
         try:
             async for streaming_msg in chat_service.send_streaming_message(
@@ -222,8 +224,16 @@ async def send_streaming_message(
                                     # Send complete part if no tool_call_id
                                     part_event["part"] = part_dict
                             else:
-                                # For source-document and other non-text parts, send as complete part
+                                # For source-document and other non-text parts (files), send as complete part
+                                # But ONLY if not already sent (immutable parts)
+                                part_id = part_dict.get("id")
+                                if part_id and part_id in sent_immutable_part_ids:
+                                    continue
+
                                 part_event["part"] = part_dict
+                                
+                                if part_id:
+                                    sent_immutable_part_ids.add(part_id)
 
                     if hasattr(streaming_msg, "status") and streaming_msg.status:
                         part_event["status"] = streaming_msg.status

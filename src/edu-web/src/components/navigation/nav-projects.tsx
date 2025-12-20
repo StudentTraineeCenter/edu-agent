@@ -1,8 +1,8 @@
-import { Link } from '@tanstack/react-router'
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
-import { Cause } from 'effect'
-import type { ChatDto } from '@/integrations/api/client'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -13,14 +13,14 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
+import { chatsAtom } from '@/data-acess/chat'
 import { currentProjectIdAtom, projectsAtom } from '@/data-acess/project'
 import { useCreateProjectDialog } from '@/features/project/components/upsert-project-dialog'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import { chatsAtom } from '@/data-acess/chat'
+import type { ChatDto } from '@/integrations/api/client'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Link } from '@tanstack/react-router'
+import { Cause } from 'effect'
+import { ChevronRightIcon, FolderIcon, PlusIcon } from 'lucide-react'
 
 const ChatItem = ({ chat }: { chat: ChatDto }) => {
   return (
@@ -33,7 +33,7 @@ const ChatItem = ({ chat }: { chat: ChatDto }) => {
             chatId: chat.id,
           }}
         >
-          <span>{chat.title}</span>
+          <span>{chat.title ?? "Unnamed Chat"}</span>
         </Link>
       </SidebarMenuSubButton>
     </SidebarMenuSubItem>

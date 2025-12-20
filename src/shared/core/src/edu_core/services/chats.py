@@ -641,10 +641,26 @@ class ChatService:
                 chats = (
                     db.query(Chat)
                     .filter(Chat.project_id == project_id, Chat.user_id == user_id)
-                    .order_by(Chat.created_at.desc())
+                    .order_by(Chat.updated_at.desc())
                     .all()
                 )
-                return [self._model_to_dto(chat) for chat in chats]
+
+                result = []
+                for chat in chats:
+                    # Fetch last message for each chat
+                    last_message = (
+                        db.query(DBChatMessage)
+                        .filter(DBChatMessage.chat_id == chat.id)
+                        .options(joinedload(DBChatMessage.parts))
+                        .order_by(DBChatMessage.created_at.desc())
+                        .first()
+                    )
+                    result.append(self._model_to_dto(chat, last_message))
+
+                # Sort by last_message_at
+                result.sort(key=lambda x: x.last_message_at, reverse=True)                
+
+                return result
             except Exception:
                 raise
 
@@ -720,19 +736,37 @@ class ChatService:
                 db.rollback()
                 raise
 
-    def _model_to_dto(self, chat: Chat) -> ChatDto:
+    def _model_to_dto(
+        self, chat: Chat, last_message: DBChatMessage | None = None
+    ) -> ChatDto:
         """Convert Chat model to ChatDto."""
-        # ChatDto no longer contains messages directly. Messages are fetched separately.
-        chat_dto = ChatDto(
+        last_message_content = None
+        last_message_at = None
+
+        if last_message:
+            last_message_at = last_message.created_at
+            # Extract text content from parts
+            text_parts = [
+                p.text_content
+                for p in last_message.parts
+                if p.part_type == PartType.TEXT and p.text_content
+            ]
+            if text_parts:
+                last_message_content = " ".join(text_parts)
+                # Truncate if too long (optional, but good for list view)
+                if len(last_message_content) > 200:
+                    last_message_content = last_message_content[:197] + "..."
+
+        return ChatDto(
             id=chat.id,
             project_id=chat.project_id,
             user_id=chat.user_id,
             title=chat.title,
             created_at=chat.created_at,
             updated_at=chat.updated_at,
+            last_message_content=last_message_content,
+            last_message_at=last_message_at,
         )
-
-        return chat_dto
 
     async def send_streaming_message(
         self, chat_id: str, user_id: str, parts: list[dict[str, Any]]

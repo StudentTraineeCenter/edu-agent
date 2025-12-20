@@ -53,11 +53,12 @@ type ChatMessagesAction = Data.TaggedEnum<{
 const ChatMessagesAction = Data.taggedEnum<ChatMessagesAction>()
 
 // Sort chats by last message created date (most recent first)
+// Sort chats by last message created date (most recent first)
 const byLastMessageCreatedAt = (a: ChatDto, b: ChatDto): -1 | 0 | 1 => {
-  const aDate = new Date(a.updated_at).getTime()
-  const bDate = new Date(b.updated_at).getTime()
-  if (bDate > aDate) return -1
-  if (bDate < aDate) return 1
+  const aDate = new Date(a.last_message_at ?? a.updated_at).getTime()
+  const bDate = new Date(b.last_message_at ?? b.updated_at).getTime()
+  if (bDate > aDate) return 1
+  if (bDate < aDate) return -1
   return 0
 }
 
@@ -66,8 +67,7 @@ export const chatsRemoteAtom = Atom.family((projectId: string) =>
     .atom(
       Effect.fn(function* () {
         const { apiClient } = yield* ApiClientService
-        const resp =
-          yield* apiClient.listChatsApiV1ProjectsProjectIdChatsGet(projectId)
+        const resp = yield* apiClient.listChatsApiV1ProjectsProjectIdChatsGet(projectId)
         return Arr.sort(byLastMessageCreatedAt)(resp)
       }),
     )
@@ -191,6 +191,191 @@ export const chatStreamStatusAtom = Atom.family((_chatId: string) =>
   Atom.make<string | null>(null),
 )
 
+// Schema for streaming events
+const StreamEventSchema = Schema.Struct({
+  message_id: Schema.String,
+  chat_id: Schema.String,
+  role: Schema.String,
+  created_at: Schema.String,
+  delta: Schema.optional(Schema.Union(Schema.String, Schema.Any)),
+  part_id: Schema.optional(Schema.String),
+  parts: Schema.optional(
+    Schema.Array(
+      Schema.Union(
+        TextPartDto,
+        FilePartDto,
+        ToolCallPartDto,
+        SourceDocumentPartDto,
+      ),
+    ),
+  ),
+  status: Schema.optional(Schema.String),
+  done: Schema.optional(Schema.Boolean),
+})
+
+type StreamEvent = Schema.Schema.Type<typeof StreamEventSchema>
+
+const handleStreamPart = (
+  input: { chatId: string; projectId: string },
+  get: Atom.FnContext,
+  registry: Registry.Registry,
+) =>
+  Effect.fn(function* (partEvent: StreamEvent) {
+    const chatKey = `${input.projectId}:${input.chatId}`
+    const messageId = partEvent.message_id
+
+    // Update stream status if provided
+    if (partEvent.status) {
+      get.set(chatStreamStatusAtom(input.chatId), partEvent.status)
+    } else if (partEvent.done) {
+      get.set(chatStreamStatusAtom(input.chatId), null)
+    }
+
+    // Skip if done and no parts/delta to process
+    if (
+      partEvent.done &&
+      (!partEvent.parts || partEvent.parts.length === 0) &&
+      !partEvent.delta
+    ) {
+      return
+    }
+
+    // Get current messages
+    const currentMessagesResult = registry.get(chatAtom(chatKey))
+    const currentMessages = Result.isSuccess(currentMessagesResult)
+      ? (currentMessagesResult.value.messages ?? [])
+      : []
+    const msgIdx = currentMessages.findIndex(
+      (msg: ChatMessageDto) => msg.id === messageId,
+    )
+
+    if (msgIdx === -1) {
+      // Create new assistant message
+      // Initialize parts based on what we received
+      let initialParts: ReadonlyArray<
+        TextPartDto | FilePartDto | ToolCallPartDto | SourceDocumentPartDto
+      > = []
+
+      if (partEvent.parts) {
+        initialParts = partEvent.parts
+      } else if (partEvent.delta && typeof partEvent.delta === 'string') {
+        // Create initial text part from delta
+        initialParts = [
+          {
+            type: 'text',
+            text_content: partEvent.delta,
+            order: 0,
+            id: partEvent.part_id, // Use part_id if available
+          } as TextPartDto,
+        ]
+      }
+
+      const newMessage: ChatMessageDto = {
+        id: messageId,
+        chat_id: partEvent.chat_id,
+        role: partEvent.role,
+        created_at: partEvent.created_at,
+        parts: initialParts,
+      }
+      get.set(
+        chatAtom(chatKey),
+        ChatMessagesAction.Append({
+          chatId: input.chatId,
+          message: newMessage,
+        }),
+      )
+    } else {
+      // Update existing message
+      const existingMessage = currentMessages[msgIdx]
+      const existingParts = existingMessage.parts || []
+      let newParts = [...existingParts]
+
+      if (partEvent.parts) {
+        // Handle full parts list update (usually final chunk or tool updates)
+        for (const part of partEvent.parts) {
+          const partId = part.id
+          let existingPartIdx = -1
+
+          if (partId) {
+            existingPartIdx = newParts.findIndex((p: any) => p.id === partId)
+          }
+
+          // Fallback: search by order for TextParts
+          if (existingPartIdx === -1 && part.type === 'text') {
+            existingPartIdx = newParts.findIndex(
+              (p) => p.type === 'text' && p.order === part.order,
+            )
+          }
+
+          if (existingPartIdx !== -1) {
+            const existingPart = newParts[existingPartIdx]
+            if (part.type === 'text' && existingPart.type === 'text') {
+              // For parts list, we usually replace, but if it's text streaming reuse, check logic
+              // However, if server sends 'parts', it contains the FULL state or DELTA?
+              // Spec says: "And then comes all the parts" implies final state.
+              // So replacing is safer than appending if we get the full parts list.
+              newParts[existingPartIdx] = part
+            } else {
+              newParts[existingPartIdx] = part
+            }
+          } else {
+            newParts.push(part)
+          }
+        }
+      } else if (partEvent.delta && typeof partEvent.delta === 'string') {
+        // Handle text delta streaming
+        const partId = partEvent.part_id
+        let existingPartIdx = -1
+
+        if (partId) {
+          existingPartIdx = newParts.findIndex((p: any) => p.id === partId)
+        }
+
+        // Fallback: assume first text part if no ID match (common for single text response)
+        if (existingPartIdx === -1) {
+          existingPartIdx = newParts.findIndex((p) => p.type === 'text')
+        }
+
+        if (existingPartIdx !== -1) {
+          const existingPart = newParts[existingPartIdx] as TextPartDto
+          newParts[existingPartIdx] = {
+            ...existingPart,
+            text_content: existingPart.text_content + partEvent.delta,
+          }
+        } else {
+          // No text part found, create one
+          newParts.push({
+            type: 'text',
+            text_content: partEvent.delta,
+            order: 0, // Default order
+            id: partId,
+          } as TextPartDto)
+        }
+      }
+
+      get.set(
+        chatAtom(chatKey),
+        ChatMessagesAction.UpdateParts({
+          chatId: input.chatId,
+          messageId,
+          parts: newParts as ReadonlyArray<
+            | TextPartDto
+            | FilePartDto
+            | ToolCallPartDto
+            | SourceDocumentPartDto
+          >,
+        }),
+      )
+    }
+
+    // If stream is done, fetch fresh data for all messages
+    if (partEvent.done) {
+      yield* Effect.sync(() => {
+        get.set(chatStreamStatusAtom(input.chatId), null)
+      })
+    }
+  })
+
 export const streamMessageAtom = runtime
   .fn(
     Effect.fn(function* (
@@ -268,398 +453,18 @@ export const streamMessageAtom = runtime
         })
       }
 
-      const decoder = new TextDecoder()
-
-      const respStream = resp.stream.pipe(
-        Stream.map((value) => decoder.decode(value, { stream: true })),
-        Stream.map((chunk) => {
-          const chunkLines = chunk.split('\n')
-          const res = chunkLines
-            .map((line) =>
-              line.startsWith('data: ') ? line.replace('data: ', '') : '',
-            )
-            .filter((line) => line !== '')
-            .join('\n')
-          return res
-        }),
-        Stream.filter((chunk) => chunk !== ''),
-        Stream.flatMap((chunk) => {
-          const lines = chunk.trim().split('\n')
-          return Stream.fromIterable(lines).pipe(
-            Stream.filter((line) => line.trim() !== ''),
-            Stream.flatMap((line) =>
-              Schema.decodeUnknown(
-                Schema.parseJson(
-                  Schema.Struct({
-                    message_id: Schema.String,
-                    chat_id: Schema.String,
-                    role: Schema.String,
-                    created_at: Schema.String,
-                    // delta is a string for text parts in streaming chunks (done: false)
-                    // or an object for non-text parts
-                    delta: Schema.optional(
-                      Schema.Union(Schema.String, Schema.Any),
-                    ),
-                    // part_id is for tracking parts during streaming (similar to Vercel AI SDK)
-                    part_id: Schema.optional(Schema.String),
-                    // part is for final chunk (done: true) - full aggregated part object (includes order and id)
-                    part: Schema.optional(
-                      Schema.Union(
-                        TextPartDto,
-                        FilePartDto,
-                        ToolCallPartDto,
-                        SourceDocumentPartDto,
-                      ),
-                    ),
-                    status: Schema.optional(Schema.String),
-                    done: Schema.optional(Schema.Boolean),
-                  }),
-                ),
-              )(line),
-            ),
-          )
-        }),
-        Stream.tap((partEvent) =>
-          Effect.gen(function* () {
-            const messageId = partEvent.message_id
-
-            // Update stream status if provided
-            if (partEvent.status) {
-              get.set(chatStreamStatusAtom(input.chatId), partEvent.status)
-            } else if (partEvent.done) {
-              get.set(chatStreamStatusAtom(input.chatId), null)
-            }
-
-            // Skip if no part/delta to process
-            if (partEvent.done && !partEvent.part) {
-              return
-            }
-            if (!partEvent.done && !partEvent.delta) {
-              return
-            }
-
-            // Get current messages
-            const currentMessagesResult = registry.get(chatAtom(chatKey))
-            const currentMessages = Result.isSuccess(currentMessagesResult)
-              ? (currentMessagesResult.value.messages ?? [])
-              : []
-            const msgIdx = currentMessages.findIndex(
-              (msg: ChatMessageDto) => msg.id === messageId,
-            )
-
-            if (msgIdx === -1) {
-              // Create new assistant message with this part/delta
-              let initialParts: ReadonlyArray<
-                | TextPartDto
-                | FilePartDto
-                | ToolCallPartDto
-                | SourceDocumentPartDto
-              >
-
-              if (partEvent.done && partEvent.part) {
-                // Final chunk: use the full part
-                initialParts = [partEvent.part]
-              } else if (partEvent.delta) {
-                // Streaming chunk: create part from delta
-                if (typeof partEvent.delta === 'string') {
-                  // Delta is a string (text content)
-                  // Order will be set correctly in the final part (done: true)
-                  initialParts = [
-                    {
-                      type: 'text',
-                      text_content: partEvent.delta,
-                      order: 0,
-                    } as TextPartDto,
-                  ]
-                } else {
-                  // Delta is an object (non-text part)
-                  initialParts = [
-                    partEvent.delta as
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto,
-                  ]
-                }
-              } else {
-                return
-              }
-
-              const newMessage: ChatMessageDto = {
-                id: messageId,
-                chat_id: partEvent.chat_id,
-                role: partEvent.role,
-                created_at: partEvent.created_at,
-                parts: initialParts,
-              }
-              get.set(
-                chatAtom(chatKey),
-                ChatMessagesAction.Append({
-                  chatId: input.chatId,
-                  message: newMessage,
-                }),
-              )
-            } else {
-              // Update existing message
-              const existingMessage = currentMessages[msgIdx]
-              const existingParts = existingMessage.parts || []
-
-              // If done is true, replace parts (final chunk contains full aggregated part)
-              if (partEvent.done && partEvent.part) {
-                // For final chunk, replace the part by ID first, then by order and type
-                const finalPart = partEvent.part
-                const partId = (finalPart as any).id
-                const partOrder = (finalPart as any).order ?? 0
-                const partType = finalPart.type
-
-                // For source-document parts, also check by source_id to prevent duplicates
-                const sourceId =
-                  partType === 'source-document'
-                    ? (finalPart as SourceDocumentPartDto).source_id
-                    : null
-
-                // Try to find by ID first (most reliable), then by source_id for source-documents, then by order and type
-                const existingPartIdx = existingParts.findIndex(
-                  (p) =>
-                    (partId && 'id' in p && (p as any).id === partId) ||
-                    (sourceId &&
-                      p.type === 'source-document' &&
-                      (p as SourceDocumentPartDto).source_id === sourceId) ||
-                    ((p as any).order === partOrder && p.type === partType),
-                )
-
-                let updatedParts: ReadonlyArray<
-                  | TextPartDto
-                  | FilePartDto
-                  | ToolCallPartDto
-                  | SourceDocumentPartDto
-                >
-
-                if (existingPartIdx !== -1) {
-                  // Replace the part at this index completely (no merging)
-                  // This prevents duplication by replacing accumulated deltas with final part
-                  const newParts = [...existingParts]
-                  newParts[existingPartIdx] = finalPart
-                  updatedParts = newParts as ReadonlyArray<
-                    | TextPartDto
-                    | FilePartDto
-                    | ToolCallPartDto
-                    | SourceDocumentPartDto
-                  >
-                } else if (partType === 'text' && existingParts.length > 0) {
-                  // Fallback for text parts: if exact match not found, replace first text part
-                  // This handles cases where part matching fails but we need to prevent duplication
-                  const firstTextPartIdx = existingParts.findIndex(
-                    (p) => p.type === 'text',
-                  )
-                  if (firstTextPartIdx !== -1) {
-                    const newParts = [...existingParts]
-                    newParts[firstTextPartIdx] = finalPart
-                    updatedParts = newParts as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                  } else {
-                    // No text part found, append (shouldn't happen)
-                    updatedParts = [
-                      ...existingParts,
-                      finalPart,
-                    ] as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                  }
-                } else if (
-                  partType === 'source-document' &&
-                  sourceId &&
-                  existingParts.length > 0
-                ) {
-                  // Fallback for source-document parts: if exact match not found, replace by source_id
-                  // This handles cases where part matching fails but we need to prevent duplication
-                  const sourceDocPartIdx = existingParts.findIndex(
-                    (p) =>
-                      p.type === 'source-document' &&
-                      (p as SourceDocumentPartDto).source_id === sourceId,
-                  )
-                  if (sourceDocPartIdx !== -1) {
-                    const newParts = [...existingParts]
-                    newParts[sourceDocPartIdx] = finalPart
-                    updatedParts = newParts as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                  } else {
-                    // No matching source-document part found, append
-                    updatedParts = [
-                      ...existingParts,
-                      finalPart,
-                    ] as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                  }
-                } else {
-                  // Part not found and not a text/source-document part, append
-                  updatedParts = [...existingParts, finalPart] as ReadonlyArray<
-                    | TextPartDto
-                    | FilePartDto
-                    | ToolCallPartDto
-                    | SourceDocumentPartDto
-                  >
-                }
-
-                get.set(
-                  chatAtom(chatKey),
-                  ChatMessagesAction.UpdateParts({
-                    chatId: input.chatId,
-                    messageId,
-                    parts: updatedParts,
-                  }),
-                )
-              } else if (partEvent.delta) {
-                // For streaming chunks (done: false), merge/append delta
-                const delta = partEvent.delta
-
-                if (typeof delta === 'string') {
-                  // Delta is a string (text content) - append to existing text part
-                  // Use part_id to find the correct part (similar to Vercel AI SDK)
-                  const partId = partEvent.part_id
-                  const existingTextPartIdx = existingParts.findIndex(
-                    (p) =>
-                      p.type === 'text' &&
-                      (partId && 'id' in p
-                        ? (p as any).id === partId
-                        : (p as TextPartDto).order === 0),
-                  )
-
-                  if (existingTextPartIdx !== -1) {
-                    // Append to existing text part
-                    const existingTextPart = existingParts[
-                      existingTextPartIdx
-                    ] as TextPartDto
-                    const mergedPart: TextPartDto = {
-                      ...existingTextPart,
-                      text_content: existingTextPart.text_content + delta,
-                    }
-                    const updatedParts = [...existingParts]
-                    updatedParts[existingTextPartIdx] = mergedPart
-                    get.set(
-                      chatAtom(chatKey),
-                      ChatMessagesAction.UpdateParts({
-                        chatId: input.chatId,
-                        messageId,
-                        parts: updatedParts as ReadonlyArray<
-                          | TextPartDto
-                          | FilePartDto
-                          | ToolCallPartDto
-                          | SourceDocumentPartDto
-                        >,
-                      }),
-                    )
-                  } else {
-                    // Create new text part with part_id (order will be set correctly in final part)
-                    const newTextPart = {
-                      type: 'text' as const,
-                      id: partEvent.part_id,
-                      text_content: delta,
-                      order: 0,
-                    } as TextPartDto & { id?: string }
-                    const updatedParts = [
-                      ...existingParts,
-                      newTextPart,
-                    ] as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                    get.set(
-                      chatAtom(chatKey),
-                      ChatMessagesAction.UpdateParts({
-                        chatId: input.chatId,
-                        messageId,
-                        parts: updatedParts,
-                      }),
-                    )
-                  }
-                } else {
-                  // Delta is an object (non-text part) - handle as before
-                  const deltaObj = delta as
-                    | TextPartDto
-                    | FilePartDto
-                    | ToolCallPartDto
-                    | SourceDocumentPartDto
-                  const isDuplicate = existingParts.some((existingPart) => {
-                    // For text parts, check by order
-                    if (
-                      deltaObj.type === 'text' &&
-                      existingPart.type === 'text'
-                    ) {
-                      return (
-                        (deltaObj as TextPartDto).order ===
-                        (existingPart as TextPartDto).order
-                      )
-                    }
-                    // For source-document parts, check by source_id to prevent duplicates
-                    if (
-                      deltaObj.type === 'source-document' &&
-                      existingPart.type === 'source-document'
-                    ) {
-                      return (
-                        (deltaObj as SourceDocumentPartDto).source_id ===
-                        (existingPart as SourceDocumentPartDto).source_id
-                      )
-                    }
-                    // For other parts, check by type and order
-                    return (
-                      deltaObj.type === existingPart.type &&
-                      (deltaObj as any).order === (existingPart as any).order
-                    )
-                  })
-
-                  if (!isDuplicate) {
-                    const updatedParts = [
-                      ...existingParts,
-                      deltaObj,
-                    ] as ReadonlyArray<
-                      | TextPartDto
-                      | FilePartDto
-                      | ToolCallPartDto
-                      | SourceDocumentPartDto
-                    >
-                    get.set(
-                      chatAtom(chatKey),
-                      ChatMessagesAction.UpdateParts({
-                        chatId: input.chatId,
-                        messageId,
-                        parts: updatedParts,
-                      }),
-                    )
-                  }
-                }
-              }
-            }
-
-            // If stream is done, fetch fresh data for all messages
-            if (partEvent.done) {
-              yield* Effect.sync(() => {
-                get.set(chatStreamStatusAtom(input.chatId), null)
-              })
-              // Fetch fresh data in background without triggering loading state
-              // get.refresh(getChatMessagesAtom(chatKey))
-            }
-          }),
+      yield* resp.stream.pipe(
+        Stream.decodeText(),
+        Stream.splitLines,
+        Stream.filter((line) => line.startsWith('data: ')),
+        Stream.map((line) => line.slice(6)),
+        Stream.filter((line) => line.length > 0),
+        Stream.mapEffect((line) =>
+          Schema.decodeUnknown(Schema.parseJson(StreamEventSchema))(line),
         ),
+        Stream.tap(handleStreamPart(input, get, registry)),
+        Stream.runCollect,
       )
-      yield* Stream.runCollect(respStream)
 
       // Refresh usage only
       get.refresh(usageAtom)
