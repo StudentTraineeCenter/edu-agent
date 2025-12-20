@@ -84,16 +84,35 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
         if not self.key_vault_uri:
             return None, field_name, False
 
+        client = self._get_client()
+        if not client:
+            return None, field_name, False
+
         # Convert field name to dash-case for Key Vault secret name
         secret_name = _snake_to_dash_case(field_name)
 
-        # Try to get secret from Key Vault
-        secret_value = get_secret_from_key_vault(self.key_vault_uri, secret_name)
+        try:
+            secret = client.get_secret(secret_name)
+            secret_value = secret.value
+        except Exception:
+            # If Key Vault access fails, return None to fall back to env vars
+            secret_value = None
 
         # Check if field is complex (needs JSON parsing)
         is_complex = self.field_is_complex(field)
 
         return secret_value, field_name, is_complex
+
+    def _fetch_field_value(self, args: tuple[str, FieldInfo]) -> tuple[str, Any] | None:
+        """Helper for parallel fetching."""
+        field_name, field_info = args
+        value, key, is_complex = self.get_field_value(field_info, field_name)
+        if value is not None:
+             prepared_value = self.prepare_field_value(
+                field_name, field_info, value, is_complex
+            )
+             return key, prepared_value
+        return None
 
     def __call__(self) -> dict[str, Any]:
         """Load all settings from Key Vault."""
@@ -101,15 +120,26 @@ class KeyVaultSettingsSource(PydanticBaseSettingsSource):
             return {}
 
         data: dict[str, Any] = {}
+        
+        # Ensure client is initialized once before parallel execution
+        if not self._get_client():
+            return {}
 
-        # Iterate through all fields in the settings class
-        for field_name, field_info in self.settings_cls.model_fields.items():
-            value, key, is_complex = self.get_field_value(field_info, field_name)
-            if value is not None:
-                # Prepare the value (handles complex types)
-                prepared_value = self.prepare_field_value(
-                    field_name, field_info, value, is_complex
-                )
-                data[key] = prepared_value
+        import concurrent.futures
+
+        # Use ThreadPoolExecutor for parallel fetching
+        # We limit max_workers to avoid hitting rate limits too hard, 
+        # but high enough to be fast. 10-20 is usually safe for Key Vault.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_field = {
+                executor.submit(self._fetch_field_value, (name, info)): name
+                for name, info in self.settings_cls.model_fields.items()
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_field):
+                result = future.result()
+                if result:
+                    key, value = result
+                    data[key] = value
 
         return data
