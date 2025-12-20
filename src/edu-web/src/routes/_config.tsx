@@ -1,8 +1,8 @@
+import { AppShell } from '@/routes/_app-shell'
 import { createRootRoute, createRoute, redirect } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { Suspense, lazy } from 'react'
 import { z } from 'zod'
-import { AppShell } from '@/routes/_app-shell'
 
 const LoadingPage = () => {
   return (
@@ -66,6 +66,11 @@ const MindMapDetailRoute = lazy(() =>
 const StudySessionDetailRoute = lazy(() =>
   import('./study-session-detail-route').then((m) => ({
     default: m.StudySessionDetailRoute,
+  })),
+)
+const StudyPlanRoute = lazy(() =>
+  import('./study-plan-route').then((m) => ({
+    default: m.StudyPlanRoute,
   })),
 )
 const SettingsPage = lazy(() =>
@@ -267,6 +272,16 @@ export const studySessionDetailRoute = createRoute({
   ),
 })
 
+export const studyPlanRoute = createRoute({
+  path: '/p/$projectId/study-plan',
+  getParentRoute: () => dashboardRoute,
+  component: () => (
+    <Suspense fallback={<LoadingPage />}>
+      <StudyPlanRoute />
+    </Suspense>
+  ),
+})
+
 export const settingsRoute = createRoute({
   path: '/settings',
   getParentRoute: () => dashboardRoute,
@@ -290,6 +305,7 @@ export const routeTree = rootRoute.addChildren([
     noteDetailRoute,
     mindMapDetailRoute,
     studySessionDetailRoute,
+    studyPlanRoute,
     settingsRoute,
   ]),
   indexRoute,

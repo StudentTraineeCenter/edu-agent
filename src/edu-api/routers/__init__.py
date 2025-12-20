@@ -13,6 +13,7 @@ from .study_sessions import (
 from .study_sessions import (
     router_global as study_sessions_global_router,
 )
+from .study_plans import study_plans_router
 from .usage import router as usage_router
 from .users import router as users_router
 
@@ -28,6 +29,7 @@ __all__ = [
     "quizzes_router",
     "study_sessions_global_router",
     "study_sessions_router",
+    "study_plans_router",
     "usage_router",
     "users_router",
 ]

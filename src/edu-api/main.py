@@ -26,6 +26,7 @@ from routers import (
     quizzes_router,
     study_sessions_global_router,
     study_sessions_router,
+    study_plans_router,
     usage_router,
     users_router,
 )
@@ -102,6 +103,7 @@ class Api:
         self.app.include_router(mind_maps_router)
         self.app.include_router(study_sessions_router)
         self.app.include_router(study_sessions_global_router)
+        self.app.include_router(study_plans_router)
         self.app.include_router(usage_router)
         self.app.include_router(users_router)
         self.app.include_router(auth_router)

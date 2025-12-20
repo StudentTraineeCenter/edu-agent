@@ -554,3 +554,29 @@ class UserUsage(Base):
 
     # Relationships
     user = relationship("User")
+
+
+class StudyPlan(Base):
+    __tablename__ = "study_plans"
+    id: Mapped[str] = mapped_column(
+        String, primary_key=True, default=lambda: str(uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    project_id: Mapped[str] = mapped_column(
+        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+
+    content: Mapped[dict] = mapped_column(JSON)  # Structured JSON study plan
+    weak_topics: Mapped[list[str]] = mapped_column(
+        JSON, default=list
+    )  # List of weak topics identified
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    user = relationship("User")
+    project = relationship("Project")

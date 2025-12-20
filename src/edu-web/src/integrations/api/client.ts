@@ -424,6 +424,14 @@ export class ChatDetailDto extends S.Class<ChatDetailDto>('ChatDetailDto')({
    */
   updated_at: S.String,
   /**
+   * Content preview of the last message
+   */
+  last_message_content: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Date and time of the last message
+   */
+  last_message_at: S.optionalWith(S.String, { nullable: true }),
+  /**
    * List of messages in the chat
    */
   messages: S.optionalWith(S.Array(ChatMessageDto), { nullable: true }),
@@ -1170,6 +1178,114 @@ export class StudySessionCreate extends S.Class<StudySessionCreate>(
 }) {}
 
 /**
+ * Type of the resource
+ */
+export class StudyResourceType extends S.Literal('quiz', 'flashcard') {}
+
+export class StudyResource extends S.Class<StudyResource>('StudyResource')({
+  /**
+   * ID of the resource (quiz or flashcard)
+   */
+  id: S.String,
+  /**
+   * ID of the parent (e.g. Flashcard Group ID or Quiz ID) for navigation
+   */
+  parent_id: S.optionalWith(S.String, { nullable: true }),
+  /**
+   * Type of the resource
+   */
+  type: StudyResourceType,
+  /**
+   * Title of the resource
+   */
+  title: S.String,
+  /**
+   * Optional description
+   */
+  description: S.optionalWith(S.String, { nullable: true }),
+}) {}
+
+export class WeeklyScheduleDay extends S.Class<WeeklyScheduleDay>(
+  'WeeklyScheduleDay',
+)({
+  /**
+   * e.g. 'Monday' or 'Day 1'
+   */
+  day: S.String,
+  /**
+   * List of tasks for the day
+   */
+  tasks: S.Array(S.String),
+}) {}
+
+/**
+ * Schema for structured study plan content.
+ */
+export class StudyPlanContent extends S.Class<StudyPlanContent>(
+  'StudyPlanContent',
+)({
+  /**
+   * Brief summary of current performance and analysis.
+   */
+  analysis: S.String,
+  /**
+   * List of top 3 weak topics or areas to prioritize.
+   */
+  focus_areas: S.Array(S.String),
+  /**
+   * Specific recommended actions/resources.
+   */
+  action_items: S.Array(StudyResource),
+  /**
+   * Suggested weekly schedule.
+   */
+  schedule: S.Array(WeeklyScheduleDay),
+  /**
+   * Encouraging closing message.
+   */
+  encouragement: S.String,
+}) {}
+
+/**
+ * Study plan data transfer object.
+ */
+export class StudyPlanDto extends S.Class<StudyPlanDto>('StudyPlanDto')({
+  /**
+   * Unique ID of the plan
+   */
+  id: S.String,
+  /**
+   * ID of the user
+   */
+  user_id: S.String,
+  /**
+   * ID of the project
+   */
+  project_id: S.String,
+  /**
+   * Structured content of the study plan
+   */
+  content: StudyPlanContent,
+  /**
+   * List of weak topics identified
+   */
+  weak_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
+  /**
+   * Date created
+   */
+  created_at: S.String,
+}) {}
+
+export class GetLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet200 extends S.Union(
+  StudyPlanDto,
+  S.Null,
+) {}
+
+export class ListStudyPlansApiV1ProjectsProjectIdStudyPlansGet200 extends S.Array(
+  StudyPlanDto,
+) {}
+
+/**
  * DTO for usage limit information.
  */
 export class UsageLimitDto extends S.Class<UsageLimitDto>('UsageLimitDto')({
@@ -1233,8 +1349,6 @@ export class UserDto extends S.Class<UserDto>('UserDto')({
 }) {}
 
 export class ListUsersApiV1UsersGet200 extends S.Array(UserDto) {}
-
-export class GetBlobApiV1BlobsBlobPathGet200 extends S.Struct({}) {}
 
 export const make = (
   httpClient: HttpClient.HttpClient,
@@ -2143,6 +2257,46 @@ export const make = (
           }),
         ),
       ),
+    getLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet: (projectId) =>
+      HttpClientRequest.get(
+        `/api/v1/projects/${projectId}/study-plans/latest`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              GetLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    listStudyPlansApiV1ProjectsProjectIdStudyPlansGet: (projectId) =>
+      HttpClientRequest.get(`/api/v1/projects/${projectId}/study-plans`).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(
+              ListStudyPlansApiV1ProjectsProjectIdStudyPlansGet200,
+            ),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
+    generateStudyPlanApiV1ProjectsProjectIdStudyPlansGeneratePost: (
+      projectId,
+    ) =>
+      HttpClientRequest.post(
+        `/api/v1/projects/${projectId}/study-plans/generate`,
+      ).pipe(
+        withResponse(
+          HttpClientResponse.matchStatus({
+            '2xx': decodeSuccess(StudyPlanDto),
+            '422': decodeError('HTTPValidationError', HTTPValidationError),
+            orElse: unexpectedStatus,
+          }),
+        ),
+      ),
     getUsageApiV1UsageGet: () =>
       HttpClientRequest.get(`/api/v1/usage`).pipe(
         withResponse(
@@ -2186,16 +2340,6 @@ export const make = (
         withResponse(
           HttpClientResponse.matchStatus({
             '2xx': decodeSuccess(UserDto),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getBlobApiV1BlobsBlobPathGet: (blobPath) =>
-      HttpClientRequest.get(`/api/v1/blobs/${blobPath}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(GetBlobApiV1BlobsBlobPathGet200),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
             orElse: unexpectedStatus,
           }),
         ),
@@ -2939,6 +3083,39 @@ export interface Client {
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
   /**
+   * Get the latest study plan for the user in the project.
+   */
+  readonly getLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof GetLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * List all study plans for the user in the project.
+   */
+  readonly listStudyPlansApiV1ProjectsProjectIdStudyPlansGet: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof ListStudyPlansApiV1ProjectsProjectIdStudyPlansGet200.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
+   * Generate a new study plan for the user based on performance.
+   */
+  readonly generateStudyPlanApiV1ProjectsProjectIdStudyPlansGeneratePost: (
+    projectId: string,
+  ) => Effect.Effect<
+    typeof StudyPlanDto.Type,
+    | HttpClientError.HttpClientError
+    | ParseError
+    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
+  >
+  /**
    * Get current usage statistics for the authenticated user
    */
   readonly getUsageApiV1UsageGet: () => Effect.Effect<
@@ -2980,29 +3157,6 @@ export interface Client {
   readonly getCurrentUserInfoApiV1AuthMeGet: () => Effect.Effect<
     typeof UserDto.Type,
     HttpClientError.HttpClientError | ParseError
-  >
-  /**
-   * Proxy a blob file from Azure Storage with authentication.
-   *
-   * Args:
-   *     blob_path: The blob path (e.g., "{project_id}/{chat_id}/{filename}")
-   *     current_user: Current authenticated user
-   *     blob_service_client: Azure Blob Service Client
-   *     settings: Application settings
-   *
-   * Returns:
-   *     Blob file content with appropriate headers
-   *
-   * Raises:
-   *     HTTPException: If blob not found or access denied
-   */
-  readonly getBlobApiV1BlobsBlobPathGet: (
-    blobPath: string,
-  ) => Effect.Effect<
-    typeof GetBlobApiV1BlobsBlobPathGet200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
   >
 }
 

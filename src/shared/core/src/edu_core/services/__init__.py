@@ -12,6 +12,7 @@ from edu_core.services.projects import ProjectService
 from edu_core.services.quizzes import QuizService
 from edu_core.services.search import SearchService
 from edu_core.services.study_sessions import StudySessionService
+from edu_core.services.study_plans import StudyPlanService
 from edu_core.services.usage import UsageService
 from edu_core.services.users import UserService
 
@@ -28,6 +29,7 @@ __all__ = [
     "QuizService",
     "SearchService",
     "StudySessionService",
+    "StudyPlanService",
     "UsageService",
     "UserService",
 ]
