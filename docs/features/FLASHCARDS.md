@@ -40,7 +40,6 @@ Flashcards are organized into groups. Each group contains:
 - **Update Group**: Modify group name or description.
 - **Delete Group**: Remove a group and all its flashcards.
 - **Spaced Repetition**: Track simple mastery/progress per user/flashcard.
-- **Study Sessions**: Generate personalized study sessions based on performance.
 - **Practice Tracking**: Track practice events and performance metrics.
 - **Due Cards**: View flashcards due for review based on progress.
 
@@ -61,6 +60,4 @@ The system tracks flashcard progress and simple mastery:
 - Whether a card is considered mastered.
 - Last practiced timestamp and last result.
 
-This data feeds into study sessions and practice analytics.
-
-
+This data feeds into practice analytics.

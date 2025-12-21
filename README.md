@@ -16,7 +16,7 @@
 
 ---
 
-EduAgent helps students study course materials through intelligent document processing, interactive AI chat, and automatically generated study aids. Upload your documents, chat with an AI tutor, and get personalized quizzes and flashcards—all powered by Azure AI services.
+EduAgent is a cutting-edge, AI-powered educational platform designed to transform how you learn. By combining advanced RAG (Retrieval-Augmented Generation) with proactive AI agents, EduAgent turns static documents into a dynamic, personalized tutor. Upload your course materials and experience a new way of studying with automatically generated quizzes, flashcards, mind maps, and a **Personalized Study Plan** that adapts to your unique learning pace.
 
 ## Table of Contents
 
@@ -36,16 +36,15 @@ EduAgent helps students study course materials through intelligent document proc
 
 ## ✨ Features
 
-- **📂 Project-Based Workspaces** - Organize everything into projects that group documents, chats, quizzes, flashcards, notes, mind maps, and practice history
-- **📄 Document Pipeline** - Upload PDF, DOCX, TXT, and RTF, process them via Azure Content Understanding, and chunk + embed them into PostgreSQL pgvector
-- **🔍 RAG-Powered Semantic Search** - Query your own materials with vector search and filtering by project/document
-- **💬 AI Chat Tutor** - Chat with an AI that uses RAG over your project documents and can call tools for quizzes, flashcards, notes, and more
-- **📝 Auto-Generated Quizzes** - Generate and regenerate MCQ quizzes from any project or document with answer checking and attempt tracking
-- **🎴 Smart Flashcards** - Create flashcard groups from documents or quizzes, with simple progress tracking per flashcard
-- **📝 AI-Generated Notes** - Turn dense readings into structured summaries and study notes per project/document
-- **🗺️ Mind Maps** - Build AI-generated concept maps that visualize the relationships inside a project’s materials
-- **🎯 Adaptive Practice Sessions** - Run study sessions that mix flashcards and quizzes, with practice records and basic analytics
-- **🔐 Supabase Auth + Usage Limits** - Supabase-backed authentication with per-user daily limits for chats, generations, and uploads
+- **📂 Project-Based Learning** - Organize courses into focused projects containing all your documents, chats, and AI-generated study aids.
+- **🧠 Personalized Study Plans** - AI identifies your weak spots based on performance and generates a custom tailored curriculum to help you master the material.
+- **🤖 Proactive AI Tutor** - Chat with an intelligent agent that not only answers questions but proactively generates quizzes, flashcards, and notes during your conversation.
+- **📄 Smart Document Processing** - Drag-and-drop PDF, DOCX, TXT, and RTF files. We handle the OCR, text extraction, and vector embedding automatically.
+- **🔍 Semantic Search & RAG** - Stop Ctrl+F. Ask questions and get answers grounded in your specific course materials with source citations.
+- **📝 Automated Quizzes** - Generate multiple-choice quizzes from any document. The system grades you, explains answers, and tracks your progress.
+- **🎴 Flashcards (Spaced Repetition)** - Turn dense text into flashcards instantly. Perfect for memorizing definitions and key concepts.
+- **🗺️ Interactive Mind Maps** - Visualize connections between topics with AI-generated mind maps that help you understand the bigger picture.
+- **🔐 Enterprise-Grade Security** - Built with Supabase Auth, Row Level Security, and Azure usage limits to keep your data safe and costs controlled.
 
 ## 🏗️ Tech Stack
 

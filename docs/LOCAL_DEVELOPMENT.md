@@ -34,9 +34,8 @@ This guide covers how to set up and run EduAgent locally for development.
 docker-compose up --build api worker db azurite
 
 # 2. Set up database schema (separate terminal, one-time)
-cd server
-pip install -r requirements.txt
-alembic upgrade head
+# 2. Set up database schema (separate terminal, one-time)
+uv run alembic upgrade head
 
 # 3. Start web frontend (in a new terminal)
 cd src/edu-web
@@ -79,13 +78,8 @@ You should see `api`, `worker`, `db`, and `azurite` containers.
 Run database migrations to create the schema:
 
 ```bash
-cd server
-
-# Install Python dependencies (if not already installed)
-pip install -r requirements.txt
-
 # Run Alembic migrations
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
 This creates all necessary tables including:
@@ -186,8 +180,7 @@ MAX_DOCUMENT_UPLOADS_PER_DAY=100
 If you prefer to run the API directly (outside Docker):
 
 ```bash
-cd src/edu-api
-uv run python main.py
+uv run --package edu-api python src/edu-api/main.py
 ```
 
 The API will be available at `http://localhost:8000`.
@@ -248,11 +241,9 @@ edu-agent/
 │   ├── edu-api/        # FastAPI backend (public API)
 │   ├── edu-worker/     # Background worker (queue/AI processing)
 │   ├── edu-web/        # React frontend (Vite + TanStack)
-│   └── edu-shared/     # Shared models, DB session, Key Vault helpers, etc.
-├── server/             # Legacy backend (DB models, Alembic migrations, schemas)
-├── deploy/
-│   └── azure/          # Azure Terraform + ACR build tooling
-├── infra/              # (Legacy) Terraform infra — superseded by deploy/azure
+│   ├── shared/         # Shared models, DB session, Key Vault helpers, etc.
+│   └── eduagent-vibecode/
+├── deploy/             # Deployment configurations
 ├── docker-compose.yaml # Local stack (api, worker, db, azurite)
 └── docs/               # Documentation
 ```
@@ -275,9 +266,9 @@ edu-agent/
 
 3. **Database Changes:**
 
-   - Modify models in `server/db/models.py`
-   - Generate migration: `alembic revision --autogenerate -m "description"`
-   - Apply migration: `alembic upgrade head`
+   - Modify models in `src/shared/db/src/edu_db/models.py`
+   - Generate migration: `uv run alembic revision --autogenerate -m "description"`
+   - Apply migration: `uv run alembic upgrade head`
 
 ### Running Tests
 

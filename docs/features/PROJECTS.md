@@ -22,5 +22,3 @@ Projects are the top-level organizational unit for all educational content.
 ## Language Support
 
 Projects support different languages through the `language_code` field. When generating quizzes, flashcards, or chat responses, the AI will use the project's language code to ensure content is generated in the appropriate language.
-
-

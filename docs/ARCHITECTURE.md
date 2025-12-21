@@ -16,7 +16,7 @@ graph TB
         F[Flashcard Service]
         G[Note Service]
         H[Mind Map Service]
-        I[Study Session Service]
+        I[Study Plan Service]
         J[Practice Service]
         K[Usage Service]
     end
@@ -59,7 +59,7 @@ graph TB
     F --> L
     G --> L
     H --> L
-    I --> L
+
 
     L --> M
     L --> N
@@ -86,6 +86,7 @@ graph TB
     G --> R
     H --> R
     I --> R
+
     Q --> R
 
     C --> T
@@ -130,8 +131,8 @@ Validation → Database Storage → Return Results
 - `flashcard_groups`: Flashcard containers.
 - `flashcards`: Individual flashcards.
 - `flashcard_progress`: Simple flashcard mastery/progress tracking.
-- `study_sessions`: Adaptive study session records.
-- `practice_records`: Practice attempt tracking (flashcards + quizzes).
+  - `practice_records`: Practice attempt tracking (flashcards + quizzes).
+- `study_plans`: Personalized study plans.
 - `notes`: AI-generated study notes.
 - `mind_maps`: Visual knowledge maps.
 - `user_usage`: Daily usage tracking.
@@ -139,13 +140,13 @@ Validation → Database Storage → Return Results
 ### Relationships
 
 - Users own Projects.
-- Projects contain Documents, Chats, Quizzes, Flashcard Groups, Notes, Mind Maps, Study Sessions, and Practice Records.
+- Projects contain Documents, Chats, Quizzes, Flashcard Groups, Notes, Mind Maps, and Practice Records.
 - Documents have Document Segments.
 - Quizzes have Quiz Questions.
 - Flashcard Groups have Flashcards.
 - Users have FlashcardProgress records (one per flashcard per user).
-- Users have Study Sessions (one-to-many).
-- Users have Practice Records (one-to-many).
+  - Users have Practice Records (one-to-many).
+- Users have Study Plans (one-to-many).
 - Users have Usage records.
 
 ## Vector Search

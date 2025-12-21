@@ -11,9 +11,10 @@
 7. [Notes](features/NOTES.md)
 8. [Mind Maps](features/MIND_MAPS.md)
 9. [Practice Records](features/PRACTICE.md)
-10. [Usage Limits](features/USAGE_LIMITS.md)
-11. [Architecture](ARCHITECTURE.md)
-12. [Best Practices & Limitations](BEST_PRACTICES.md)
+10. [Study Plans](features/STUDY_PLANS.md)
+11. [Usage Limits](features/USAGE_LIMITS.md)
+12. [Architecture](ARCHITECTURE.md)
+13. [Best Practices & Limitations](BEST_PRACTICES.md)
 
 ## Overview & Core Concepts
 
@@ -31,7 +32,8 @@ All content is organized within **Projects**. A project represents a course or s
 - Flashcard groups (AI-generated study cards)
 - Notes (AI-generated study notes)
 - Mind Maps (visual knowledge representations)
-- Study sessions and practice records (tracking of user progress)
+- Study Plans (personalized learning paths)
+- Practice records (tracking of user progress)
 
 Each project has a language code that determines the language used for AI-generated content.
 
