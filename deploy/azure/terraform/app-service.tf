@@ -48,7 +48,8 @@ resource "azurerm_linux_web_app" "web" {
     "VITE_SUPABASE_ANON_KEY" = var.supabase_anon_key != null ? var.supabase_anon_key : ""
 
     # URLs - constructed from container app FQDN
-    "VITE_SERVER_URL" = "https://${azurerm_container_app.api.latest_revision_fqdn}"
+    "VITE_SERVER_URL" = "https://${azurerm_container_app.api.ingress[0].fqdn}"
+
   }
 
   depends_on = [azurerm_container_app.api]

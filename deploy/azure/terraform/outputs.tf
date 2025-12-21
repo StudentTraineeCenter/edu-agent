@@ -103,7 +103,7 @@ output "acr_webhooks_configured" {
 # ============================================================================
 output "container_app_api_url" {
   description = "FQDN of the API container app"
-  value       = replace(azurerm_container_app.api.latest_revision_fqdn, "--[a-z0-9]+\\.", ".")
+  value       = azurerm_container_app.api.ingress[0].fqdn
 }
 
 output "container_app_worker_name" {
