@@ -14,9 +14,6 @@ class FlashcardGroupDto(BaseModel):
     description: str | None = Field(
         None, description="Description of the flashcard group"
     )
-    study_session_id: str | None = Field(
-        None, description="ID of the study session if this group belongs to one"
-    )
     created_at: datetime = Field(
         ..., description="Date and time the flashcard group was created"
     )

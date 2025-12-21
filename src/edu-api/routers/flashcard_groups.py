@@ -41,7 +41,6 @@ async def create_flashcard_group(
             project_id=project_id,
             name=group.name,
             description=group.description,
-            study_session_id=group.study_session_id,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -66,9 +65,6 @@ async def get_flashcard_group(
 @router.get("", response_model=list[FlashcardGroupDto])
 async def list_flashcard_groups(
     project_id: str,
-    study_session_id: str | None = Query(
-        None, description="Filter by study session ID"
-    ),
     current_user: UserDto = Depends(get_current_user),
     service: FlashcardGroupService = Depends(get_flashcard_group_service),
 ):
@@ -76,7 +72,6 @@ async def list_flashcard_groups(
     try:
         return service.list_flashcard_groups(
             project_id=project_id,
-            study_session_id=study_session_id,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

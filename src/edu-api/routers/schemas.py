@@ -69,9 +69,7 @@ class FlashcardGroupCreate(BaseModel):
     description: str | None = Field(
         None, description="Description of the flashcard group"
     )
-    study_session_id: str | None = Field(
-        None, description="ID of the study session if this group belongs to one"
-    )
+
 
 
 class FlashcardGroupUpdate(BaseModel):
@@ -202,11 +200,7 @@ class MindMapCreate(BaseModel):
     )
 
 
-class StudySessionCreate(BaseModel):
-    session_length_minutes: int = Field(
-        30, ge=10, le=120, description="Length of the study session in minutes"
-    )
-    focus_topics: list[str] | None = Field(None, description="Optional focus topics")
+
 
 
 class GenerateRequest(BaseModel):

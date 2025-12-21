@@ -13,7 +13,6 @@ from edu_core.services import (
     ProjectService,
     QuizService,
     SearchService,
-    StudySessionService,
     StudyPlanService,
     UsageService,
     UserService,
@@ -136,9 +135,6 @@ def get_mind_map_service(
     return MindMapService(queue_service=queue_service)
 
 
-def get_study_session_service() -> StudySessionService:
-    """Get StudySessionService instance."""
-    return StudySessionService()
 
 
 def get_chat_service_with_streaming(

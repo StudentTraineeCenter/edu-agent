@@ -237,12 +237,7 @@ class FlashcardGroup(Base):
     )
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
-    study_session_id: Mapped[str | None] = mapped_column(
-        String,
-        ForeignKey("study_sessions.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )  # If set, this group belongs to a study session and should be hidden from regular lists
+
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -487,40 +482,7 @@ class FlashcardProgress(Base):
     project = relationship("Project")
 
 
-class StudySession(Base):
-    __tablename__ = "study_sessions"
-    id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid4())
-    )
-    user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    project_id: Mapped[str] = mapped_column(
-        String, ForeignKey("projects.id", ondelete="CASCADE"), index=True
-    )
 
-    # Session metadata
-    session_data: Mapped[dict] = mapped_column(
-        JSON
-    )  # Contains flashcards, focus_topics, learning_objectives
-    estimated_time_minutes: Mapped[int] = mapped_column(Integer)
-    session_length_minutes: Mapped[int] = mapped_column(Integer)  # Requested length
-    focus_topics: Mapped[list[str] | None] = mapped_column(
-        JSON, nullable=True
-    )  # Optional focus topics
-
-    # Timestamps
-    generated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
-    completed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # Relationships
-    user = relationship("User")
-    project = relationship("Project")
 
 
 class UserUsage(Base):

@@ -31,7 +31,6 @@ class FlashcardGroupService:
         project_id: str,
         name: str,
         description: str | None = None,
-        study_session_id: str | None = None,
     ) -> FlashcardGroupDto:
         """Create a new flashcard group.
 
@@ -39,7 +38,6 @@ class FlashcardGroupService:
             project_id: The project ID
             name: The flashcard group name
             description: Optional group description
-            study_session_id: Optional study session ID
 
         Returns:
             Created FlashcardGroupDto
@@ -51,7 +49,6 @@ class FlashcardGroupService:
                     project_id=project_id,
                     name=name,
                     description=description,
-                    study_session_id=study_session_id,
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                 )
@@ -97,13 +94,12 @@ class FlashcardGroupService:
                 raise
 
     def list_flashcard_groups(
-        self, project_id: str, study_session_id: str | None = None
+        self, project_id: str
     ) -> list[FlashcardGroupDto]:
         """List all flashcard groups for a project.
 
         Args:
             project_id: The project ID
-            study_session_id: Optional study session ID to filter by (None to exclude study session groups)
 
         Returns:
             List of FlashcardGroupDto instances
@@ -113,13 +109,6 @@ class FlashcardGroupService:
                 query = db.query(FlashcardGroup).filter(
                     FlashcardGroup.project_id == project_id
                 )
-                if study_session_id is not None:
-                    query = query.filter(
-                        FlashcardGroup.study_session_id == study_session_id
-                    )
-                else:
-                    # Exclude groups that belong to study sessions by default
-                    query = query.filter(FlashcardGroup.study_session_id.is_(None))
                 flashcard_groups = query.order_by(
                     FlashcardGroup.created_at.desc()
                 ).all()
@@ -216,7 +205,6 @@ class FlashcardGroupService:
             project_id=flashcard_group.project_id,
             name=flashcard_group.name,
             description=flashcard_group.description,
-            study_session_id=flashcard_group.study_session_id,
             created_at=flashcard_group.created_at,
             updated_at=flashcard_group.updated_at,
         )

@@ -1097,86 +1097,6 @@ export class CreateMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost200 exte
   {},
 ) {}
 
-export class ListStudySessionsApiV1ProjectsProjectIdStudySessionsGetParams extends S.Struct(
-  {
-    /**
-     * Maximum number of sessions to return
-     */
-    limit: S.optionalWith(
-      S.Int.pipe(S.greaterThanOrEqualTo(1), S.lessThanOrEqualTo(100)),
-      { nullable: true, default: () => 50 as const },
-    ),
-  },
-) {}
-
-/**
- * Study session data transfer object.
- */
-export class StudySessionDto extends S.Class<StudySessionDto>(
-  'StudySessionDto',
-)({
-  /**
-   * Unique ID of the study session
-   */
-  id: S.String,
-  /**
-   * ID of the user
-   */
-  user_id: S.String,
-  /**
-   * ID of the project
-   */
-  project_id: S.String,
-  /**
-   * Session data containing flashcards, focus_topics, learning_objectives
-   */
-  session_data: S.Record({ key: S.String, value: S.Unknown }),
-  /**
-   * Estimated time in minutes
-   */
-  estimated_time_minutes: S.Int,
-  /**
-   * Requested session length in minutes
-   */
-  session_length_minutes: S.Int,
-  /**
-   * Optional focus topics
-   */
-  focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
-  /**
-   * Date and time the session was generated
-   */
-  generated_at: S.String,
-  /**
-   * Date and time the session was started
-   */
-  started_at: S.optionalWith(S.String, { nullable: true }),
-  /**
-   * Date and time the session was completed
-   */
-  completed_at: S.optionalWith(S.String, { nullable: true }),
-}) {}
-
-export class ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200 extends S.Array(
-  StudySessionDto,
-) {}
-
-export class StudySessionCreate extends S.Class<StudySessionCreate>(
-  'StudySessionCreate',
-)({
-  /**
-   * Length of the study session in minutes
-   */
-  session_length_minutes: S.optionalWith(
-    S.Int.pipe(S.greaterThanOrEqualTo(10), S.lessThanOrEqualTo(120)),
-    { nullable: true, default: () => 30 as const },
-  ),
-  /**
-   * Optional focus topics
-   */
-  focus_topics: S.optionalWith(S.Array(S.String), { nullable: true }),
-}) {}
-
 /**
  * Type of the resource
  */
@@ -2213,50 +2133,6 @@ export const make = (
           }),
         ),
       ),
-    listStudySessionsApiV1ProjectsProjectIdStudySessionsGet: (
-      projectId,
-      options,
-    ) =>
-      HttpClientRequest.get(
-        `/api/v1/projects/${projectId}/study-sessions`,
-      ).pipe(
-        HttpClientRequest.setUrlParams({ limit: options?.['limit'] as any }),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(
-              ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200,
-            ),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    createStudySessionApiV1ProjectsProjectIdStudySessionsPost: (
-      projectId,
-      options,
-    ) =>
-      HttpClientRequest.post(
-        `/api/v1/projects/${projectId}/study-sessions`,
-      ).pipe(
-        HttpClientRequest.bodyUnsafeJson(options),
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudySessionDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
-    getStudySessionApiV1StudySessionsSessionIdGet: (sessionId) =>
-      HttpClientRequest.get(`/api/v1/study-sessions/${sessionId}`).pipe(
-        withResponse(
-          HttpClientResponse.matchStatus({
-            '2xx': decodeSuccess(StudySessionDto),
-            '422': decodeError('HTTPValidationError', HTTPValidationError),
-            orElse: unexpectedStatus,
-          }),
-        ),
-      ),
     getLatestStudyPlanApiV1ProjectsProjectIdStudyPlansLatestGet: (projectId) =>
       HttpClientRequest.get(
         `/api/v1/projects/${projectId}/study-plans/latest`,
@@ -3038,46 +2914,6 @@ export interface Client {
     options: typeof MindMapCreate.Encoded,
   ) => Effect.Effect<
     typeof CreateMindMapStreamApiV1ProjectsProjectIdMindMapsStreamPost200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * List study sessions for a project.
-   */
-  readonly listStudySessionsApiV1ProjectsProjectIdStudySessionsGet: (
-    projectId: string,
-    options?:
-      | typeof ListStudySessionsApiV1ProjectsProjectIdStudySessionsGetParams.Encoded
-      | undefined,
-  ) => Effect.Effect<
-    typeof ListStudySessionsApiV1ProjectsProjectIdStudySessionsGet200.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Generate/create a study session.
-   *
-   * Note: AI generation is not yet implemented in edu-shared service.
-   * This endpoint creates a basic study session structure.
-   */
-  readonly createStudySessionApiV1ProjectsProjectIdStudySessionsPost: (
-    projectId: string,
-    options: typeof StudySessionCreate.Encoded,
-  ) => Effect.Effect<
-    typeof StudySessionDto.Type,
-    | HttpClientError.HttpClientError
-    | ParseError
-    | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>
-  >
-  /**
-   * Get a study session by ID.
-   */
-  readonly getStudySessionApiV1StudySessionsSessionIdGet: (
-    sessionId: string,
-  ) => Effect.Effect<
-    typeof StudySessionDto.Type,
     | HttpClientError.HttpClientError
     | ParseError
     | ClientError<'HTTPValidationError', typeof HTTPValidationError.Type>

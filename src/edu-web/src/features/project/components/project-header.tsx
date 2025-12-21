@@ -1,20 +1,20 @@
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { History, PencilIcon, TrashIcon } from 'lucide-react'
-import { useNavigate } from '@tanstack/react-router'
-import { useCreateProjectDialog } from './upsert-project-dialog'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
+import { useConfirmationDialog } from '@/components/confirmation-dialog'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { deleteProjectAtom, projectAtom } from '@/data-acess/project'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { useConfirmationDialog } from '@/components/confirmation-dialog'
-import { useStudySessionsDialog } from '@/features/adaptive-learning/components/study-sessions-dialog'
+import { deleteProjectAtom, projectAtom } from '@/data-acess/project'
+import { cn } from '@/lib/utils'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { PencilIcon, TrashIcon } from 'lucide-react'
+import { useCreateProjectDialog } from './upsert-project-dialog'
 
 const ProjectHeaderContent = ({ projectId }: { projectId: string }) => {
   const projectResult = useAtomValue(projectAtom(projectId))
@@ -45,7 +45,6 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
   const navigate = useNavigate()
   const confirmationDialog = useConfirmationDialog()
   const openEditDialog = useCreateProjectDialog((state) => state.open)
-  const openSessionsDialog = useStudySessionsDialog((state) => state.open)
 
   const handleEdit = () => {
     if (Result.isSuccess(projectResult)) {
@@ -69,10 +68,6 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
     }
   }
 
-  const handleOpenSessions = () => {
-    openSessionsDialog(projectId)
-  }
-
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
       <div className="flex flex-1 items-center gap-2 px-3">
@@ -85,10 +80,15 @@ export const ProjectHeader = ({ projectId }: ProjectHeaderProps) => {
       </div>
       {Result.isSuccess(projectResult) && (
         <div className="flex items-center gap-2 px-3">
-          <Button variant="ghost" size="sm" onClick={handleOpenSessions}>
-            <History className="size-4 mr-2" />
-            <span>Study Sessions</span>
-          </Button>
+          <Link
+            to="/dashboard/p/$projectId/study-plan"
+            params={{
+              projectId,
+            }}
+            className={cn(buttonVariants({ variant: 'ghost' }))}
+          >
+            Study Plan
+          </Link>
           <Button
             variant="ghost"
             size="icon"

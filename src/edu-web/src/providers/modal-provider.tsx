@@ -1,8 +1,7 @@
-import { EditChatDialog } from '@/features/chat/components/edit-chat-dialog'
-import { UpsertProjectDialog } from '@/features/project/components/upsert-project-dialog'
-import { UploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
-import { StudySessionsDialog } from '@/features/adaptive-learning/components/study-sessions-dialog'
+import { EditChatDialog } from '@/features/chat/components/edit-chat-dialog'
+import { UploadDocumentDialog } from '@/features/document/components/upload-document-dialog'
+import { UpsertProjectDialog } from '@/features/project/components/upsert-project-dialog'
 
 export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -11,7 +10,6 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
       <EditChatDialog />
       <UploadDocumentDialog />
       <ConfirmationDialog />
-      <StudySessionsDialog />
       {children}
     </>
   )
