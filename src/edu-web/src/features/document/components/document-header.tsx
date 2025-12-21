@@ -1,17 +1,17 @@
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { documentAtom } from '@/data-acess/document'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { documentAtom } from '@/data-acess/document'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 
 const DocumentHeaderContent = ({
   projectId,
@@ -20,7 +20,9 @@ const DocumentHeaderContent = ({
   projectId: string
   documentId: string
 }) => {
-  const documentResult = useAtomValue(documentAtom({ projectId, documentId }))
+  const documentResult = useAtomValue(
+    documentAtom(`${projectId}:${documentId}`),
+  )
 
   return Result.builder(documentResult)
     .onSuccess((document) => (
@@ -47,7 +49,9 @@ export const DocumentHeader = ({
   documentId,
   projectId,
 }: DocumentHeaderProps) => {
-  const documentResult = useAtomValue(documentAtom({ projectId, documentId }))
+  const documentResult = useAtomValue(
+    documentAtom(`${projectId}:${documentId}`),
+  )
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">

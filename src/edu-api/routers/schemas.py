@@ -199,9 +199,8 @@ class MindMapCreate(BaseModel):
         None, description="Custom instructions for AI generation"
     )
 
-
-
-
+class DocumentPreviewDto(BaseModel):
+    url: str = Field(..., description="URL of the document preview")
 
 class GenerateRequest(BaseModel):
     topic: str | None = Field(None, description="Topic for generation")

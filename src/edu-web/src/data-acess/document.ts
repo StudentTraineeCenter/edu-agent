@@ -187,3 +187,26 @@ export const refreshDocumentAtom = runtime.fn(
     )
   }),
 )
+
+export const documentPreviewAtom = Atom.family((input: string) => {
+  const [projectId, documentId] = input.split(':')
+  return runtime.atom(
+    Effect.fn(function* () {
+      const { httpClient } = yield* ApiClientService
+
+      const parsed = yield* Schema.decode(
+        Schema.Struct({
+          projectId: ProjectIdSchema,
+          documentId: DocumentIdSchema,
+        }),
+      )({ projectId, documentId })
+
+      const response = yield* httpClient.get(
+        `/api/v1/projects/${parsed.projectId}/documents/${parsed.documentId}/preview`,
+      )
+      const json = yield* response.json
+
+      return json as { url: string }
+    }),
+  )
+})

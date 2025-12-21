@@ -4,7 +4,10 @@ from contextlib import contextmanager
 from datetime import datetime
 from uuid import uuid4
 
-from azure.storage.blob import BlobServiceClient
+from datetime import datetime, timedelta
+from uuid import uuid4
+
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from edu_db.models import Document
 from edu_db.session import get_session_factory
 
@@ -208,3 +211,52 @@ class DocumentUploadService:
             raise
         finally:
             db.close()
+
+    def generate_sas_token(
+        self,
+        container: str,
+        blob_name: str,
+        duration_minutes: int = 60,
+        content_disposition: str | None = None,
+        content_type: str | None = None,
+    ) -> str:
+        """Generate a SAS token for a blob.
+
+        Args:
+            container: Name of the container
+            blob_name: Name of the blob
+            duration_minutes: Validity duration in minutes
+            content_disposition: Content-Disposition header
+            content_type: Content-Type header
+
+        Returns:
+            Full URL with SAS token
+        """
+        sas_token = generate_blob_sas(
+            account_name=self.blob_service_client.account_name,
+            container_name=container,
+            blob_name=blob_name,
+            account_key=self.blob_service_client.credential.account_key,
+            permission=BlobSasPermissions(read=True),
+            expiry=datetime.now() + timedelta(minutes=duration_minutes),
+            content_disposition=content_disposition,
+            content_type=content_type,
+        )
+
+        return f"https://{self.blob_service_client.account_name}.blob.core.windows.net/{container}/{blob_name}?{sas_token}"
+
+    def get_blob_name(self, project_id: str, document_id: str, filename: str) -> str:
+        """Get blob name for a document.
+
+        Args:
+            project_id: The project ID
+            document_id: The document ID
+            filename: The filename
+
+        Returns:
+            The blob name
+        """
+        file_extension = self._get_file_type(filename)
+        if file_extension != "unknown":
+            return f"{project_id}/{document_id}.{file_extension}"
+        return f"{project_id}/{document_id}"

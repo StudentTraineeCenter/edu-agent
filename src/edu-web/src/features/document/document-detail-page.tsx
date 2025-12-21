@@ -1,7 +1,7 @@
-import { Loader2Icon } from 'lucide-react'
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { DocumentHeader } from './components/document-header'
 import { documentPreviewAtom } from '@/data-acess/document'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Loader2Icon } from 'lucide-react'
+import { DocumentHeader } from './components/document-header'
 
 type DocumentContentProps = {
   documentId: string
@@ -10,7 +10,7 @@ type DocumentContentProps = {
 
 const DocumentContent = ({ projectId, documentId }: DocumentContentProps) => {
   const previewResult = useAtomValue(
-    documentPreviewAtom({ projectId, documentId }),
+    documentPreviewAtom(`${projectId}:${documentId}`),
   )
 
   return (
@@ -30,7 +30,7 @@ const DocumentContent = ({ projectId, documentId }: DocumentContentProps) => {
           ))
           .onSuccess((preview) => (
             <iframe
-              src={preview.preview_url}
+              src={preview.url}
               className="w-full h-full border-0"
               title="Document preview"
             />

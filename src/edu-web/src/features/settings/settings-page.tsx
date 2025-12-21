@@ -35,54 +35,50 @@ const UserSection = () => {
   const currentUserResult = useAtomValue(currentUserAtom)
 
   return Result.builder(currentUserResult)
-  .onSuccess(user => {
-    return (<Card>
-            <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>Your account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="size-16">
-                  <AvatarFallback>
-                    {user.initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold">
-                    {user.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {user.email}
-                  </p>
-                </div>
+    .onSuccess((user) => {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+            <CardDescription>Your account information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-16">
+                <AvatarFallback>{user.initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-semibold">{user.name}</p>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
               </div>
-            </CardContent>
-          </Card>)
-  })
-  .onInitialOrWaiting(() => {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Your account information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              <AvatarFallback>
-                <Loader2Icon className="size-4 animate-spin" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="font-semibold">Loading...</p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  })
-  .render()
+          </CardContent>
+        </Card>
+      )
+    })
+    .onInitialOrWaiting(() => {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+            <CardDescription>Your account information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-16">
+                <AvatarFallback>
+                  <Loader2Icon className="size-4 animate-spin" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-semibold">Loading...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    })
+    .render()
 }
 
 export function SettingsPage() {
@@ -128,15 +124,6 @@ export function SettingsPage() {
     }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
   return (
     <div className="flex h-full flex-col">
       <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">
@@ -160,7 +147,7 @@ export function SettingsPage() {
 
       <div className="flex flex-1 flex-col min-h-0 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full p-4 space-y-6">
-        <UserSection/>
+          <UserSection />
 
           <Card>
             <CardHeader>
