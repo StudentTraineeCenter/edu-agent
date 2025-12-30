@@ -33,4 +33,4 @@ containers:
     build_args:
       VITE_SERVER_URL: "" # Set from terraform output container_app_api_url
       VITE_SUPABASE_URL: "" # Set from terraform output supabase_api_url
-      VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eWF0dXdnbnBvbHhqZmVyaGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTgyMDcsImV4cCI6MjA4MDQ5NDIwN30.6Hjd3DEdjDlYCKUM-fXnVRZOCV4LfDqHMfg48AI7Szc" # Set from terraform variable supabase_anon_key
+      VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsbGlpd3BxbWRoeHVrZXd3dnF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwNDI0ODAsImV4cCI6MjA4MjYxODQ4MH0.Nosd98bqcgKZOjPQwyG5G2nQL0wr11CfKgc22KcJvWE" # Set from terraform variable supabase_anon_key

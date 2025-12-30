@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     # Supabase Auth
+    supabase_url: str = ""
     supabase_jwt_secret: str = ""
 
     # Azure OpenAI
@@ -50,7 +51,7 @@ class Settings(BaseSettings):
         """Customize settings sources to include Key Vault (highest priority)."""
         return (
             KeyVaultSettingsSource(
-                settings_cls, "https://kv-eduagent-dev-swc-fzgz.vault.azure.net/"
+                settings_cls, "https://kv-eduagent-dev-swc-yq6q.vault.azure.net/"
             ),  # Key Vault first (highest priority)
             init_settings,
             env_settings,

@@ -42,14 +42,43 @@ def get_current_user(
     token = credentials.credentials
 
     try:
+        # For debugging: Peek at the header without verification
+        try:
+            unverified_header = pyjwt.get_unverified_header(token)
+            alg = unverified_header.get("alg")
+        except Exception:
+            alg = "HS256"
+            print("Could not peek at token header")
+
         # Verify and decode Supabase JWT token
-        # Supabase uses HS256 algorithm with the JWT secret
-        payload = pyjwt.decode(
-            token,
-            supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        if alg.startswith("HS"):
+            # Symmetric verification
+            payload = pyjwt.decode(
+                token,
+                supabase_jwt_secret,
+                algorithms=["HS256", "HS384", "HS512"],
+                options={"verify_aud": False},
+            )
+        else:
+            # Asymmetric verification using JWKS
+            supabase_url = settings.supabase_url
+            if not supabase_url:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="SUPABASE_URL must be configured for asymmetric JWT verification",
+                )
+
+            # Use JWKS to fetch public keys
+            jwks_url = f"{supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+            jwks_client = pyjwt.PyJWKClient(jwks_url)
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+
+            payload = pyjwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "RS256"],
+                options={"verify_aud": False},
+            )
 
         # Extract Supabase user ID (sub claim) - this is the UUID from auth.users
         supabase_user_id = payload.get("sub")
