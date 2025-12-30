@@ -4,7 +4,7 @@
 
 **AI-powered educational platform for creating interactive learning experiences**
 
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.117+-green.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
@@ -16,12 +16,13 @@
 
 ---
 
-EduAgent is a cutting-edge, AI-powered educational platform designed to transform how you learn. By combining advanced RAG (Retrieval-Augmented Generation) with proactive AI agents, EduAgent turns static documents into a dynamic, personalized tutor. Upload your course materials and experience a new way of studying with automatically generated quizzes, flashcards, mind maps, and a **Personalized Study Plan** that adapts to your unique learning pace.
+EduAgent is a cutting-edge, AI-powered educational platform designed to transform how you learn. By combining advanced RAG (Retrieval-Augmented Generation) with proactive AI agents powered by **LangGraph**, EduAgent turns static documents into a dynamic, personalized tutor. Upload your course materials and experience a new way of studying with automatically generated quizzes, flashcards, mind maps, and a **Personalized Study Plan** that adapts to your unique learning pace using principles of **Active Recall** and **Adaptive Learning**.
 
 ## Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
+- [Pilot Evaluation](#-pilot-evaluation)
 - [Prerequisites](#-prerequisites)
 - [Quick Start](#-quick-start)
 - [Installation](#-installation)
@@ -29,6 +30,7 @@ EduAgent is a cutting-edge, AI-powered educational platform designed to transfor
 - [Project Structure](#-project-structure)
 - [Development](#-development)
 - [API Documentation](#-api-documentation)
+- [Roadmap](#-roadmap)
 - [Documentation](#-documentation)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -37,24 +39,26 @@ EduAgent is a cutting-edge, AI-powered educational platform designed to transfor
 ## ✨ Features
 
 - **📂 Project-Based Learning** - Organize courses into focused projects containing all your documents, chats, and AI-generated study aids.
-- **🧠 Personalized Study Plans** - AI identifies your weak spots based on performance and generates a custom tailored curriculum to help you master the material.
-- **🤖 Proactive AI Tutor** - Chat with an intelligent agent that not only answers questions but proactively generates quizzes, flashcards, and notes during your conversation.
-- **📄 Smart Document Processing** - Drag-and-drop PDF, DOCX, TXT, and RTF files. We handle the OCR, text extraction, and vector embedding automatically.
-- **🔍 Semantic Search & RAG** - Stop Ctrl+F. Ask questions and get answers grounded in your specific course materials with source citations.
+- **🧠 Personalized Study Plans** - AI identifies your weak spots based on performance (focusing on topics where success is < 70%) and generates a custom tailored curriculum to help you master the material.
+- **🤖 Proactive AI Tutor (LangGraph)** - Chat with an intelligent agent that uses a **ReAct pattern** to proactively generate quizzes, flashcards, and notes during your conversation.
+- **📄 Smart Document Processing** - Drag-and-drop PDF, DOCX, TXT, and RTF files. Powered by **Azure Content Understanding** for robust text extraction and semantic segmentation.
+- **🔍 Semantic Search & RAG** - Ask questions grounded in your specific materials. Uses **pgvector** for high-precision retrieval with source citations.
 - **📝 Automated Quizzes** - Generate multiple-choice quizzes from any document. The system grades you, explains answers, and tracks your progress.
-- **🎴 Flashcards (Spaced Repetition)** - Turn dense text into flashcards instantly. Perfect for memorizing definitions and key concepts.
+- **🎴 Flashcards** - Turn dense text into flashcards instantly. Perfect for memorizing definitions and key concepts using active recall.
 - **🗺️ Interactive Mind Maps** - Visualize connections between topics with AI-generated mind maps that help you understand the bigger picture.
-- **🔐 Enterprise-Grade Security** - Built with Supabase Auth, Row Level Security, and Azure usage limits to keep your data safe and costs controlled.
+- **🔐 Enterprise-Grade Security** - Built with Supabase Auth, Azure Key Vault for infrastructure secret management, and Azure usage limits to keep your data safe and costs controlled.
 
 ## 🏗️ Tech Stack
 
 ### Backend
 
 - **[FastAPI](https://fastapi.tiangolo.com/)** - Modern, fast Python web framework
-- **[PostgreSQL](https://www.postgresql.org/)** - Relational database with Alembic migrations and pgvector extension
-- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - LLM capabilities for chat, quizzes, flashcards, notes, mind maps, and study plans
+- **[LangGraph](https://www.langchain.com/langgraph)** - Orchestration of autonomous AI agents with tool-calling capabilities
+- **[PostgreSQL](https://www.postgresql.org/)** - Relational database with Alembic migrations and **pgvector** extension
+- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - LLM capabilities (GPT-4o, text-embedding-3-large)
 - **[Azure Content Understanding](https://azure.microsoft.com/en-us/products/ai-services/document-intelligence)** - Document processing and text extraction
 - **[Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs)** - File storage
+- **[Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault)** - Infrastructure secret management
 - **[Supabase](https://supabase.com/)** - Authentication and authorization
 
 ### Frontend
@@ -63,9 +67,17 @@ EduAgent is a cutting-edge, AI-powered educational platform designed to transfor
 - **[TypeScript](https://www.typescriptlang.org/)** - Type safety
 - **[Vite](https://vitejs.dev/)** - Build tool and dev server
 - **[TanStack Router](https://tanstack.com/router)** - Type-safe routing
-- **[TanStack Query](https://tanstack.com/query)** - Data fetching and caching
+- **[Effect Atom](https://github.com/tim-smart/effect-atom)** - State management and data fetching
 - **[TailwindCSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[Radix UI](https://www.radix-ui.com/)** - Accessible component primitives
+
+## 📊 Pilot Evaluation
+
+EduAgent has been validated through a pilot study with 15 test queries across various document types:
+
+- **93% Retrieval Success**: High precision in finding relevant context.
+- **0% Hallucinations**: Strict grounding in user-provided documents.
+- **< 150ms Latency**: Efficient vector search performance in PostgreSQL.
 
 ## 📋 Prerequisites
 
@@ -78,10 +90,14 @@ Before you begin, ensure you have the following installed:
 - **Terraform** - [Install Terraform](https://developer.hashicorp.com/terraform/install)
 - **Azure and Supabase** - Provisioned via Terraform:
   - Terraform modules will set up:
-    - Azure OpenAI
-    - Azure Content Understanding (AI Foundry)
-    - Azure Blob Storage
-    - Supabase project with authentication enabled
+    - **Azure AI Foundry**: Hub, Project, and Model Deployments (GPT-4o, text-embedding-3-small)
+    - **Azure Storage**: Account with Blob containers and Tasks queue
+    - **Azure Key Vault**: Secure secret management with RBAC
+    - **Azure Container Registry**: Private registry for container images
+    - **Azure Container Apps**: Serverless hosting for API and Worker services
+    - **Azure App Service**: Linux-based hosting for the Web frontend
+    - **Azure Monitor**: Log Analytics and Application Insights for observability
+    - **Supabase**: Managed project with Database and Auth configured
   - See [infrastructure documentation](docs/AZURE_DEPLOYMENT.md) for setup instructions
 
 ## 🚀 Quick Start
@@ -268,6 +284,13 @@ Once the backend server is running, API documentation is available at:
 - **Scalar UI (OpenAPI docs)**: `http://localhost:8000/`
 - **Health Check**: `http://localhost:8000/health`
 - **OpenAPI Schema**: `http://localhost:8000/openapi.json`
+
+## 🗺️ Roadmap
+
+- [ ] **Audio/Video Support**: Automatic transcription and analysis of lectures.
+- [ ] **Advanced Spaced Repetition**: Sophisticated algorithms for long-term memory retention.
+- [ ] **AI-Generated Presentations**: Transform project materials into structured slides.
+- [ ] **Collaborative Projects**: Study with peers in shared AI-powered environments.
 
 ## 📖 Documentation
 

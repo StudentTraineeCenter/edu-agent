@@ -77,16 +77,15 @@ terraform plan
 
 Review the plan to see what resources will be created, including:
 
-- Resource Group
-- Storage Account and blob containers
-- Azure Container Registry (ACR)
-- Key Vault (for secrets)
-- Azure AI Foundry (OpenAI + embeddings)
-- Container Apps (API + worker)
-- Linux Web App (for the built SPA)
-- Log Analytics + Application Insights
-- Supabase project (database + auth)
-- RBAC assignments
+- **Azure AI Foundry**: Hub, Project, and Model Deployments (GPT-4o, text-embedding-3-large)
+- **Azure Storage**: Account with Blob containers and Tasks queue
+- **Azure Key Vault**: Secure secret management with RBAC
+- **Azure Container Registry**: Private registry for container images
+- **Azure Container Apps**: Serverless hosting for API and Worker services
+- **Azure App Service**: Linux-based hosting for the Web frontend
+- **Azure Monitor**: Log Analytics and Application Insights for observability
+- **Supabase**: Managed project with Database and Auth configured
+- **RBAC assignments**: Managed identities and access control settings
 
 ### Step 4: Deploy Infrastructure
 
@@ -170,7 +169,7 @@ To update the deployment:
 To remove all resources:
 
 ```bash
-cd infra
+cd deploy/azure/terraform
 terraform destroy
 ```
 
@@ -191,7 +190,7 @@ az account set --subscription "your-subscription-id"
 **Error: Provider not found**
 
 ```bash
-cd infra
+cd deploy/azure/terraform
 terraform init -upgrade
 ```
 
@@ -243,10 +242,10 @@ The application uses Azure Key Vault for secure credential management. In produc
 | Variable                            | Description                 | Required | Default |
 | ----------------------------------- | --------------------------- | -------- | ------- |
 | `AZURE_KEY_VAULT_URI`               | Azure Key Vault URI         | Yes      | -       |
-| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit    | No       | 100     |
-| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit       | No       | 100     |
-| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit            | No       | 100     |
-| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit | No       | 100     |
+| `MAX_CHAT_MESSAGES_PER_DAY`         | Daily chat message limit    | No       | 50      |
+| `MAX_FLASHCARD_GENERATIONS_PER_DAY` | Daily flashcard limit       | No       | 10      |
+| `MAX_QUIZ_GENERATIONS_PER_DAY`      | Daily quiz limit            | No       | 10      |
+| `MAX_DOCUMENT_UPLOADS_PER_DAY`      | Daily document upload limit | No       | 5       |
 
 All other Azure service credentials are automatically retrieved from Key Vault using the secret names defined in the application configuration. The App Service must have appropriate RBAC permissions to read secrets from the Key Vault.
 
@@ -279,24 +278,24 @@ The following secrets must be stored in the Key Vault:
 
 The following environment variables are automatically configured by Terraform in App Service:
 
-| Variable                     | Description            | Required |
-| ---------------------------- | ---------------------- | -------- |
-| `VITE_SERVER_URL`            | API server URL         | Yes      |
-| `VITE_SUPABASE_URL`          | Supabase project URL   | Yes      |
-| `VITE_SUPABASE_ANON_KEY`     | Supabase anon key      | Yes      |
+| Variable                 | Description          | Required |
+| ------------------------ | -------------------- | -------- |
+| `VITE_SERVER_URL`        | API server URL       | Yes      |
+| `VITE_SUPABASE_URL`      | Supabase project URL | Yes      |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key    | Yes      |
 
 ## Infrastructure Overview
 
 The Terraform configuration creates the following resources:
 
-- **Resource Group**: Container for all resources
-- **Storage Account**: For document blob storage and Azure Storage queue
-- **Azure Container Registry**: For Docker images
-- **Key Vault**: For storing secrets (DB, AI, Supabase, storage)
-- **AI Foundry Hub**: For Azure OpenAI services (GPT‑4o, embeddings)
-- **AI Services**: For Content Understanding
-- **Container Apps (API + Worker)**: Python FastAPI backend and background worker
-- **Linux Web App (Web)**: React SPA hosting
+- **Azure AI Foundry**: Hub, Project, and Model Deployments (GPT-4o, text-embedding-3-large)
+- **Azure Storage**: Account with Blob containers and Tasks queue
+- **Azure Key Vault**: Secure secret management with RBAC
+- **Azure Container Registry**: Private registry for container images
+- **Azure Container Apps**: Serverless hosting for API and Worker services
+- **Azure App Service**: Linux-based hosting for the Web frontend
+- **Azure Monitor**: Log Analytics and Application Insights for observability
+- **Supabase**: Managed project with Database and Auth configured
 
 ## Additional Resources
 

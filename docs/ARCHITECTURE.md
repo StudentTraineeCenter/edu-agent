@@ -31,8 +31,8 @@ graph TB
         W[Worker]
     end
 
-    subgraph "Data Layer"
-        O[PostgreSQL Database]
+    subgraph "Data Layer (Supabase / Azure)"
+        O[PostgreSQL Database (Supabase)]
         P[Azure Blob Storage]
         Q[Vector Store pgvector]
         T[Azure Storage Queue]
@@ -41,6 +41,7 @@ graph TB
     subgraph "External Services"
         R[Azure OpenAI / AI Foundry]
         S[Azure Content Understanding / Document Intelligence]
+        U[Supabase Auth]
     end
 
     A --> B

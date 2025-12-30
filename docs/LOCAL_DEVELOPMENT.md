@@ -34,7 +34,6 @@ This guide covers how to set up and run EduAgent locally for development.
 docker-compose up --build api worker db azurite
 
 # 2. Set up database schema (separate terminal, one-time)
-# 2. Set up database schema (separate terminal, one-time)
 uv run alembic upgrade head
 
 # 3. Start web frontend (in a new terminal)
@@ -106,10 +105,10 @@ For production deployments, configure Azure Key Vault and set only:
 AZURE_KEY_VAULT_URI=https://your-key-vault.vault.azure.net/
 
 # Usage Limits (optional, defaults shown)
-MAX_CHAT_MESSAGES_PER_DAY=100
-MAX_FLASHCARD_GENERATIONS_PER_DAY=100
-MAX_QUIZ_GENERATIONS_PER_DAY=100
-MAX_DOCUMENT_UPLOADS_PER_DAY=100
+MAX_CHAT_MESSAGES_PER_DAY=50
+MAX_FLASHCARD_GENERATIONS_PER_DAY=10
+MAX_QUIZ_GENERATIONS_PER_DAY=10
+MAX_DOCUMENT_UPLOADS_PER_DAY=5
 ```
 
 All other Azure service credentials are automatically retrieved from Key Vault using these secret names:
@@ -167,10 +166,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 
 # Usage Limits (optional, defaults shown)
-MAX_CHAT_MESSAGES_PER_DAY=100
-MAX_FLASHCARD_GENERATIONS_PER_DAY=100
-MAX_QUIZ_GENERATIONS_PER_DAY=100
-MAX_DOCUMENT_UPLOADS_PER_DAY=100
+MAX_CHAT_MESSAGES_PER_DAY=50
+MAX_FLASHCARD_GENERATIONS_PER_DAY=10
+MAX_QUIZ_GENERATIONS_PER_DAY=10
+MAX_DOCUMENT_UPLOADS_PER_DAY=5
 ```
 
 **Note:** The server uses `python-dotenv` to load environment variables from `.env` files automatically. If `AZURE_KEY_VAULT_URI` is set, the application will attempt to fetch secrets from Key Vault first, falling back to environment variables if a secret is not found.
@@ -223,7 +222,7 @@ The development server includes:
 To generate TypeScript types from the OpenAPI schema:
 
 ```bash
-cd web
+cd src/edu-web
 
 # Make sure API server is running on localhost:8000
 pnpm gen:types
@@ -241,10 +240,10 @@ edu-agent/
 │   ├── edu-api/        # FastAPI backend (public API)
 │   ├── edu-worker/     # Background worker (queue/AI processing)
 │   ├── edu-web/        # React frontend (Vite + TanStack)
-│   ├── shared/         # Shared models, DB session, Key Vault helpers, etc.
-│   └── eduagent-vibecode/
-├── deploy/             # Deployment configurations
+│   └── shared/         # Shared models, DB session, Key Vault helpers, etc.
+├── deploy/             # Deployment configurations (Azure Terraform, ACR)
 ├── docker-compose.yaml # Local stack (api, worker, db, azurite)
+├── pyproject.toml      # uv workspace definition
 └── docs/               # Documentation
 ```
 
@@ -274,11 +273,11 @@ edu-agent/
 
 ```bash
 # Backend tests (if available)
-cd server
+cd src/edu-api
 pytest
 
 # Frontend tests
-cd web
+cd src/edu-web
 pnpm test
 ```
 
@@ -286,12 +285,11 @@ pnpm test
 
 ```bash
 # Backend (using ruff)
-cd server
 ruff format .
 ruff check .
 
 # Frontend
-cd web
+cd src/edu-web
 pnpm format
 pnpm lint
 ```
@@ -318,14 +316,14 @@ pnpm lint
 **API server won't start**
 
 - Check all required environment variables are set
-- Verify Python version: `python --version` (should be 3.11+)
-- Check dependencies: `pip install -r requirements.txt`
+- Verify Python version: `python --version` (should be 3.12+)
+- Check dependencies: `uv sync`
 - Check for port conflicts: `lsof -i :8000`
 
 **Import errors**
 
-- Ensure virtual environment is activated
-- Reinstall dependencies: `pip install -r requirements.txt --force-reinstall`
+- Ensure you are using `uv run` or your virtual environment is activated
+- Reinstall dependencies: `uv sync`
 - Check Python path: `which python`
 
 **Azure service errors**
@@ -353,8 +351,8 @@ pnpm lint
 
 **Type errors**
 
-- Regenerate types: `pnpm gen:types`
-- Ensure API server is running when generating types
+- Regenerate types: `cd src/edu-web && pnpm gen:client`
+- Ensure API server is running when generating client types
 - Check TypeScript version compatibility
 
 ### Docker Issues
