@@ -9,6 +9,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.117+-green.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Language: English](https://img.shields.io/badge/Language-English-blue.svg)](README.md)
+[![Jazyk: Čeština](https://img.shields.io/badge/Jazyk-Čeština-lightgrey.svg)](README.cs.md)
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
@@ -162,7 +164,7 @@ cd src/edu-web
 pnpm install
 
 # Generate TypeScript types from OpenAPI schema (optional)
-pnpm gen:types
+pnpm gen:client
 ```
 
 ## ⚙️ Configuration
@@ -304,7 +306,6 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Features](./docs/FEATURES.md)** - Detailed overview of platform features and capabilities
 - **[Local Development](./docs/LOCAL_DEVELOPMENT.md)** - Complete setup and development guide (Docker + uv workspace)
 - **[Azure Deployment](./docs/AZURE_DEPLOYMENT.md)** - Production deployment instructions for Azure (using `deploy/azure`)
-- **[Privacy Policy](./docs/PRIVACY_POLICY.md)** - Privacy and data handling information
 
 ## 🤝 Contributing
 
