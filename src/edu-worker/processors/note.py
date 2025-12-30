@@ -74,11 +74,11 @@ class NoteProcessor(BaseProcessor[NoteGenerationData]):
             topic_graph_agent=topic_graph_agent,
         )
 
-        note = await note_agent.generate_and_save(
+        await note_agent.generate_and_save(
             project_id=payload["project_id"],
             topic=payload.get("topic"),
             custom_instructions=payload.get("custom_instructions"),
             note_id=payload["note_id"],
         )
 
-        console.log(f"Populated note {payload['note_id']}: {note.title}")
+        console.log(f"Populated note {payload['note_id']}")

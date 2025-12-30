@@ -93,9 +93,7 @@ class FlashcardGroupService:
             except Exception:
                 raise
 
-    def list_flashcard_groups(
-        self, project_id: str
-    ) -> list[FlashcardGroupDto]:
+    def list_flashcard_groups(self, project_id: str) -> list[FlashcardGroupDto]:
         """List all flashcard groups for a project.
 
         Args:

@@ -50,7 +50,6 @@ async def create_note(
     # Create a new note first
     note = svc.create_note(
         project_id=ctx.project_id,
-        user_id=ctx.user_id,
         title="Generated Note",
         description="AI-generated study note",
         content="",

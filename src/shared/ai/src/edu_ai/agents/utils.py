@@ -35,7 +35,7 @@ def get_db_session():
         Exception: If transaction fails, automatically rolls back
     """
     SessionLocal = get_session_factory()
-    db = SessionLocal()
+    db = SessionLocal(expire_on_commit=False)
     try:
         yield db
         db.commit()

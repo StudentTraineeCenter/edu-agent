@@ -82,8 +82,9 @@ class MindMapProcessor(BaseProcessor[MindMapGenerationData]):
             user_id=payload["user_id"],
         )
         mind_map_id = mind_map.id
+        mind_map_title = mind_map.title
 
         if payload.get("mind_map_id"):
-            console.log(f"Populated mind map {mind_map_id}: {mind_map.title}")
+            console.log(f"Populated mind map {mind_map_id}: {mind_map_title}")
         else:
-            console.log(f"Generated new mind map {mind_map_id}: {mind_map.title}")
+            console.log(f"Generated new mind map {mind_map_id}: {mind_map_title}")
