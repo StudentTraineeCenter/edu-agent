@@ -37,8 +37,7 @@ Soubory (popiš soubory a složky, které jsi přiložil)
    - EduAgent_specification.pdf - Technická specifikace
    - sample_data/ - Ukázkové studijní materiály pro testování
    - screenshots/ - Snímky obrazovky z uživatelského rozhraní
-   - videos/ - Videa z uživatelského rozhraní
+   - videos/ - Ukázková videa demonstrující funkce platformy
  - docs/ - Podrobná dokumentace architektury, funkcí a lokálního vývoje
  - deploy/ - Infrastruktura jako kód (Terraform) pro nasazení do Azure
  - docker-compose.yaml - Konfigurace pro lokální spuštění celého stacku
-
