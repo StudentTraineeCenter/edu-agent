@@ -119,6 +119,11 @@ output "app_web_url" {
   value       = azurerm_linux_web_app.web.default_hostname
 }
 
+output "app_web_name" {
+  description = "Name of the web app"
+  value       = azurerm_linux_web_app.web.name
+}
+
 # ============================================================================
 # Azure Tenant ID
 # ============================================================================
@@ -161,5 +166,10 @@ output "supabase_database_host" {
 output "supabase_database_name" {
   description = "Supabase database name"
   value       = "postgres"
+}
+
+output "container_app_api_name" {
+  description = "Name of the API container app"
+  value       = azurerm_container_app.api.name
 }
 

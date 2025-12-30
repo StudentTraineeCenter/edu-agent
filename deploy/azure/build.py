@@ -10,6 +10,7 @@ Usage:
     python build.py --container edu-api      # Build specific container
     python build.py --acr-name myacr         # Specify ACR name directly
     python build.py --list                   # List available containers
+    python build.py --restart                # Restart resources after build
 """
 
 import argparse
@@ -38,21 +39,7 @@ def load_config(config_path: Path) -> dict:
 
 def get_acr_name_from_terraform(terraform_dir: Path) -> str | None:
     """Get ACR name from Terraform output."""
-    try:
-        result = subprocess.run(
-            ["terraform", "output", "-raw", "acr_name"],
-            cwd=terraform_dir,
-            capture_output=True,
-            text=True,
-            check=True,
-            shell=True,  # Required on Windows
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return None
-    except FileNotFoundError:
-        print("Warning: terraform not found in PATH", file=sys.stderr)
-        return None
+    return get_terraform_output(terraform_dir, "acr_name")
 
 
 def get_terraform_output(terraform_dir: Path, output_name: str) -> str | None:
@@ -108,6 +95,100 @@ def resolve_build_args(build_args: dict, terraform_dir: Path) -> dict:
             resolved[key] = value  # Keep original value (empty or otherwise)
 
     return resolved
+
+
+def restart_azure_resource(container_name: str, terraform_dir: Path) -> bool:
+    """Restart the corresponding Azure resource for a container."""
+    rg_name = get_terraform_output(terraform_dir, "resource_group_name")
+    if not rg_name:
+        print(f"Warning: Could not determine resource group name for {container_name}")
+        return False
+
+    is_windows = platform.system() == "Windows"
+
+    if container_name == "edu-web":
+        web_app_name = get_terraform_output(terraform_dir, "app_web_name")
+        if not web_app_name:
+            print("Warning: Could not determine web app name from terraform")
+            return False
+
+        print(f"Restarting Web App: {web_app_name}...")
+        cmd = [
+            "az",
+            "webapp",
+            "restart",
+            "--name",
+            web_app_name,
+            "--resource-group",
+            rg_name,
+        ]
+        try:
+            subprocess.run(cmd, check=True, shell=is_windows)
+            print(f"✓ Successfully restarted {web_app_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"✗ Failed to restart Web App: {e}")
+            return False
+
+    elif container_name in ["edu-api", "edu-worker"]:
+        output_key = (
+            "container_app_api_name"
+            if container_name == "edu-api"
+            else "container_app_worker_name"
+        )
+        ca_name = get_terraform_output(terraform_dir, output_key)
+        if not ca_name:
+            print(
+                f"Warning: Could not determine container app name for {container_name}"
+            )
+            return False
+
+        print(f"Restarting Container App: {ca_name}...")
+        # Get latest revision name
+        try:
+            rev_cmd = [
+                "az",
+                "containerapp",
+                "revision",
+                "list",
+                "--name",
+                ca_name,
+                "--resource-group",
+                rg_name,
+                "--query",
+                "[0].name",
+                "-o",
+                "tsv",
+            ]
+            rev_result = subprocess.run(
+                rev_cmd, check=True, shell=is_windows, capture_output=True, text=True
+            )
+            revision_name = rev_result.stdout.strip()
+
+            if not revision_name:
+                print(f"Warning: Could not find active revision for {ca_name}")
+                return False
+
+            restart_cmd = [
+                "az",
+                "containerapp",
+                "revision",
+                "restart",
+                "--name",
+                ca_name,
+                "--resource-group",
+                rg_name,
+                "--revision",
+                revision_name,
+            ]
+            subprocess.run(restart_cmd, check=True, shell=is_windows)
+            print(f"✓ Successfully restarted {ca_name} (revision {revision_name})")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"✗ Failed to restart Container App {ca_name}: {e}")
+            return False
+
+    return False
 
 
 def build_container(
@@ -210,7 +291,6 @@ def build_container(
         "--file",
         dockerfile_for_cmd,
         context_for_cmd,
-        "--debug",
     ]
 
     # Add build args to command (only non-empty values)
@@ -230,8 +310,6 @@ def build_container(
                 check=True,
                 shell=True,
                 cwd=base_path,
-                capture_output=True,
-                text=True,
             )
         else:
             subprocess.run(
@@ -239,19 +317,11 @@ def build_container(
                 check=True,
                 shell=False,
                 cwd=base_path,
-                capture_output=True,
-                text=True,
             )
         print(f"\n✓ Successfully built {name}")
         return True
     except subprocess.CalledProcessError as e:
         print(f"\n✗ Failed to build {name}: {e}", file=sys.stderr)
-        if e.stdout:
-            print("STDOUT:", file=sys.stderr)
-            print(e.stdout, file=sys.stderr)
-        if e.stderr:
-            print("STDERR:", file=sys.stderr)
-            print(e.stderr, file=sys.stderr)
         return False
 
 
@@ -283,6 +353,7 @@ Examples:
     python build.py --container edu-api      # Build specific container
     python build.py --acr-name myacr         # Specify ACR name directly
     python build.py --list                   # List available containers
+    python build.py --restart                # Restart resources after build
         """,
     )
     parser.add_argument(
@@ -308,6 +379,12 @@ Examples:
         "-l",
         action="store_true",
         help="List available containers and exit",
+    )
+    parser.add_argument(
+        "--restart",
+        "-r",
+        action="store_true",
+        help="Restart the corresponding Azure resource after a successful build",
     )
 
     args = parser.parse_args()
@@ -376,6 +453,12 @@ Examples:
     results = []
     for container in containers_to_build:
         success = build_container(acr_name, container, project_root, terraform_dir)
+
+        if success and args.restart:
+            restart_success = restart_azure_resource(container["name"], terraform_dir)
+            if not restart_success:
+                print(f"Warning: Restart failed for {container['name']}")
+
         results.append((container["name"], success))
 
     # Summary
