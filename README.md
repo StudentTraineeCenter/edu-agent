@@ -214,18 +214,23 @@ For detailed configuration instructions, see the [Local Development Guide](./doc
 ```
 edu-agent/
 ├── src/
-│   ├── edu-api/        # FastAPI backend (public API)
-│   ├── edu-worker/     # Background worker (queue/AI processing)
-│   ├── edu-web/        # React frontend (Vite + TanStack)
-│   └── edu-shared/     # Shared DB models, agents, services, schemas
+│   ├── edu-api/            # FastAPI backend (public API)
+│   ├── edu-worker/         # Background worker (queue/AI processing)
+│   ├── edu-web/            # React frontend (Vite + TanStack)
+│   ├── eduagent-vibecode/  # Vibecoded UI
+│   └── shared/
+│       ├── ai/             # Shared AI / agent logic and utilities
+│       ├── core/           # Shared core logic (helpers, utils, error handling)
+│       ├── db/             # Shared DB models, schemas, migrations
+│       └── queue/          # Shared queue and message types
 ├── deploy/
-│   └── azure/          # Azure Terraform + ACR build tooling
-├── docs/               # Documentation (features, local dev, privacy, etc.)
-├── alembic.ini         # Alembic config pointing at src/edu-shared/db/alembic
-├── docker-compose.yaml # Local stack (api, worker, db, azurite)
-├── pyproject.toml      # uv workspace definition
-├── uv.lock             # Locked dependency graph
-└── ruff.toml           # Backend linting/formatting configuration
+│   └── azure/              # Azure Terraform + ACR build tooling
+├── docs/                   # Documentation (features, local dev, privacy, etc.)
+├── alembic.ini             # Alembic config pointing at src/shared/db/src/edu_db/alembic
+├── docker-compose.yaml     # Local stack (api, worker, db, azurite)
+├── pyproject.toml          # uv workspace definition
+├── uv.lock                 # Locked dependency graph
+└── ruff.toml               # Backend linting/formatting configuration
 ```
 
 ## 🔧 Development
@@ -267,7 +272,7 @@ pnpm format
 pnpm type-check
 
 # Generate TypeScript types from OpenAPI schema
-pnpm gen:types
+pnpm gen:client
 ```
 
 ### Code Quality

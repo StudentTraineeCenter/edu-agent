@@ -24,6 +24,7 @@ Obrázky, screenshoty, videa:
  - assets/screenshots/eduagent-note.png
  - assets/screenshots/eduagent-tool-calling.png
  - assets/screenshots/eduagent-settings.png
+ - assets/videos/eduagent-demo.mp4
 
 Reflexe: assets/EduAgent_reflexe.pdf
 
@@ -32,9 +33,11 @@ Soubory (popiš soubory a složky, které jsi přiložil)
  - assets/ - Klíčové dokumenty a ukázková data
    - EduAgent_paper.pdf - Odborná práce (paper)
    - EduAgent_reflexe.pdf - Reflexe projektu
+   - EduAgent_research.xlsx - Průzkum studentských potřeb
    - EduAgent_specification.pdf - Technická specifikace
    - sample_data/ - Ukázkové studijní materiály pro testování
    - screenshots/ - Snímky obrazovky z uživatelského rozhraní
+   - videos/ - Videa z uživatelského rozhraní
  - docs/ - Podrobná dokumentace architektury, funkcí a lokálního vývoje
  - deploy/ - Infrastruktura jako kód (Terraform) pro nasazení do Azure
  - docker-compose.yaml - Konfigurace pro lokální spuštění celého stacku
