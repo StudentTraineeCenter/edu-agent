@@ -1,7 +1,3 @@
-import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import React, { useEffect } from 'react'
-import { Option } from 'effect'
-import { QuizContent } from './quiz-content'
 import { quizQuestionsAtom } from '@/data-acess/quiz'
 import {
   goToNextQuestionAtom,
@@ -11,6 +7,10 @@ import {
   setSelectedAnswerAtom,
   submitQuizAtom,
 } from '@/data-acess/quiz-detail-state'
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
+import React, { useEffect } from 'react'
+import { QuizContent } from './quiz-content'
 
 type Props = React.ComponentProps<'div'> & {
   quizId: string
@@ -18,7 +18,9 @@ type Props = React.ComponentProps<'div'> & {
 }
 
 export const QuizDetail = ({ quizId, projectId, ...props }: Props) => {
-  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom(`${projectId}:${quizId}`),
+  )
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
 
   const resetQuiz = useAtomSet(resetQuizAtom)

@@ -1,11 +1,11 @@
-import { CheckCircle, XCircle } from 'lucide-react'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { Option } from 'effect'
 import {
   currentQuestionAtom,
   quizDetailStateAtom,
   setSelectedAnswerAtom,
 } from '@/data-acess/quiz-detail-state'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
+import { CheckCircle, XCircle } from 'lucide-react'
 
 type QuizQuestionCardProps = {
   quizId: string
@@ -18,7 +18,7 @@ export const QuizQuestionCard = ({
 }: QuizQuestionCardProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
   const currentQuestionResult = useAtomValue(
-    currentQuestionAtom({ projectId, quizId }),
+    currentQuestionAtom(`${projectId}:${quizId}`),
   )
 
   const setSelectedAnswer = useAtomSet(setSelectedAnswerAtom, {

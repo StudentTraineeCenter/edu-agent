@@ -1,3 +1,21 @@
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Separator } from '@/components/ui/separator'
+import { quizQuestionsAtom } from '@/data-acess/quiz'
+import {
+  quizDetailStateAtom,
+  quizStatsAtom,
+  resetQuizAtom,
+  submitPendingPracticeRecordsAtom,
+} from '@/data-acess/quiz-detail-state'
+import type { QuizQuestionDto } from '@/integrations/api/client'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { useNavigate } from '@tanstack/react-router'
+import { Option } from 'effect'
 import {
   CheckCircle,
   ChevronDown,
@@ -8,24 +26,6 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { Option } from 'effect'
-import type { QuizQuestionDto } from '@/integrations/api/client'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
-import {
-  quizDetailStateAtom,
-  quizStatsAtom,
-  resetQuizAtom,
-  submitPendingPracticeRecordsAtom,
-} from '@/data-acess/quiz-detail-state'
-import { quizQuestionsAtom } from '@/data-acess/quiz'
 
 const getOptionText = (
   question: QuizQuestionDto,
@@ -77,7 +77,7 @@ const StatsGrid = ({
   quizId: string
   projectId: string
 }) => {
-  const statsResult = useAtomValue(quizStatsAtom({ projectId, quizId }))
+  const statsResult = useAtomValue(quizStatsAtom(`${projectId}:${quizId}`))
 
   return Result.builder(statsResult)
     .onSuccess((stats) => {
@@ -315,8 +315,10 @@ export const QuizResultsView = ({
   const [showIncorrect, setShowIncorrect] = useState(false)
 
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const statsResult = useAtomValue(quizStatsAtom({ projectId, quizId }))
-  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
+  const statsResult = useAtomValue(quizStatsAtom(`${projectId}:${quizId}`))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom(`${projectId}:${quizId}`),
+  )
 
   const state = Option.isSome(stateResult) ? stateResult.value : null
   if (!state) return null

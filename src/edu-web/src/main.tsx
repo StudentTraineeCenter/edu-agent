@@ -1,18 +1,18 @@
+import { RegistryProvider } from '@effect-atom/atom-react'
+import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { RegistryProvider } from '@effect-atom/atom-react'
 
 import { routeTree } from './routes/_config.tsx'
 
 import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx'
 
-import './styles.css'
-import reportWebVitals from './reportWebVitals.ts'
-import { Toaster } from './components/ui/sonner.tsx'
 import { TooltipProvider } from '@/components/ui/tooltip.tsx'
 import { ModalProvider } from '@/providers/modal-provider.tsx'
 import { ThemeProvider } from '@/providers/theme-provider.tsx'
+import { Toaster } from './components/ui/sonner.tsx'
+import reportWebVitals from './reportWebVitals.ts'
+import './styles.css'
 
 const TanStackQueryProviderContext = TanStackQueryProvider.getContext()
 const router = createRouter({

@@ -1,7 +1,3 @@
-import { Effect, Layer, Schema, Stream } from 'effect'
-import { Atom, Registry } from '@effect-atom/atom-react'
-import { HttpBody } from '@effect/platform'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import {
   GenerateRequest,
   QuizCreate,
@@ -9,9 +5,13 @@ import {
   QuizQuestionReorder,
   QuizQuestionUpdate,
 } from '@/integrations/api/client'
+import { ApiClientService } from '@/integrations/api/http'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
 import { withToast } from '@/lib/with-toast'
-import { ApiClientService } from '@/integrations/api/http'
+import { Atom, Registry } from '@effect-atom/atom-react'
+import { HttpBody } from '@effect/platform'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Effect, Layer, Schema, Stream } from 'effect'
 
 const runtime = makeAtomRuntime(
   Layer.mergeAll(
@@ -31,31 +31,31 @@ export const quizzesAtom = Atom.family((projectId: string) =>
   ).pipe(Atom.keepAlive),
 )
 
-export const quizAtom = Atom.family(
-  (input: { projectId: string; quizId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
-        const { apiClient } = yield* ApiClientService
-        return yield* apiClient.getQuizApiV1ProjectsProjectIdQuizzesQuizIdGet(
-          input.projectId,
-          input.quizId,
-        )
-      }).pipe(Effect.provide(ApiClientService.Default)),
-    ).pipe(Atom.keepAlive),
-)
+export const quizAtom = Atom.family((input: string) => {
+  const [projectId, quizId] = input.split(':')
+  return Atom.make(
+    Effect.gen(function* () {
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.getQuizApiV1ProjectsProjectIdQuizzesQuizIdGet(
+        projectId,
+        quizId,
+      )
+    }).pipe(Effect.provide(ApiClientService.Default)),
+  ).pipe(Atom.keepAlive)
+})
 
-export const quizQuestionsAtom = Atom.family(
-  (input: { projectId: string; quizId: string }) =>
-    Atom.make(
-      Effect.gen(function* () {
-        const { apiClient } = yield* ApiClientService
-        return yield* apiClient.listQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet(
-          input.projectId,
-          input.quizId,
-        )
-      }).pipe(Effect.provide(ApiClientService.Default)),
-    ).pipe(Atom.keepAlive),
-)
+export const quizQuestionsAtom = Atom.family((input: string) => {
+  const [projectId, quizId] = input.split(':')
+  return Atom.make(
+    Effect.gen(function* () {
+      const { apiClient } = yield* ApiClientService
+      return yield* apiClient.listQuizQuestionsApiV1ProjectsProjectIdQuizzesQuizIdQuestionsGet(
+        projectId,
+        quizId,
+      )
+    }).pipe(Effect.provide(ApiClientService.Default)),
+  ).pipe(Atom.keepAlive)
+})
 
 const QuizProgressUpdate = Schema.Struct({
   status: Schema.String,
@@ -246,9 +246,7 @@ export const createQuizQuestionAtom = runtime.fn(
         }),
       )
 
-    registry.refresh(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
-    )
+    registry.refresh(quizQuestionsAtom(`${input.projectId}:${input.quizId}`))
     return resp
   }),
 )
@@ -286,9 +284,7 @@ export const updateQuizQuestionAtom = runtime.fn(
         }),
       )
 
-    registry.refresh(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
-    )
+    registry.refresh(quizQuestionsAtom(`${input.projectId}:${input.quizId}`))
     return resp
   }),
 )
@@ -307,9 +303,7 @@ export const deleteQuizQuestionAtom = runtime.fn(
       input.questionId,
     )
 
-    registry.refresh(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
-    )
+    registry.refresh(quizQuestionsAtom(`${input.projectId}:${input.quizId}`))
   }),
 )
 
@@ -330,9 +324,7 @@ export const reorderQuizQuestionsAtom = runtime.fn(
         }),
       )
 
-    registry.refresh(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
-    )
+    registry.refresh(quizQuestionsAtom(`${input.projectId}:${input.quizId}`))
     return resp
   }),
 )

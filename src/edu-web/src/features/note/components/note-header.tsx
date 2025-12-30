@@ -1,17 +1,17 @@
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { noteAtom } from '@/data-acess/note'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { noteAtom } from '@/data-acess/note'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 
 type NoteHeaderContentProps = {
   noteId: string
@@ -19,7 +19,7 @@ type NoteHeaderContentProps = {
 }
 
 const NoteHeaderContent = ({ noteId, projectId }: NoteHeaderContentProps) => {
-  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
+  const noteResult = useAtomValue(noteAtom(`${projectId}:${noteId}`))
 
   return Result.builder(noteResult)
     .onSuccess((note) => (
@@ -54,7 +54,7 @@ type NoteHeaderProps = {
 }
 
 export const NoteHeader = ({ noteId, projectId }: NoteHeaderProps) => {
-  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
+  const noteResult = useAtomValue(noteAtom(`${projectId}:${noteId}`))
 
   return (
     <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2 border-b px-2">

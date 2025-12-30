@@ -1,7 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
-import { Option } from 'effect'
 import { Button } from '@/components/ui/button'
+import { quizQuestionsAtom } from '@/data-acess/quiz'
 import {
   canSubmitQuizAtom,
   goToNextQuestionAtom,
@@ -9,7 +7,9 @@ import {
   quizDetailStateAtom,
   submitQuizAtom,
 } from '@/data-acess/quiz-detail-state'
-import { quizQuestionsAtom } from '@/data-acess/quiz'
+import { Result, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Option } from 'effect'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 type QuizControlsProps = {
   quizId: string
@@ -18,8 +18,12 @@ type QuizControlsProps = {
 
 export const QuizControls = ({ quizId, projectId }: QuizControlsProps) => {
   const stateResult = useAtomValue(quizDetailStateAtom(quizId))
-  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
-  const canSubmitResult = useAtomValue(canSubmitQuizAtom({ projectId, quizId }))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom(`${projectId}:${quizId}`),
+  )
+  const canSubmitResult = useAtomValue(
+    canSubmitQuizAtom(`${projectId}:${quizId}`),
+  )
 
   const goToNext = useAtomSet(goToNextQuestionAtom, { mode: 'promise' })
   const goToPrevious = useAtomSet(goToPreviousQuestionAtom, { mode: 'promise' })

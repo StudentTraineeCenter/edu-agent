@@ -251,7 +251,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ chatId, projectId }) => {
                             // For now, we'll use a placeholder or the source_id
                             const documentUrl = sourceDoc.provider_metadata
                               ?.document_id
-                              ? `/dashboard/p/${projectId}/documents/${sourceDoc.provider_metadata.document_id}`
+                              ? `/dashboard/p/${projectId}/d/${sourceDoc.provider_metadata.document_id}`
                               : `#${sourceDoc.source_id}`
 
                             return (

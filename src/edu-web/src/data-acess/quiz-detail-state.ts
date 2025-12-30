@@ -1,10 +1,10 @@
-import { Atom, Registry, Result } from '@effect-atom/atom-react'
-import { Data, Effect, Option } from 'effect'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { submitPracticeRecordsBatchAtom } from './practice'
-import { quizQuestionsAtom } from './quiz'
 import type { PracticeRecordCreate } from '@/integrations/api'
 import { makeAtomRuntime } from '@/lib/make-atom-runtime'
+import { Atom, Registry, Result } from '@effect-atom/atom-react'
+import { BrowserKeyValueStore } from '@effect/platform-browser'
+import { Data, Effect, Option } from 'effect'
+import { submitPracticeRecordsBatchAtom } from './practice'
+import { quizQuestionsAtom } from './quiz'
 
 const runtime = makeAtomRuntime(BrowserKeyValueStore.layerLocalStorage)
 
@@ -86,74 +86,74 @@ export const quizDetailStateAtom = Atom.family((quizId: string) =>
   ),
 )
 
-export const quizStatsAtom = Atom.family(
-  (input: { projectId: string; quizId: string }) =>
-    Atom.make(
-      Effect.fn(function* (get) {
-        const state = get(quizDetailStateAtom(input.quizId))
-        if (Option.isNone(state))
-          return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
+export const quizStatsAtom = Atom.family((input: string) => {
+  const [projectId, quizId] = input.split(':')
+  return Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(quizDetailStateAtom(quizId))
+      if (Option.isNone(state))
+        return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
 
-        if (!state.value.showResults)
-          return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
+      if (!state.value.showResults)
+        return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
 
-        const questionsResult = get(quizQuestionsAtom(input))
-        if (!Result.isSuccess(questionsResult))
-          return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
+      const questionsResult = get(quizQuestionsAtom(`${projectId}:${quizId}`))
+      if (!Result.isSuccess(questionsResult))
+        return { total: 0, correct: 0, incorrect: 0, percentage: 0 }
 
-        const quizQuestions = questionsResult.value
-        const { selectedByQuestionId } = state.value
+      const quizQuestions = questionsResult.value
+      const { selectedByQuestionId } = state.value
 
-        const total = quizQuestions.length
-        const correct = quizQuestions.reduce((acc, q) => {
-          return (
-            acc +
-            (selectedByQuestionId[q.id] === (q.correct_option as any) ? 1 : 0)
-          )
-        }, 0)
-        const incorrect = total - correct
-        const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
+      const total = quizQuestions.length
+      const correct = quizQuestions.reduce((acc, q) => {
+        return (
+          acc +
+          (selectedByQuestionId[q.id] === (q.correct_option as any) ? 1 : 0)
+        )
+      }, 0)
+      const incorrect = total - correct
+      const percentage = total > 0 ? Math.round((correct / total) * 100) : 0
 
-        return { total, correct, incorrect, percentage }
-      }),
-    ),
-)
+      return { total, correct, incorrect, percentage }
+    }),
+  )
+})
 
-export const currentQuestionAtom = Atom.family(
-  (input: { projectId: string; quizId: string }) =>
-    Atom.make(
-      Effect.fn(function* (get) {
-        const state = get(quizDetailStateAtom(input.quizId))
-        if (Option.isNone(state)) return null
+export const currentQuestionAtom = Atom.family((input: string) => {
+  const [projectId, quizId] = input.split(':')
+  return Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(quizDetailStateAtom(quizId))
+      if (Option.isNone(state)) return null
 
-        const questionsResult = get(quizQuestionsAtom(input))
-        if (!Result.isSuccess(questionsResult)) return null
+      const questionsResult = get(quizQuestionsAtom(`${projectId}:${quizId}`))
+      if (!Result.isSuccess(questionsResult)) return null
 
-        const quizQuestions = questionsResult.value
-        const { currentQuestionIndex } = state.value
+      const quizQuestions = questionsResult.value
+      const { currentQuestionIndex } = state.value
 
-        return quizQuestions[currentQuestionIndex] ?? null
-      }),
-    ),
-)
+      return quizQuestions[currentQuestionIndex] ?? null
+    }),
+  )
+})
 
-export const canSubmitQuizAtom = Atom.family(
-  (input: { projectId: string; quizId: string }) =>
-    Atom.make(
-      Effect.fn(function* (get) {
-        const state = get(quizDetailStateAtom(input.quizId))
-        if (Option.isNone(state)) return false
+export const canSubmitQuizAtom = Atom.family((input: string) => {
+  const [projectId, quizId] = input.split(':')
+  return Atom.make(
+    Effect.fn(function* (get) {
+      const state = get(quizDetailStateAtom(quizId))
+      if (Option.isNone(state)) return false
 
-        const questionsResult = get(quizQuestionsAtom(input))
-        if (!Result.isSuccess(questionsResult)) return false
+      const questionsResult = get(quizQuestionsAtom(`${projectId}:${quizId}`))
+      if (!Result.isSuccess(questionsResult)) return false
 
-        const quizQuestions = questionsResult.value
-        const { selectedByQuestionId } = state.value
+      const quizQuestions = questionsResult.value
+      const { selectedByQuestionId } = state.value
 
-        return Object.keys(selectedByQuestionId).length === quizQuestions.length
-      }),
-    ),
-)
+      return Object.keys(selectedByQuestionId).length === quizQuestions.length
+    }),
+  )
+})
 
 export const setCurrentQuestionIndexAtom = runtime.fn(
   Effect.fn(function* (input: { quizId: string; index: number }) {
@@ -239,7 +239,7 @@ export const submitQuizAtom = runtime.fn(
     const { selectedByQuestionId } = currentState
 
     const questionsResult = registry.get(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+      quizQuestionsAtom(`${input.projectId}:${input.quizId}`),
     )
     if (!Result.isSuccess(questionsResult)) return
 
@@ -316,7 +316,7 @@ export const goToNextQuestionAtom = runtime.fn(
     const { currentQuestionIndex } = currentState
 
     const questionsResult = registry.get(
-      quizQuestionsAtom({ projectId: input.projectId, quizId: input.quizId }),
+      quizQuestionsAtom(`${input.projectId}:${input.quizId}`),
     )
     if (!Result.isSuccess(questionsResult)) return
 

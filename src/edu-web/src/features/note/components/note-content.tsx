@@ -1,7 +1,7 @@
+import { Response } from '@/components/ai-elements/response'
+import { noteAtom } from '@/data-acess/note'
 import { Result, useAtomValue } from '@effect-atom/atom-react'
 import { Loader2Icon } from 'lucide-react'
-import { noteAtom } from '@/data-acess/note'
-import { Response } from '@/components/ai-elements/response'
 
 type NoteContentProps = {
   noteId: string
@@ -14,7 +14,7 @@ export const NoteContent = ({
   projectId,
   className,
 }: NoteContentProps) => {
-  const noteResult = useAtomValue(noteAtom({ projectId, noteId }))
+  const noteResult = useAtomValue(noteAtom(`${projectId}:${noteId}`))
 
   return Result.builder(noteResult)
     .onInitialOrWaiting(() => (

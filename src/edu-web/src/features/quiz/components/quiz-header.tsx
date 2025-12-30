@@ -1,17 +1,17 @@
-import { Result, useAtomValue } from '@effect-atom/atom-react'
-import { ArrowLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { quizAtom } from '@/data-acess/quiz'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { quizAtom } from '@/data-acess/quiz'
+import { Result, useAtomValue } from '@effect-atom/atom-react'
+import { Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 
 const QuizHeaderContent = ({
   quizId,
@@ -20,7 +20,7 @@ const QuizHeaderContent = ({
   quizId: string
   projectId: string
 }) => {
-  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
+  const quizResult = useAtomValue(quizAtom(`${projectId}:${quizId}`))
 
   return Result.builder(quizResult)
     .onSuccess((quiz) => (
@@ -55,7 +55,7 @@ type QuizHeaderProps = {
 }
 
 export const QuizHeader = ({ quizId, projectId }: QuizHeaderProps) => {
-  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
+  const quizResult = useAtomValue(quizAtom(`${projectId}:${quizId}`))
 
   return (
     <header className="bg-background sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b px-2">

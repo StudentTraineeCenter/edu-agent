@@ -1,4 +1,45 @@
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  createQuizQuestionAtom,
+  deleteQuizQuestionAtom,
+  quizAtom,
+  quizQuestionsAtom,
+  reorderQuizQuestionsAtom,
+  updateQuizQuestionAtom,
+} from '@/data-acess/quiz'
+import {
   Result,
   useAtom,
   useAtomSet,
@@ -8,47 +49,6 @@ import { Link } from '@tanstack/react-router'
 import { ArrowLeft, PlusIcon, SaveIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { QuizQuestionEditor } from './components/quiz-question-editor'
-import {
-  createQuizQuestionAtom,
-  deleteQuizQuestionAtom,
-  quizAtom,
-  quizQuestionsAtom,
-  reorderQuizQuestionsAtom,
-  updateQuizQuestionAtom,
-} from '@/data-acess/quiz'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from '@/components/ui/breadcrumb'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 
 type QuizEditPageProps = {
   quizId: string
@@ -78,7 +78,7 @@ const QuizHeaderContent = ({
   quizId: string
   projectId: string
 }) => {
-  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
+  const quizResult = useAtomValue(quizAtom(`${projectId}:${quizId}`))
 
   return Result.builder(quizResult)
     .onSuccess((quiz) => (
@@ -108,8 +108,10 @@ const QuizHeaderContent = ({
 }
 
 export const QuizEditPage = ({ quizId, projectId }: QuizEditPageProps) => {
-  const questionsResult = useAtomValue(quizQuestionsAtom({ projectId, quizId }))
-  const quizResult = useAtomValue(quizAtom({ projectId, quizId }))
+  const questionsResult = useAtomValue(
+    quizQuestionsAtom(`${projectId}:${quizId}`),
+  )
+  const quizResult = useAtomValue(quizAtom(`${projectId}:${quizId}`))
   const [createQuestionResult, createQuestion] = useAtom(
     createQuizQuestionAtom,
     { mode: 'promise' },
